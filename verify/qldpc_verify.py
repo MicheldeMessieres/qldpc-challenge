@@ -61,6 +61,7 @@ What "verified" means per field:
               computed.diagnostics as evidence; no verdict depends on them.
 """
 
+import collections
 import glob
 import json
 import re
@@ -394,6 +395,14 @@ def structure_errors(doc):
     return resource_errors(doc)
 
 
+def _computed_k(doc):
+    """k from the matrices, so the signature cannot depend on a claim."""
+    n = doc["n"]
+    HX = _matrix(doc["checks"]["X"], n)
+    HZ = _matrix(doc["checks"]["Z"], n)
+    return n - gf2.rank(HX) - gf2.rank(HZ)
+
+
 def signature(doc):
     """Permutation-invariant fingerprint via Weisfeiler-Leman color refinement
     on the Tanner graph (qubits + X-checks + Z-checks). Two codes equal up to a
@@ -431,7 +440,16 @@ def signature(doc):
             break
         color = newc
     cert = sorted(color)  # permutation-invariant multiset of final colors
-    payload = json.dumps([n, doc["k"], doc["distance"]["d"], cert])
+    # The payload must be a function of the CODE, not of what an entry claims
+    # about it. It used to carry doc["distance"]["d"], so tightening a distance
+    # changed the hash of matrices that had not moved, and two equivalent codes
+    # submitted at different claimed distances never collided (issue #1650).
+    # k is recomputed rather than read, for the same reason; the check-weight
+    # profile replaces the discrimination that d was accidentally providing,
+    # since WL refinement on a regular Tanner graph is close to trivial and the
+    # claim was doing most of the separating.
+    weights = sorted(collections.Counter(len(set(r)) for r in X + Z).items())
+    payload = json.dumps([n, _computed_k(doc), weights, cert])
     return {"hash": hashlib.sha256(payload.encode()).hexdigest()[:16],
             "n": n, "k": doc["k"], "d": doc["distance"]["d"]}
 
