@@ -61,7 +61,13 @@ The verdict's `gates` block is your evidence; `labels` are what you show the hum
 0. **Read the shared record first**: `./qldpc recent` (new codes, research
    notes, fieldnotes), then the `fieldnotes/` entries touching your intended
    family — blocked routes and calibration findings live there, and repeating
-   them wastes the budget.
+   them wastes the budget. Recent literature is part of that record:
+   [`literature/README.md`](literature/README.md) is the arXiv watch, and its
+   ledger says which new papers a human read and what they concluded
+   (`uv run --frozen python research/arxiv_watch.py --list relevant`, no network
+   needed). Screening there is triage and a distance in an abstract is a claim,
+   so a lead from it still has to be reconstructed and passed through the gate
+   below before it is a find.
 1. **Pick a direction** → a track cell + a family + a budget (below).
 2. **Build** `(HX, HZ)` from a constructor.
 3. **Estimate** distance cheaply with the surrogate (gets you the witness for free).
