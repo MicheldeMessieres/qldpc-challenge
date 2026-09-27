@@ -5,19 +5,16 @@
       "candidates_screened": 1
     },
     "declared": {
-      "candidates_screened": 4,
-      "walltime_hours": 0.25
+      "candidates_screened": 1
     },
     "remaining": {
-      "candidates_screened": 3,
-      "walltime_hours": 0.25
+      "candidates_screened": 0
     }
   },
   "campaign_id": "smoke-bb-72",
   "campaign_name": "Smoke campaign: one known BB code, one experiment",
   "experiments": [
     {
-      "candidates": 0,
       "family": "bivariate-bicycle",
       "note": "the known Z_6 x Z_6 trinomial pair",
       "seed": 0,
@@ -51,8 +48,8 @@
   ],
   "status": "completed",
   "stopped_by": {
-    "detail": "objective reached 6 against 6",
-    "type": "target_reached"
+    "detail": "candidates_screened reached 1 of 1",
+    "type": "budget_exhausted"
   },
   "summary_version": 1,
   "survivors": []

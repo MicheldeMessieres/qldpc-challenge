@@ -11,7 +11,7 @@
       "generators": ["research/kit/bb.py::build_bb"],
       "screening": { "trials_per_candidate": 200, "seeds": [0] }
     },
-    "budget": { "candidates_screened": 4, "walltime_hours": 0.25 },
+    "budget": { "candidates_screened": 1 },
     "stopping": [
       { "type": "target_reached" },
       { "type": "candidates_found", "count": 1 },

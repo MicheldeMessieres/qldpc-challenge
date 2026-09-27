@@ -13,9 +13,11 @@
     },
     "methods": {
       "families": ["lifted-product", "bivariate-bicycle"],
-      "generators": ["research/kit/search.py::sample_bb"],
+      "generators": [
+        "research/local2d/boundary_engine.py::build_planar",
+        "research/local2d/planar.py::grid_coordinates"
+      ],
       "screening": {
-        "trials_per_candidate": 250,
         "seeds": [101, 211, 307],
         "ladder": [[20000, 22], [100000, 20]]
       },
@@ -23,7 +25,6 @@
     },
     "budget": { "cpu_hours": 500, "gpu_hours": 100, "walltime_hours": 72 },
     "stopping": [
-      { "type": "frontier_advance" },
       { "type": "budget_exhausted" },
       { "type": "no_progress", "experiments": 8 }
     ],
@@ -34,6 +35,6 @@
       "negative_results",
       "campaign_summary"
     ],
-    "notes": "Above n=700 the board only admits check weight <= 8 with d <= 40, which is why the weight cap and the blocklength window are what they are: outside that box a find cannot be submitted at all."
+    "notes": "Above n=700 the board only admits check weight <= 8 with d <= 40, which is why the weight cap and the blocklength window are what they are: outside that box a find cannot be submitted at all. The locality constraint is reachable only through a generator that emits per-qubit coordinates, which is why the generators are the boundary engine and its layout helper rather than a torus sampler: the verifier reads the locality class off the layout, and a code submitted without one lands in the unrestricted cell. n = 2*Lx*Ly before cleanup, so the window needs Lx*Ly in [350, 500]. Weight 8 needs boundary_engine rather than planar.build_open_directional, which covers weight-6 families only. There is deliberately no frontier_advance stop: this is a sweep of a cell, and one advance is a reason to keep going, not to stop."
   }
 }

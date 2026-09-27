@@ -43,13 +43,17 @@ enough to run in a test.
 restrict a search to `local-2d-bilayer` at check weight 8. Which track cell a
 finished code actually lands in is computed by the verifier from `(H_X, H_Z)`
 and the layout. `Campaign.in_scope` answers "is this worth another rung", and
-its answer never reaches a submission document.
+its answer never reaches a submission document. It narrows the ladder and does
+not forbid staging: a strong candidate that falls outside the declared window
+should still be packaged, validated and reported, and an out-of-scope screen is
+not a negative result, because nothing was measured.
 
 **It cannot weaken the gate.** `Ledger.record_candidate` refuses any verdict
-without `passed: true`, so no campaign summary can report a find that
-`verify/validate_candidate.py` did not accept. A campaign never opens a PR:
-unattended runs stage for review, and publication follows `../../AGENTS.md`
-unchanged.
+without `passed: true`, and `Ledger.best_score` reads the objective off the
+recorded survivors, so neither a find nor a `target_reached` stop can rest on
+a candidate `verify/validate_candidate.py` did not accept. A campaign never
+opens a PR: unattended runs stage for review, and publication follows
+`../../AGENTS.md` unchanged.
 
 ## Ending one
 
@@ -60,3 +64,8 @@ family is the finding. `summary.json` is the machine-readable half;
 
 `abandoned` keeps everything a run produced. Stopping early throws nothing
 away.
+
+The ledger is held in memory, so a kill loses it. On a run long enough for that
+to matter, write the summary at each experiment boundary:
+`write_summary(led.summary(), ".../summary.json")` overwrites in place, and the
+status it records is `paused` until a stopping condition fires.

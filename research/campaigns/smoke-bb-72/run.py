@@ -4,7 +4,9 @@ Proves a campaign definition actually drives the existing loop rather than
 sitting beside it. One experiment, one known [[72,12,6]] bivariate bicycle
 code, screened with the kit, packaged with the kit, and put through the real
 gate. Nothing here is a find until the gate says so, and nothing is submitted:
-the survivor is staged and summarised, exactly as an unattended run must.
+the survivor is staged and summarised, exactly as an unattended run must. The
+gate refuses this code as a board duplicate, so the objective's target is not
+reached: the target is read off validated survivors, of which there are none.
 
     uv run --frozen python research/campaigns/smoke-bb-72/run.py
 """
@@ -40,9 +42,9 @@ def main(out=None, refute=False):
     print(f"  screened [[{n},?,{d}]] w={w} at {trials} trials")
 
     if not camp.in_scope(n=n, d=d, w=w):
-        led.record_negative("out of scope",
+        led.record_negative("skipped, not searched",
                             f"[[{n},.,{d}]] w={w} is outside the campaign's "
-                            "search space")
+                            "search space, so nothing was measured here")
         led.end_experiment()
     else:
         doc = make_submission(
@@ -62,12 +64,10 @@ def main(out=None, refute=False):
             print("  gate rejected it; recorded as a negative result")
         led.end_experiment()
 
-    best = camp.score(n=n, k=12, d=d)
-    fired = led.stop_reason(best_score=best)
+    fired = led.stop_reason()
     print(f"  stopped by: {fired[0]} ({fired[1]})" if fired
           else "  no stopping condition fired")
-    summary = led.summary(best_score=best,
-                          report="research/campaigns/smoke-bb-72/REPORT.md")
+    summary = led.summary(report="research/campaigns/smoke-bb-72/REPORT.md")
     out = out or os.path.join(_HERE, "summary.json")
     write_summary(summary, out)
     print(f"  summary -> {os.path.relpath(out, _ROOT)}")

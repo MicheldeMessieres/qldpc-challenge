@@ -15,8 +15,10 @@ the board real entries before:
   by the verifier from ``(H_X, H_Z)`` and the layout. :meth:`Campaign.in_scope`
   is therefore named for what it does, and its result never reaches a document.
 * **A survivor is a validated survivor.** :meth:`Ledger.record_candidate`
-  refuses anything whose verdict does not carry ``passed: true``, so a
-  campaign summary cannot report a find the gate did not accept.
+  refuses anything whose verdict does not carry ``passed: true``, and
+  :meth:`Ledger.best_score` reads the objective off the recorded survivors, so
+  neither a summary nor a stopping condition can report a find, or a target
+  reached, that the gate did not accept.
 
     from campaign import load_campaign, Ledger
     c = load_campaign("research/campaigns/<id>/campaign.json")
@@ -30,6 +32,7 @@ the board real entries before:
 """
 import json
 import os
+import time
 
 try:
     import jsonschema
@@ -40,6 +43,10 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_HERE))
 SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_VERSION = 1
+
+# The metrics :meth:`Campaign.score` computes from a survivor's (n, k, d), and
+# therefore the only ones a target_reached condition can ever fire on.
+SCORABLE_METRICS = ("kd2_over_n", "distance", "logical_qubits")
 
 
 class CampaignError(ValueError):
@@ -83,10 +90,18 @@ def validate_campaign(obj):
             raise CampaignError(
                 "stopping no_progress: needs experiments, otherwise nothing "
                 "says how long a dry spell has to be")
-        if cond["type"] == "target_reached" and "target" not in c["objective"]:
-            raise CampaignError(
-                "stopping target_reached: objective.target is not set, so "
-                "there is no target to reach")
+        if cond["type"] == "target_reached":
+            if "target" not in c["objective"]:
+                raise CampaignError(
+                    "stopping target_reached: objective.target is not set, so "
+                    "there is no target to reach")
+            metric = c["objective"]["metric"]
+            if metric not in SCORABLE_METRICS:
+                raise CampaignError(
+                    f"stopping target_reached: objective.metric {metric!r} is "
+                    "not computed from a survivor's (n, k, d), so the "
+                    "condition could never fire; use one of "
+                    f"{', '.join(SCORABLE_METRICS)}")
     return obj
 
 
@@ -97,7 +112,15 @@ def load_campaign(path):
             obj = json.load(f)
     except json.JSONDecodeError as e:
         raise CampaignError(f"{path}: not valid JSON ({e})") from None
-    return Campaign(validate_campaign(obj), path=path)
+    camp = Campaign(validate_campaign(obj), path=path)
+    home = os.path.dirname(os.path.abspath(path))
+    if os.path.basename(os.path.dirname(home)) == "campaigns" \
+            and os.path.basename(home) != camp.id:
+        raise CampaignError(
+            f"{path}: campaign id {camp.id!r} is not the directory name "
+            f"{os.path.basename(home)!r}; a copied definition would file its "
+            "ledger under the campaign it was copied from")
+    return camp
 
 
 class Campaign:
@@ -150,6 +173,10 @@ class Campaign:
         if locality is not None and con.get("locality"):
             want, order = con["locality"], ("local-2d-single",
                                             "local-2d-bilayer", "unrestricted")
+            if locality not in order:
+                raise CampaignError(
+                    f"unknown locality class {locality!r}; the schema's "
+                    f"classes are {', '.join(order)}")
             # the classes nest: a single-layer code satisfies a bilayer ask
             if order.index(locality) > order.index(want):
                 return False
@@ -185,6 +212,7 @@ class Ledger:
     def __init__(self, campaign):
         self.campaign = campaign
         self.spent = dict.fromkeys(BUDGET_FIELDS, 0)
+        self._t0 = time.monotonic()
         self.experiments = []
         self.survivors = []
         self.negative_results = []
@@ -201,7 +229,7 @@ class Ledger:
                 f"({', '.join(self.campaign.families)})")
         self._current = {"family": family, "seed": seed, "note": note,
                          "spent": dict.fromkeys(BUDGET_FIELDS, 0),
-                         "candidates": 0, "survivors": 0}
+                         "survivors": 0}
         return self._current
 
     def end_experiment(self):
@@ -236,23 +264,28 @@ class Ledger:
             raise CampaignError(
                 "record_candidate: the verdict does not say passed: true. A "
                 "candidate is not a find until the gate accepts it")
+        if self._current is None:
+            raise CampaignError(
+                "record_candidate without start_experiment: a survivor no "
+                "experiment accounts for leaves the ledger contradicting "
+                "itself about what the budget bought")
         gates = verdict.get("gates") or {}
         novelty = gates.get("novelty") or {}
         if advanced_frontier is None:
             advanced_frontier = bool(novelty.get("board_advancing"))
         row = {
             "n": doc["n"], "k": doc["k"], "d": doc["distance"]["d"],
-            "w": (verdict.get("candidate") or {}).get("max_check_weight")
-                 or (gates.get("verify") or {}).get("max_check_weight"),
+            # the weight class the verifier computed; the gate does not put a
+            # raw max check weight in its verdict
+            "weight_class": (verdict.get("candidate") or {}).get("weight_class")
+                            or (gates.get("verify") or {}).get("weight_class"),
             "cell": novelty.get("cell"),
             "board_advancing": novelty.get("board_advancing"),
             "fingerprint": (verdict.get("candidate") or {}).get("fingerprint"),
             "labels": list(verdict.get("labels") or []),
         }
         self.survivors.append(row)
-        if self._current is not None:
-            self._current["survivors"] += 1
-            self._current["candidates"] += 1
+        self._current["survivors"] += 1
         if advanced_frontier:
             self.frontier_advances += 1
         return row
@@ -267,15 +300,40 @@ class Ledger:
         self.negative_results.append({"what": what, "detail": detail})
 
     # -- stopping ---------------------------------------------------------
+    def consumed(self):
+        """Report what has been spent, with wall time read off the clock.
+
+        ``walltime_hours`` is measured rather than reported: a cap nothing
+        observes is advisory, and the budget object exists to be enforceable.
+        """
+        out = dict(self.spent)
+        out["walltime_hours"] = max(out["walltime_hours"],
+                                    (time.monotonic() - self._t0) / 3600)
+        return out
+
     def budget_exhausted(self):
         """Name the first budget field that has been reached, or None."""
-        budget = self.campaign.c["budget"]
+        budget, spent = self.campaign.c["budget"], self.consumed()
         for field, cap in budget.items():
-            if self.spent.get(field, 0) >= cap:
+            if spent.get(field, 0) >= cap:
                 return field
         return None
 
-    def stop_reason(self, *, best_score=None):
+    def best_score(self):
+        """Return the best objective over the validated survivors, or None.
+
+        Read off the recorded survivor rows and nowhere else, so a stopping
+        condition on the objective cannot fire on a screening number for a
+        candidate the gate went on to refuse.
+        """
+        scores = [s for s in (self.campaign.score(n=r["n"], k=r["k"], d=r["d"])
+                              for r in self.survivors) if s is not None]
+        if not scores:
+            return None
+        up = self.campaign.c["objective"]["direction"] == "maximize"
+        return max(scores) if up else min(scores)
+
+    def stop_reason(self):
         """Which stopping condition has fired, as (type, detail), or None."""
         for cond in self.campaign.c["stopping"]:
             kind = cond["type"]
@@ -283,30 +341,40 @@ class Ledger:
                 field = self.budget_exhausted()
                 if field:
                     cap = self.campaign.c["budget"][field]
-                    return kind, f"{field} reached {self.spent[field]:g} of {cap:g}"
+                    spent = self.consumed()[field]
+                    return kind, f"{field} reached {spent:g} of {cap:g}"
             elif kind == "frontier_advance" and self.frontier_advances:
                 return kind, f"{self.frontier_advances} validated frontier advance(s)"
             elif kind == "candidates_found" and len(self.survivors) >= cond["count"]:
                 return kind, f"{len(self.survivors)} validated survivors"
             elif kind == "no_progress" and self._dry_streak >= cond["experiments"]:
                 return kind, f"{self._dry_streak} experiments with no survivor"
-            elif kind == "target_reached" and best_score is not None:
+            elif kind == "target_reached":
+                best = self.best_score()
+                if best is None:
+                    continue
                 target = self.campaign.c["objective"]["target"]
                 up = self.campaign.c["objective"]["direction"] == "maximize"
-                if (best_score >= target) if up else (best_score <= target):
-                    return kind, f"objective reached {best_score:g} against {target:g}"
+                if (best >= target) if up else (best <= target):
+                    return kind, f"objective reached {best:g} against {target:g}"
         return None
 
     # -- output -----------------------------------------------------------
-    def summary(self, *, status="completed", best_score=None, report=None):
+    def summary(self, *, status=None, report=None):
         """Build the machine-readable campaign summary.
 
         Written beside the definition when a campaign ends. Zero survivors is a
         complete, reportable outcome: the ledger and the negative results are
-        the finding in that case.
+        the finding in that case. ``status`` defaults to what happened, so an
+        interrupted run does not file itself as completed.
         """
-        fired = self.stop_reason(best_score=best_score)
+        fired = self.stop_reason()
         budget = self.campaign.c["budget"]
+        spent = self.consumed()
+        shown = [f for f in BUDGET_FIELDS if spent[f] and
+                 (f != "walltime_hours" or f in budget)]
+        if status is None:
+            status = "completed" if fired else "paused"
         return {
             "summary_version": SUMMARY_VERSION,
             "campaign_id": self.campaign.id,
@@ -316,9 +384,8 @@ class Ledger:
             "stopped_by": {"type": fired[0], "detail": fired[1]} if fired
                           else {"type": None, "detail": "still running"},
             "budget": {"declared": budget,
-                       "consumed": {f: self.spent[f] for f in BUDGET_FIELDS
-                                    if self.spent[f]},
-                       "remaining": {f: budget[f] - self.spent.get(f, 0)
+                       "consumed": {f: round(spent[f], 3) for f in shown},
+                       "remaining": {f: round(budget[f] - spent.get(f, 0), 3)
                                      for f in budget}},
             "experiments": self.experiments,
             "survivors": self.survivors,

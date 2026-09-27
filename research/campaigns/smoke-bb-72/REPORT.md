@@ -4,7 +4,7 @@
 
 Maximize `kd^2/n` over bivariate bicycle codes with n in [60, 80], check weight
 at most 6 and distance at least 4, stopping at a score of 6, one survivor, or
-four screened candidates. The definition is
+one screened candidate. The definition is
 `research/campaigns/smoke-bb-72/campaign.json`.
 
 This campaign exists to be run in a test. It is not a search: it builds one
@@ -14,8 +14,10 @@ claims.
 
 ## What was spent
 
-One of four screened candidates. Stopped by `target_reached`: the objective hit
-6 against a target of 6.
+The one screened candidate the budget allowed. Stopped by `budget_exhausted`.
+The target of 6 was not reached even though the code screens at `kd^2/n = 6`
+exactly: the target is read off validated survivors, the gate refused this one,
+and a screening number cannot end a campaign.
 
 ## What was tried
 

@@ -25,10 +25,10 @@ tells the next searcher something; "we swept the family" does not.
 
 ## Survivors
 
-Each validated survivor as `[[n,k,d]]`, its weight, its cell, and what the gate
-said. A survivor is a candidate the gate accepted; it is not a board entry
-until a human submits it. If there are none, say so here rather than leaving
-the section out.
+Each validated survivor as `[[n,k,d]]`, its weight class, its cell, and what
+the gate said. A survivor is a candidate the gate accepted; it is not a board
+entry until a human submits it. If there are none, say so here rather than
+leaving the section out.
 
 ## Negative results
 

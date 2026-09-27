@@ -48,12 +48,21 @@ def camp(**over):
     return obj
 
 
-def passed_verdict(n=200, k=8, d=12, w=6, advancing=True):
+def passed_verdict(n=200, k=8, d=12, wc="weight-6", advancing=True):
+    """Build the verdict shape verify/validate_candidate.py actually returns.
+
+    Its ``candidate`` block carries the verifier's weight and locality CLASSES
+    and no raw max check weight, so a ledger that reads one gets None.
+    """
     return {
         "passed": True,
-        "candidate": {"n": n, "k": k, "d": d, "max_check_weight": w,
-                      "fingerprint": "abc123"},
-        "gates": {"novelty": {"board_advancing": advancing,
+        "candidate": {"n": n, "k": k, "d": d, "family": "bivariate-bicycle",
+                      "weight_class": wc, "locality_class": "unrestricted",
+                      "fingerprint": "abc123", "signature": "def456"},
+        "gates": {"verify": {"ok": True, "failed_checks": [],
+                             "weight_class": wc,
+                             "locality_class": "unrestricted"},
+                  "novelty": {"board_advancing": advancing,
                               "cell": ["weight-6", "unrestricted"]}},
         "labels": ["advances the weight-6 x unrestricted board"],
     }
@@ -112,6 +121,25 @@ def test_target_reached_without_a_target_is_rejected():
         validate_campaign(camp(stopping=[{"type": "target_reached"}]))
 
 
+def test_target_reached_on_a_metric_the_ledger_cannot_score_is_rejected():
+    """A stopping condition that can never fire is worse than none at all."""
+    with pytest.raises(CampaignError, match="could never fire"):
+        validate_campaign(camp(
+            objective={"metric": "frontier_entries", "direction": "maximize",
+                       "target": 3},
+            stopping=[{"type": "target_reached"}]))
+
+
+def test_an_id_that_is_not_its_directory_is_rejected(tmp_path):
+    """A copied definition must not file its ledger under the original."""
+    home = tmp_path / "campaigns" / "copied-from-somewhere"
+    home.mkdir(parents=True)
+    p = home / "campaign.json"
+    p.write_text(json.dumps(GOOD))
+    with pytest.raises(CampaignError, match="not the directory name"):
+        load_campaign(str(p))
+
+
 def test_a_bad_schema_version_is_rejected():
     with pytest.raises(CampaignError):
         validate_campaign(camp(schema_version=2))
@@ -134,6 +162,9 @@ def test_constraints_filter_the_search_and_nothing_else():
     assert not c.in_scope(locality="unrestricted")
     # an unconstrained axis never excludes anything
     assert c.in_scope(k=10 ** 6)
+    # a locality string outside the schema's classes says so
+    with pytest.raises(CampaignError, match="unknown locality class"):
+        c.in_scope(locality="2D local")
 
 
 def test_the_objective_metric_is_computed_from_the_candidate():
@@ -151,6 +182,20 @@ def test_a_candidate_the_gate_did_not_pass_is_refused():
     with pytest.raises(CampaignError, match="passed: true"):
         led.record_candidate(doc(), {})
     assert led.survivors == []
+
+
+def test_a_survivor_outside_an_experiment_is_refused():
+    """A survivor no experiment accounts for makes the ledger self-contradicting."""
+    led = Ledger(Campaign(validate_campaign(camp())))
+    with pytest.raises(CampaignError, match="without start_experiment"):
+        led.record_candidate(doc(), passed_verdict())
+
+
+def test_the_survivor_row_carries_the_verifier_s_weight_class():
+    led = Ledger(Campaign(validate_campaign(camp())))
+    led.start_experiment("bivariate-bicycle")
+    row = led.record_candidate(doc(), passed_verdict())
+    assert row["weight_class"] == "weight-6"
 
 
 def test_a_family_outside_the_campaign_is_refused():
@@ -213,18 +258,60 @@ def test_a_survivor_resets_the_dry_spell():
     assert led.stop_reason() is None
 
 
+def _with_survivor(c, **candidate):
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle")
+    led.record_candidate(doc(**candidate), passed_verdict(advancing=False))
+    led.end_experiment()
+    return led
+
+
 def test_the_target_is_read_in_the_objective_direction():
     up = Campaign(validate_campaign(camp(
         objective={"metric": "kd2_over_n", "direction": "maximize",
                    "target": 100},
         stopping=[{"type": "target_reached"}])))
-    assert Ledger(up).stop_reason(best_score=99) is None
-    assert Ledger(up).stop_reason(best_score=100)[0] == "target_reached"
+    assert _with_survivor(up, n=200, k=8, d=12).stop_reason() is None
+    assert _with_survivor(up, n=100, k=10, d=32).stop_reason()[0] \
+        == "target_reached"
+    # no current metric is naturally minimized; the comparison still honours it
     down = Campaign(validate_campaign(camp(
         objective={"metric": "distance", "direction": "minimize", "target": 4},
         stopping=[{"type": "target_reached"}])))
-    assert Ledger(down).stop_reason(best_score=5) is None
-    assert Ledger(down).stop_reason(best_score=4)[0] == "target_reached"
+    assert _with_survivor(down, d=5).stop_reason() is None
+    assert _with_survivor(down, d=4).stop_reason()[0] == "target_reached"
+
+
+def test_the_target_cannot_be_reached_by_a_candidate_the_gate_refused():
+    """The refusal that the shipped smoke campaign exercises end to end.
+
+    A screening score for a code the gate went on to reject must not end a
+    campaign, and must not appear in its summary as an objective met.
+    """
+    c = Campaign(validate_campaign(camp(
+        objective={"metric": "kd2_over_n", "direction": "maximize",
+                   "target": 6},
+        stopping=[{"type": "target_reached"}, {"type": "budget_exhausted"}])))
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle")
+    with pytest.raises(CampaignError):
+        led.record_candidate(doc(n=72, k=12, d=6),          # kd^2/n = 6
+                             {"passed": False, "labels": ["duplicate"]})
+    led.record_negative("gate rejected", "duplicate of a board entry")
+    led.end_experiment()
+    assert led.best_score() is None
+    assert led.stop_reason() is None
+    s = led.summary()
+    assert s["stopped_by"]["type"] is None and s["status"] == "paused"
+
+
+def test_wall_time_is_measured_rather_than_reported():
+    """A cap nothing observes is advisory; budget_exhausted must see the clock."""
+    c = Campaign(validate_campaign(camp(budget={"walltime_hours": 1e-9})))
+    led = Ledger(c)
+    assert led.consumed()["walltime_hours"] > 0
+    assert led.budget_exhausted() == "walltime_hours"
+    assert led.stop_reason()[0] == "budget_exhausted"
 
 
 # -- the summary ----------------------------------------------------------
@@ -237,6 +324,7 @@ def test_the_summary_records_what_was_spent_and_what_stopped_it():
     led.end_experiment()
     s = led.summary()
     assert s["summary_version"] == 1 and s["campaign_id"] == "test-campaign"
+    assert s["status"] == "completed"
     assert s["stopped_by"]["type"] == "budget_exhausted"
     assert s["budget"]["consumed"]["cpu_hours"] == 10
     assert s["budget"]["remaining"]["cpu_hours"] == 0
@@ -254,9 +342,18 @@ def test_a_campaign_with_no_submission_still_reports():
     led.spend(cpu_hours=10)
     led.end_experiment()
     s = led.summary()
+    assert s["status"] == "completed"
     assert s["survivors"] == [] and s["frontier_advances"] == 0
     assert s["negative_results"][0]["what"] == "closed family"
     assert s["stopped_by"]["type"] == "budget_exhausted"
+
+
+def test_an_interrupted_run_does_not_file_itself_as_completed():
+    led = Ledger(Campaign(validate_campaign(camp())))
+    led.start_experiment("bivariate-bicycle")
+    led.spend(cpu_hours=1)
+    led.end_experiment()
+    assert led.summary()["status"] == "paused"
 
 
 def test_the_summary_round_trips_through_disk(tmp_path):
