@@ -11,6 +11,7 @@ import copy
 import json
 import os
 import sys
+import time
 
 import pytest
 
@@ -309,6 +310,10 @@ def test_wall_time_is_measured_rather_than_reported():
     """A cap nothing observes is advisory; budget_exhausted must see the clock."""
     c = Campaign(validate_campaign(camp(budget={"walltime_hours": 1e-9})))
     led = Ledger(c)
+    # the cap is 3.6 us, which two method calls do not reliably outlast; sleep
+    # past it so the assertion tests that the clock is read, not how long the
+    # interpreter took to get here
+    time.sleep(0.01)
     assert led.consumed()["walltime_hours"] > 0
     assert led.budget_exhausted() == "walltime_hours"
     assert led.stop_reason()[0] == "budget_exhausted"
