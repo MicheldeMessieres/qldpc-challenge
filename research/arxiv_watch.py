@@ -549,22 +549,115 @@ def load_ledger(path=LEDGER):
                       f"({type(err).__name__})", file=sys.stderr)
                 continue
             r["triage"] = _migrate_triage(r.get("triage"))
-            rows[key] = r
+            if r.get("tier"):
+                r["triage"]["tier"] = r["tier"]
+                r["triage"]["screened_in"] = r["tier"] in ("strong", "candidate")
+            if r.get("claimed_params"):
+                r["triage"]["claimed_params"] = r["claimed_params"]
+            rows[key] = hydrate_row(r)
     return rows
 
 
+# What the ledger keeps, and nothing else. arXiv is the durable copy of a
+# paper: mirroring its abstract and author list into this repository would add
+# about 2.4 KiB per paper forever, most of it text nobody reads from here, for
+# a feed that runs at roughly a hundred papers a month. The ledger's job is to
+# know what it has already seen, at which version, and what a human decided --
+# so it stores exactly that, and the link to read the rest.
+#
+# Everything else (the abstract, the authors, the matched screening terms) is
+# held in memory for the length of one poll, used for screening and printed in
+# the report, and then dropped. ROW_BUDGET_BYTES is enforced by a test, so a
+# field added later cannot quietly put the bulk back.
+# A row with no verdict yet is the common case and the one that sets the
+# ledger's long-run size; a fully reviewed row also carries its capped
+# reason. Both are enforced by a test, so a field added later cannot
+# quietly put the bulk back.
+ROW_BUDGET_BYTES = 800
+UNREVIEWED_BUDGET_BYTES = 250
+REASON_MAX = 300
+
+
+def arxiv_link(row):
+    """Return the record's URL, derived rather than stored."""
+    return f"https://arxiv.org/abs/{row['id']}v{row.get('version', 1)}"
+
+
+def slim_row(row):
+    """Reduce a row to what the ledger keeps: decisions and identity.
+
+    Anything absent carries its default: no `review` key means unreviewed, no
+    `version_history` means the row has only ever been seen at one version.
+    Writing those out costs about 150 bytes a paper to say nothing.
+    """
+    out = {"id": row["id"], "version": row.get("version", 1),
+           "updated": row.get("updated", ""),
+           "title": row.get("title", ""),
+           "tier": row.get("tier") or (row.get("triage") or {}).get(
+               "tier", "background"),
+           "first_seen": row.get("first_seen", ""),
+           "last_seen": row.get("last_seen", "")}
+    params = row.get("claimed_params") or (row.get("triage") or {}).get(
+        "claimed_params") or []
+    if params:
+        # the quoted sentence a parameter was read out of is what makes the
+        # screen auditable DURING a poll; three parameters from one sentence
+        # would store that sentence three times forever. The numbers persist,
+        # the quote does not, and the link is how anyone checks it.
+        out["claimed_params"] = [
+            {k: v for k, v in p.items() if k != "context"} for p in params]
+    review = row.get("review") or {}
+    if review.get("status") and review["status"] != "unreviewed":
+        review = dict(review)
+        if review.get("reason"):
+            review["reason"] = review["reason"][:REASON_MAX]
+        out["review"] = review
+    prior = [dict(r) for r in (row.get("reviews") or [])]
+    for r in prior:
+        if r.get("reason"):
+            r["reason"] = r["reason"][:REASON_MAX]
+    if prior:
+        out["reviews"] = prior
+    history = row.get("version_history") or []
+    if len(history) > 1:
+        out["version_history"] = history
+    return out
+
+
+def hydrate_row(row):
+    """Fill in what slim_row left out, so callers never see a missing key."""
+    row.setdefault("version", 1)
+    row.setdefault("updated", "")
+    row.setdefault("submitted", row.get("updated", ""))
+    row.setdefault("title", "")
+    row.setdefault("tier", "background")
+    row.setdefault("claimed_params", [])
+    row.setdefault("reviews", [])
+    row.setdefault("link", arxiv_link(row))
+    row.setdefault("version_history",
+                   [{"version": row["version"], "updated": row["updated"],
+                     "seen": row.get("first_seen", "")}])
+    row.setdefault("review", {"status": "unreviewed", "reason": "",
+                              "by": "", "date": "", "version": None})
+    row.setdefault("triage", {"tier": row["tier"],
+                              "claimed_params": row["claimed_params"],
+                              "matched": [], "screened_in":
+                              row["tier"] in ("strong", "candidate")})
+    return row
+
+
 def save_ledger(rows, path=LEDGER):
-    """Rewrite the ledger atomically, newest submission first."""
+    """Rewrite the ledger atomically, newest first, in its slim form."""
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
     ordered = sorted(rows.values(),
-                     key=lambda r: (r.get("submitted", ""), r["id"]),
+                     key=lambda r: (r.get("updated", ""), r["id"]),
                      reverse=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         for r in ordered:
-            f.write(json.dumps(r, sort_keys=True) + "\n")
+            f.write(json.dumps(slim_row(r), sort_keys=True) + "\n")
     os.replace(tmp, path)
 
 
@@ -753,13 +846,19 @@ def render(rows, kind, limit, show_abstract=False):
         if r.get("prior_version"):
             v = f"v{r['prior_version']} -> v{r['version']}"
         mark = "READ" if t["screened_in"] else "    "
+        score = f", score {t['score']}" if t.get("score") else ""
         print(f"  {mark} {r['submitted']}  arXiv:{r['id']} {v}  "
-              f"{t['tier']}, score {t['score']}")
+              f"{t['tier']}{score}")
         print(f"       {r['title']}")
-        who = ", ".join(r["authors"][:3])
-        if len(r["authors"]) > 3:
-            who += f", +{len(r['authors']) - 3}"
-        print(f"       {who}  [{', '.join(c for c in r['categories'][:4] if c)}]")
+        # authors and categories are known during a poll and not kept in the
+        # ledger, so a later offline read prints the link instead
+        authors, cats = r.get("authors") or [], r.get("categories") or []
+        if authors or cats:
+            who = ", ".join(authors[:3])
+            if len(authors) > 3:
+                who += f", +{len(authors) - 3}"
+            tail = f"  [{', '.join(c for c in cats[:4] if c)}]" if cats else ""
+            print(f"       {who}{tail}")
         if t["claimed_params"]:
             shown = "; ".join(format_claim(c) for c in t["claimed_params"][:6])
             print(f"       claimed in abstract: {shown}")

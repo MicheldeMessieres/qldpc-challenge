@@ -170,25 +170,43 @@ comparable; the current criteria fingerprint is `7f52932425fe`.
 ## The ledger
 
 `arxiv-ledger.jsonl`, one JSON object per line, keyed by arXiv id, sorted newest
-submission first and rewritten atomically on every write. A line that will not
-parse is reported on stderr and skipped rather than ending the run.
+first and rewritten atomically on every write. A line that will not parse is
+reported on stderr and skipped rather than ending the run.
+
+It stores decisions and identity, not a copy of arXiv. A poll holds the
+abstract, the author list, the categories and the matched screening terms in
+memory, screens on them, prints them, and drops them. Keeping them would add
+about 2.4 KiB per paper forever, on a feed that runs at roughly a hundred
+papers a month, for text that is one click away at its source and is better
+read there. What stays is 379 bytes a row, so a year of polling is about
+460 KiB.
 
 | field | content |
 |---|---|
 | `id`, `version` | the bare arXiv id (an old-style id keeps its archive prefix) and the version seen |
-| `title`, `authors`, `submitted`, `updated`, `categories`, `primary`, `abstract` | the feed metadata triage ran on |
-| `comment`, `journal_ref`, `doi` | the rest of the arXiv record; the comment is part of the triage haystack |
-| `link` | `https://arxiv.org/abs/<id>v<version>`, the versioned record a reader should open |
+| `title` | how a human scans the list |
+| `updated` | the date the cutoff and the feed order both use |
+| `tier` | `strong`, `candidate` or `background` |
+| `claimed_params` | parameters the abstract states about its own code, as `n`, `k`, `d` and `comparison`; never a distance, always a claim |
 | `first_seen`, `last_seen` | poll dates; `last_seen` is what the next window is derived from |
-| `version_history` | one entry per version seen, each with its `updated` date and the poll that saw it |
-| `prior_version` | present only on a row whose version rose during a poll |
-| `triage` | `score`, `matched`, `claimed_params`, `tier`, `screened_in`, `screen` |
 | `review` | the current verdict: `status`, `reason`, `by`, `date`, and the `version` it was formed on |
 | `reviews` | superseded verdicts, oldest first |
+| `version_history` | present once a row has been seen at more than one version |
+
+A field is written only when it says something. No `review` key means
+unreviewed, no `version_history` means the row has only ever been seen at one
+version, and the link is derived from the id and version rather than stored.
+Reading the ledger fills those defaults back in, so nothing downstream sees a
+gap.
+
+Two budgets keep it that way, both asserted by `research/test_arxiv_watch.py`:
+a row with no verdict is at most 250 bytes, and a fully reviewed one with a
+reason at its 300-character cap is at most 800. A field added later that puts
+the bulk back fails the suite.
 
 The ledger is the dedup state, so deleting a row makes its paper new again, and
-editing one by hand is how a bad verdict becomes unexplainable. Change it through
-the tool.
+editing one by hand is how a bad verdict becomes unexplainable. Change it
+through the tool.
 
 ## Recording a verdict
 

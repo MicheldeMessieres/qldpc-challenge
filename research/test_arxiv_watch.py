@@ -584,3 +584,54 @@ def test_a_legacy_row_is_migrated_on_read(tmp_path):
     assert t["claimed_params"] == [{"n": 144, "k": 12, "d": 12,
                                    "context": "", "comparison": False}]
     assert t["screened_in"] is True
+
+# -- the ledger stays small -----------------------------------------------
+
+def test_the_ledger_stores_decisions_not_a_mirror_of_arxiv():
+    """A field added later must not quietly put the bulk back.
+
+    arXiv is the durable copy of a paper. Mirroring abstracts and author lists
+    into this repository costs about 2.4 KiB per paper forever, on a feed that
+    runs at roughly a hundred papers a month, for text nobody reads from here.
+    """
+    row = {
+        "id": "2601.00001", "version": 2, "updated": "2026-01-02",
+        "title": "A paper", "first_seen": "2026-01-01",
+        "last_seen": "2026-01-02",
+        "abstract": "x" * 4000, "authors": ["A" * 40] * 12,
+        "comment": "y" * 500, "categories": ["quant-ph"] * 5,
+        "triage": {"tier": "strong", "matched": ["a"] * 40,
+                   "score": 21,
+                   "claimed_params": [{"n": 90, "k": 21, "d": 11,
+                                       "comparison": False,
+                                       "context": "z" * 400}]},
+        "review": {"status": "relevant", "reason": "r" * 900,
+                   "by": "me", "date": "2026-01-02", "version": 2},
+    }
+    slim = W.slim_row(row)
+    blob = json.dumps(slim)
+    assert len(blob) <= W.ROW_BUDGET_BYTES, (
+        f"a ledger row grew to {len(blob)} bytes")
+    for dropped in ("abstract", "authors", "comment", "categories", "triage"):
+        assert dropped not in slim, f"{dropped} reached the ledger"
+    assert "context" not in slim["claimed_params"][0]
+    assert slim["claimed_params"][0]["n"] == 90
+    assert len(slim["review"]["reason"]) == W.REASON_MAX
+
+
+def test_an_unreviewed_row_writes_no_review_block():
+    """Absence carries the default; writing it out says nothing at a cost."""
+    slim = W.slim_row(
+        {"id": "2601.00002", "version": 1, "updated": "2026-01-02",
+         "title": "t", "first_seen": "a", "last_seen": "b",
+         "review": {"status": "unreviewed", "reason": "", "by": "",
+                    "date": "", "version": None},
+         "reviews": [], "version_history": [{"version": 1}]})
+    for absent in ("review", "reviews", "version_history", "claimed_params"):
+        assert absent not in slim
+    assert len(json.dumps(slim)) < 200
+
+
+def test_the_link_is_derived_from_the_row():
+    assert W.arxiv_link({"id": "2609.30069", "version": 2}) == (
+        "https://arxiv.org/abs/2609.30069v2")
