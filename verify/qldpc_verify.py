@@ -293,6 +293,71 @@ def hadamard_css_images(doc, hadamard_qubits):
             dict(base, code_type="CSS", checks={"X": Z, "Z": X})]
 
 
+def css_local_hadamard_images(doc, max_images=1024):
+    """Return the CSS images of a CSS code under local Hadamards, identity aside.
+
+    A Hadamard on a qubit subset h sends a pure-X generator with support S to
+    X-part ``S - h`` and Z-part ``S & h``, so the image is CSS only when every
+    generator's support lies wholly inside or wholly outside h. Two qubits
+    sharing a generator must therefore fall on the same side, which makes h a
+    union of connected components of the graph joining qubits that share a
+    generator. For a connected code the only choices are the empty set and
+    everything, so the sole image is the X/Z swap; a code of c components has
+    2^c choices and this returns all of them but the identity.
+
+    Each image carries n, k, d and checks, so signature() and css_fingerprint()
+    apply to it as they do to a board entry. Returns (images, capped) where
+    capped is True when 2^c exceeded max_images and the enumeration was cut.
+    """
+    n = doc["n"]
+    X = [sorted(r) for r in doc["checks"]["X"]]
+    Z = [sorted(r) for r in doc["checks"]["Z"]]
+
+    parent = list(range(n))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for rows in (X, Z):
+        for r in rows:
+            if not r:
+                continue
+            a = find(r[0])
+            for q in r[1:]:
+                b = find(q)
+                if a != b:
+                    parent[b] = a
+    comps = {}
+    for q in range(n):
+        comps.setdefault(find(q), []).append(q)
+    comp_list = list(comps.values())
+
+    capped = len(comp_list) > 20 or (1 << len(comp_list)) > max_images
+    if capped:
+        # every code on the board today is connected, so this is a guard
+        # rather than a path: fall back to the swap, which is always admissible
+        comp_list = [list(range(n))]
+
+    base = {"n": n, "k": doc["k"], "distance": {"d": doc["distance"]["d"]}}
+    out, seen = [], set()
+    for mask in range(1, 1 << len(comp_list)):
+        h = set()
+        for i, comp in enumerate(comp_list):
+            if mask >> i & 1:
+                h |= set(comp)
+        nx = [r for r in X if not (set(r) & h)] + [r for r in Z if set(r) <= h]
+        nz = [r for r in X if set(r) <= h] + [r for r in Z if not (set(r) & h)]
+        key = (tuple(sorted(map(tuple, nx))), tuple(sorted(map(tuple, nz))))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(dict(base, code_type="CSS", checks={"X": nx, "Z": nz}))
+    return out, capped
+
+
 def css_fingerprint(HX, HZ):
     """Exact-duplicate fingerprint of a CSS code (see _verify_semantic)."""
     import hashlib
@@ -1198,6 +1263,30 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
                    f"pure: this code is locally Clifford equivalent to a CSS "
                    f"code, whose fingerprint the dedup gate compares against "
                    f"the CSS board")
+    else:
+        # A CSS entry is filed under its own local-Hadamard images too, so the
+        # two families are deduped up to the same relation (#2327). Without
+        # this the verdict depended on the submitter's code_type: a Hadamard
+        # relabelling of a board entry was caught when typed `stabilizer` and
+        # missed when typed `CSS`. Informational, like the branch above: it
+        # widens what the gate recognises, never fails an entry.
+        images, capped = css_local_hadamard_images(doc)
+        if images:
+            report["css_equivalent"] = {
+                "of": "css",
+                "images": len(images),
+                "enumeration_capped": capped,
+                "fingerprints": [css_fingerprint(_matrix(im["checks"]["X"], n),
+                                                 _matrix(im["checks"]["Z"], n))
+                                 for im in images],
+                "signatures": [signature(im)["hash"] for im in images],
+            }
+            record("local_hadamard_css_images", True,
+                   f"{len(images)} local-Hadamard image(s) of this CSS code "
+                   f"filed with it, so a Hadamard-relabelled copy collides "
+                   f"with it whichever code_type it is submitted under"
+                   + (" (enumeration capped; the X/Z swap was used)"
+                      if capped else ""))
 
     # 8. independent distance refutation. A bounded RIS search must not find a
     #    logical lighter than the claimed distance. This is SOUND -- any hit is a
