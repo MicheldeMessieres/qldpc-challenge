@@ -1,25 +1,26 @@
 {
  "name": "[[84,34,6]] pair-partition CPM CSS code (weight-12)",
  "d": 6,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
  "encoding": "selector",
  "sides": {
   "X": {
    "value": 6,
    "exact": true,
    "status": "UNSAT",
-   "secs": 6.3,
+   "secs": 10.8,
    "note": "no logical < 6 exists"
   },
   "Z": {
    "value": 6,
    "exact": true,
    "status": "UNSAT",
-   "secs": 5.4,
+   "secs": 8.9,
    "note": "no logical < 6 exists"
   }
  },
- "tlim_per_solve": 120,
+ "tlim_per_solve": 1800,
+ "logical_classes": 34,
  "symmetry": false,
  "d_exact": true
 }

@@ -1,25 +1,26 @@
 {
  "name": "[[120,12,10]]",
  "d": 10,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
  "encoding": "selector",
  "sides": {
   "X": {
    "value": 10,
    "exact": true,
    "status": "UNSAT",
-   "secs": 20.1,
+   "secs": 31.6,
    "note": "no logical < 10 exists"
   },
   "Z": {
    "value": 10,
    "exact": true,
    "status": "UNSAT",
-   "secs": 22.4,
+   "secs": 43.0,
    "note": "no logical < 10 exists"
   }
  },
- "tlim_per_solve": 120,
+ "tlim_per_solve": 1800,
+ "logical_classes": 12,
  "symmetry": false,
  "d_exact": true
 }

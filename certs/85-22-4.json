@@ -19,7 +19,8 @@
    "note": "no logical < 4 exists"
   }
  },
- "tlim_per_solve": 900,
+ "tlim_per_solve": 1800,
+ "logical_classes": 22,
  "symmetry": false,
  "d_exact": true
 }

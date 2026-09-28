@@ -1,18 +1,26 @@
 {
  "name": "[[42,6,6]]",
  "d": 6,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 6,
    "exact": true,
+   "status": "UNSAT",
+   "secs": 0.1,
    "note": "no logical < 6 exists"
   },
   "Z": {
    "value": 6,
    "exact": true,
+   "status": "UNSAT",
+   "secs": 0.0,
    "note": "no logical < 6 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 6,
+ "symmetry": false,
  "d_exact": true
 }

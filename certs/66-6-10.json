@@ -1,25 +1,26 @@
 {
  "name": "[[66,6,10]] 2BGA",
  "d": 10,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
  "encoding": "selector",
  "sides": {
   "X": {
    "value": 10,
    "exact": true,
    "status": "UNSAT",
-   "secs": 20.1,
+   "secs": 33.5,
    "note": "no logical < 10 exists"
   },
   "Z": {
    "value": 10,
    "exact": true,
    "status": "UNSAT",
-   "secs": 24.4,
+   "secs": 37.9,
    "note": "no logical < 10 exists"
   }
  },
- "tlim_per_solve": 120,
+ "tlim_per_solve": 1800,
+ "logical_classes": 6,
  "symmetry": false,
  "d_exact": true
 }

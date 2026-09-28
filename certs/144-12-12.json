@@ -1,18 +1,26 @@
 {
  "name": "[[144,12,12]] bivariate bicycle code",
  "d": 12,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 12,
    "exact": true,
-   "note": "no logical < 12 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 185.4,
+   "note": "no logical < 12 exists"
   },
   "Z": {
    "value": 12,
    "exact": true,
-   "note": "no logical < 12 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 283.9,
+   "note": "no logical < 12 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 12,
+ "symmetry": false,
  "d_exact": true
 }

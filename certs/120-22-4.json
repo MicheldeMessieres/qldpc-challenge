@@ -2,21 +2,25 @@
  "name": "[[120,22,4]]",
  "d": 4,
  "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
-   "value": 6,
+   "value": 4,
    "exact": true,
    "status": "UNSAT",
-   "secs": 0.9,
-   "note": "no logical < 6 exists"
+   "secs": 0.4,
+   "note": "no logical < 4 exists"
   },
   "Z": {
    "value": 4,
    "exact": true,
    "status": "UNSAT",
-   "secs": 0.3,
+   "secs": 0.1,
    "note": "no logical < 4 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 22,
+ "symmetry": false,
  "d_exact": true
 }

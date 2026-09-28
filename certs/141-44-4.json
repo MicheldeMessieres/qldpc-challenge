@@ -15,11 +15,12 @@
    "value": 4,
    "exact": true,
    "status": "UNSAT",
-   "secs": 0.1,
+   "secs": 0.2,
    "note": "no logical < 4 exists"
   }
  },
- "tlim_per_solve": 900,
+ "tlim_per_solve": 1800,
+ "logical_classes": 44,
  "symmetry": false,
  "d_exact": true
 }

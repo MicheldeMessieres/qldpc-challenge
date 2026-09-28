@@ -1,18 +1,26 @@
 {
  "name": "[[292,18,8]] twisted-torus BB code (arXiv:2503.03827)",
  "d": 8,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 36.0,
+   "note": "no logical < 8 exists"
   },
   "Z": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 29.8,
+   "note": "no logical < 8 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 18,
+ "symmetry": false,
  "d_exact": true
 }

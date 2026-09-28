@@ -8,18 +8,19 @@
    "value": 8,
    "exact": true,
    "status": "UNSAT",
-   "secs": 27.5,
+   "secs": 13.6,
    "note": "no logical < 8 exists"
   },
   "Z": {
    "value": 8,
    "exact": true,
    "status": "UNSAT",
-   "secs": 0.9,
+   "secs": 0.5,
    "note": "no logical < 8 exists"
   }
  },
- "tlim_per_solve": 900,
+ "tlim_per_solve": 1800,
+ "logical_classes": 30,
  "symmetry": false,
  "d_exact": true
 }

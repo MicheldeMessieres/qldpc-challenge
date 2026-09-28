@@ -2,21 +2,25 @@
  "name": "[[108,20,4]]",
  "d": 4,
  "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
-   "value": 6,
+   "value": 4,
    "exact": true,
    "status": "UNSAT",
    "secs": 0.4,
-   "note": "no logical < 6 exists"
+   "note": "no logical < 4 exists"
   },
   "Z": {
    "value": 4,
    "exact": true,
    "status": "UNSAT",
-   "secs": 0.1,
+   "secs": 0.0,
    "note": "no logical < 4 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 20,
+ "symmetry": false,
  "d_exact": true
 }

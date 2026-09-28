@@ -1,18 +1,26 @@
 {
- "name": "[[696,76,3]]",
+ "name": "[[696,76,3]] irregular holey rotated surface code",
  "d": 3,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 3,
    "exact": true,
-   "note": "no logical < 3 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 0.3,
+   "note": "no logical < 3 exists"
   },
   "Z": {
    "value": 3,
    "exact": true,
-   "note": "no logical < 3 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 0.3,
+   "note": "no logical < 3 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 76,
+ "symmetry": false,
  "d_exact": true
 }
