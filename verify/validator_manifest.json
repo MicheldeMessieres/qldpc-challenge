@@ -13,7 +13,7 @@
     "schema/code.schema.json": "7f998b0d14b7599456551f219bd4200994ecef43f50bdc3288ef67cd471641e1",
     "verify/build_receipt.py": "e748231cd0bd9a9a96023a1349763ed214b7ea894336834e76afb0c065a80afd",
     "verify/check_authorship.py": "c032c99af382845c29a21cfc5da9311f3de0788ee45975c434047aa9f984122b",
-    "verify/check_prose.py": "4bbb1956034cf09f638a460dbaff51dc6f35ae232160437b1238549e14e90cbc",
+    "verify/check_prose.py": "365e5fe730ade6f3bb08359c9d2a03a0dc6abc35c310af4cd495deb7be485030",
     "verify/check_submission_scope.py": "27b1e2b6b2207b50b26fc4520577c3022f8207cc383eadc52d1113badde1496c",
     "verify/check_validator_integrity.py": "8a57ab95bf3b8e7e720d378efb85b467a83127a6b885c4d79bdcd8d4b216ced3",
     "verify/circuit_tools.py": "37a3082aabc26d908bcf2612a6a2f5fb35788a5aa7e93249692f976aaa148106",

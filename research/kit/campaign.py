@@ -30,8 +30,10 @@ the board real entries before:
     if led.stop_reason():                        # which condition fired
         json.dump(led.summary(), open(out, "w"), indent=2)
 """
+import hashlib
 import json
 import os
+import subprocess
 import time
 from datetime import datetime, timezone
 
@@ -45,6 +47,13 @@ _ROOT = os.path.dirname(os.path.dirname(_HERE))
 SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_VERSION = 1
 JOURNAL_VERSION = 1
+MANIFEST_VERSION = 1
+
+# What a manifest will carry verbatim from a log. A claim that rests on a
+# witness or a trial count needs the lines that produced it, and *.log is
+# gitignored, so the excerpt is promoted into the manifest rather than cited
+# where no reviewer can open it.
+MAX_LOG_EXCERPT = 16384
 
 # The metrics :meth:`Campaign.score` computes from a survivor's (n, k, d), and
 # therefore the only ones a target_reached condition can ever fire on.
@@ -53,6 +62,71 @@ SCORABLE_METRICS = ("kd2_over_n", "distance", "logical_qubits")
 
 class CampaignError(ValueError):
     """A campaign definition that cannot be run as written."""
+
+
+def _git(root, *args):
+    """Run one git command under ``root``; None if git or the repo is absent."""
+    try:
+        out = subprocess.run(("git", "-C", root) + args, capture_output=True,
+                             text=True, timeout=30, check=False)
+    except (OSError, subprocess.SubprocessError):       # pragma: no cover
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def repo_snapshot(root=_ROOT):
+    """Identify the code a run executed, precisely enough to get it back.
+
+    ``head`` alone is not that identification. A campaign is usually run from
+    a tree with edits in it, which is the normal way a search gets tuned, and
+    two runs from the same commit with different edits produce different
+    numbers. So the working-tree diff against HEAD is hashed alongside, and
+    ``dirty`` says plainly whether there was one. A reviewer who wants the
+    exact code checks out ``head`` and asks the runner for the diff; a
+    reviewer who only wants to know whether two runs used the same code
+    compares the pair.
+
+    Everything is best-effort: a run outside a checkout still gets a manifest,
+    with the fields it cannot fill set to None, because a manifest that
+    refuses to be written teaches a runner to skip manifests.
+    """
+    head = _git(root, "rev-parse", "HEAD")
+    if head is None:
+        return {"head": None, "branch": None, "dirty": None,
+                "diff_sha256": None,
+                "note": "not a git checkout, or git unavailable"}
+    diff = _git(root, "diff", "HEAD") or ""
+    untracked = _git(root, "ls-files", "--others", "--exclude-standard") or ""
+    return {
+        "head": head,
+        "branch": _git(root, "rev-parse", "--abbrev-ref", "HEAD"),
+        "dirty": bool(diff),
+        "diff_sha256": hashlib.sha256(diff.encode()).hexdigest() if diff
+                       else None,
+        "untracked_count": len([x for x in untracked.splitlines() if x]),
+    }
+
+
+def read_log_excerpt(path, *, limit=MAX_LOG_EXCERPT):
+    """Read a log tail for promotion into a manifest.
+
+    ``*.log`` is gitignored, so a note claiming "5.3M trials" or quoting a
+    ladder trace points at a file no reviewer can open. Promoting the lines
+    the claim rests on into the committed manifest is the cheap half of
+    fixing that: it does not preserve the whole run, it preserves the
+    evidence for what was written down.
+    """
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError as e:
+        return {"path": path, "error": str(e)}
+    body = text[-limit:]
+    return {"path": path,
+            "sha256": hashlib.sha256(text.encode()).hexdigest(),
+            "bytes": len(text.encode()),
+            "truncated": len(body) < len(text),
+            "excerpt": body}
 
 
 def _schema():
@@ -222,9 +296,18 @@ class Ledger:
     separate files merge cleanly anyway.
     """
 
-    def __init__(self, campaign, *, journal=None):
+    def __init__(self, campaign, *, journal=None, manifest=None, params=None):
         self.campaign = campaign
         self.journal = journal
+        self.manifest_path = manifest
+        # Resolved run parameters: trials, ladder depth, seeds, workers, and
+        # whatever else the executor actually invoked with. Recorded as given
+        # rather than re-derived, because the point is what ran, not what the
+        # campaign file asked for.
+        self.params = dict(params or {})
+        self.snapshot = repo_snapshot()
+        self.started_at = datetime.now(timezone.utc).isoformat()
+        self.log_excerpts = []
         self.spent = dict.fromkeys(BUDGET_FIELDS, 0)
         self._t0 = time.monotonic()
         self._walltime_base = 0.0
@@ -271,6 +354,11 @@ class Ledger:
                              self.negative_results[ni:])
         self._current = None
         self._exp_t0 = None
+        # The boundary is where a manifest is worth writing: it is the point
+        # at which the numbers a note would quote become final, and a run
+        # killed after it still leaves a manifest covering what closed.
+        if self.manifest_path:
+            write_manifest(self.manifest(), self.manifest_path)
         return exp
 
     # -- the journal ------------------------------------------------------
@@ -520,6 +608,56 @@ class Ledger:
                     return kind, f"objective reached {best:g} against {target:g}"
         return None
 
+    # -- provenance -------------------------------------------------------
+    def attach_log(self, path, *, why=""):
+        """Promote a log, or its tail, into the manifest.
+
+        Call it for the log a written claim rests on, and say in ``why``
+        which claim. An excerpt nobody can connect to an assertion is
+        weight without evidence.
+        """
+        rec = read_log_excerpt(path)
+        rec["why"] = why
+        self.log_excerpts.append(rec)
+        return rec
+
+    def manifest(self):
+        """Build the citable record of what this run was and what it ran on.
+
+        ``summary.json`` says what a campaign found. This says what produced
+        it: the code snapshot, the parameters actually invoked, the seeds,
+        the spend, and the gate verdict fingerprints of every survivor. The
+        two are separate files because they answer to different readers. A
+        reviewer checking a claim needs this one, and it has to be committed
+        next to the note for that to be worth anything.
+
+        Verdicts are fingerprinted rather than copied: the full verdict lives
+        in the summary's survivor rows, and what the manifest owes is enough
+        to detect a survivor whose verdict changed between the run and the
+        PR.
+        """
+        return {
+            "manifest_version": MANIFEST_VERSION,
+            "campaign_id": self.campaign.id,
+            "started_at": self.started_at,
+            "written_at": datetime.now(timezone.utc).isoformat(),
+            "snapshot": self.snapshot,
+            "params": self.params,
+            "seeds": [e.get("seed") for e in self.experiments
+                      if e.get("seed") is not None],
+            "experiments": len(self.experiments),
+            "consumed": {f: round(v, 3) for f, v in self.consumed().items()
+                         if v},
+            "survivor_verdicts": [
+                {"n": s.get("n"), "k": s.get("k"), "d": s.get("d"),
+                 "fingerprint": _verdict_fingerprint(s)}
+                for s in self.survivors],
+            "logs": self.log_excerpts,
+            "authority": "this manifest records what ran; what a run is "
+                         "allowed to claim is still decided by "
+                         "verify/validate_candidate.py",
+        }
+
     # -- output -----------------------------------------------------------
     def summary(self, *, status=None, report=None):
         """Build the machine-readable campaign summary.
@@ -541,6 +679,12 @@ class Ledger:
             "campaign_id": self.campaign.id,
             "campaign_name": self.campaign.name,
             "status": status,
+            # A summary without these is not reproducible from itself: it
+            # reports what was found and leaves what produced it in a shell
+            # history. The manifest holds the same two fields, so a summary
+            # separated from its manifest still identifies its own run.
+            "snapshot": self.snapshot,
+            "params": self.params,
             "objective": self.campaign.c["objective"],
             "stopped_by": {"type": fired[0], "detail": fired[1]} if fired
                           else {"type": None, "detail": "still running"},
@@ -558,6 +702,24 @@ class Ledger:
                          "verify/validate_candidate.py; nothing here is a "
                          "board entry until a human reviews and submits it",
         }
+
+
+def _verdict_fingerprint(survivor):
+    """Hash one survivor's recorded verdict, short and stable."""
+    v = survivor.get("verdict")
+    if v is None:
+        return None
+    return hashlib.sha256(
+        json.dumps(v, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def write_manifest(manifest, path):
+    """Write a run manifest, creating its directory."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write("\n")
+    return path
 
 
 def write_summary(summary, path):

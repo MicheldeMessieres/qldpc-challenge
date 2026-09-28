@@ -85,3 +85,52 @@ into one campaign rather than two results a human compares by hand.
 `write_summary(led.summary(), ".../summary.json")` still overwrites in place
 whenever it is called, and the status it records is `paused` until a stopping
 condition fires.
+
+## The run manifest
+
+`summary.json` says what a campaign found. It does not say what produced it:
+which code snapshot ran, at what depth, with which seeds. Those lived in a
+shell history, so a note quoting "5.3M trials" pointed at nothing a reviewer
+could open. `manifest.json` is the other half.
+
+```python
+led = Ledger(camp,
+             manifest="research/campaigns/<id>/manifest.json",
+             params={"trials": 2_000_000, "ladder": [[2000, 12], [20000, 11]],
+                     "seeds": [51, 52], "workers": 8})
+```
+
+It is rewritten at every experiment boundary, so a kill leaves a manifest for
+everything that closed. It records:
+
+| field | why it is there |
+|---|---|
+| `snapshot` | git HEAD, plus a hash of the working-tree diff and whether there was one. HEAD alone does not identify a run: campaigns are normally run from a tree with edits in it, and two such runs give different numbers from one sha |
+| `params` | the depth, ladder, seeds and workers actually invoked, recorded as given rather than re-derived from the campaign file |
+| `seeds`, `experiments`, `consumed` | what was run and what it cost |
+| `survivor_verdicts` | `(n, k, d)` and a fingerprint of each survivor's gate verdict, enough to detect one whose verdict changed between the run and the PR |
+| `logs` | excerpts promoted out of gitignored `*.log` files |
+
+`snapshot` and `params` are also written into `summary.json`, so a summary
+separated from its manifest still identifies its own run.
+
+### Logs
+
+`*.log` is gitignored, which is right for a multi-gigabyte trial log and wrong
+for the six lines a written claim rests on. Promote those:
+
+```python
+led.attach_log(f"{staging_dir()}/lane3.log",
+               why="the 5.3M trial count in the note")
+```
+
+The excerpt is the tail, capped, with the full file's sha256 and a
+`truncated` flag beside it. Say in `why` which claim it supports: an excerpt
+nobody can connect to an assertion is weight without evidence.
+`verify/check_prose.py` rejects a `*.log` citation and points here.
+
+### When a manifest is required
+
+Any campaign whose numbers appear in `notes/` or `fieldnotes/` commits its
+manifest beside the note, and the note cites it. A campaign that submits
+nothing does not need one.

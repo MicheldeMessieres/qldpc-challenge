@@ -17,6 +17,14 @@ definition: `research/campaigns/<id>/campaign.json`.
 Budget consumed against budget declared, and which stopping condition fired.
 Both are in `summary.json`; restate them here so the report reads alone.
 
+## What ran
+
+Link the manifest: `research/campaigns/<id>/manifest.json`. State the code
+snapshot (HEAD, and whether the tree was dirty), the depth and ladder actually
+invoked, and the seeds. If a number below rests on a log, attach the excerpt
+with `Ledger.attach_log` and cite the manifest rather than the `*.log`, which
+is gitignored.
+
 ## What was tried
 
 One line per experiment: family, generator, seed, sweep size, screening depth.

@@ -20,11 +20,16 @@ _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, os.path.join(_HERE, "kit"))
 
 from campaign import (  # noqa: E402
+    MANIFEST_VERSION,
+    MAX_LOG_EXCERPT,
     Campaign,
     CampaignError,
     Ledger,
     load_campaign,
+    read_log_excerpt,
+    repo_snapshot,
     validate_campaign,
+    write_manifest,
     write_summary,
 )
 
@@ -542,3 +547,110 @@ def test_a_ledger_with_no_journal_writes_nothing(tmp_path):
     led.start_experiment("bivariate-bicycle", seed=1)
     led.end_experiment()
     assert list(tmp_path.iterdir()) == []
+
+
+# -- run manifests (issue #2341) ------------------------------------------
+def test_snapshot_identifies_the_code_a_run_executed():
+    """A snapshot has to distinguish two runs from the same commit.
+
+    HEAD alone does not: a campaign is normally run from a tree with edits
+    in it, and two such runs produce different numbers from the same sha.
+    """
+    snap = repo_snapshot()
+    assert set(snap) >= {"head", "dirty", "diff_sha256"}
+    if snap["head"] is not None:
+        assert len(snap["head"]) == 40
+        # dirty and diff_sha256 have to agree, or neither says anything.
+        assert bool(snap["dirty"]) == (snap["diff_sha256"] is not None)
+
+
+def test_snapshot_outside_a_checkout_still_produces_a_manifest(tmp_path):
+    """A run outside a repo gets a manifest with nulls, not an exception.
+
+    A manifest that refuses to be written teaches a runner to skip manifests,
+    which is the habit this is trying to replace.
+    """
+    snap = repo_snapshot(str(tmp_path))
+    assert snap["head"] is None
+    assert "note" in snap
+
+
+def test_manifest_records_params_seeds_and_spend(tmp_path):
+    """The manifest carries what a shell history used to."""
+    c = Campaign(validate_campaign(camp()))
+    led = Ledger(c, params={"trials": 2_000_000, "workers": 8,
+                                        "ladder": [[2000, 12], [20000, 11]]})
+    led.start_experiment(c.families[0], seed=51)
+    led.spend(cpu_hours=0.25, candidates_screened=10)
+    led.end_experiment()
+    led.start_experiment(c.families[0], seed=52)
+    led.end_experiment()
+
+    man = led.manifest()
+    assert man["manifest_version"] == MANIFEST_VERSION
+    assert man["campaign_id"] == c.id
+    assert man["params"]["trials"] == 2_000_000
+    assert man["params"]["ladder"] == [[2000, 12], [20000, 11]]
+    assert man["seeds"] == [51, 52]
+    assert man["experiments"] == 2
+    assert man["consumed"]["candidates_screened"] == 10
+    assert man["snapshot"]["head"] == repo_snapshot()["head"]
+
+    out = write_manifest(man, str(tmp_path / "manifest.json"))
+    assert json.load(open(out))["seeds"] == [51, 52]
+
+
+def test_manifest_is_written_at_every_experiment_boundary(tmp_path):
+    """A run killed mid-campaign still leaves a manifest for what closed."""
+    path = tmp_path / "m" / "manifest.json"
+    c = Campaign(validate_campaign(camp()))
+    led = Ledger(c, manifest=str(path), params={"trials": 300})
+    assert not path.exists()
+    led.start_experiment(c.families[0], seed=1)
+    led.end_experiment()
+    assert json.load(open(path))["experiments"] == 1
+    led.start_experiment(c.families[0], seed=2)
+    led.end_experiment()
+    assert json.load(open(path))["experiments"] == 2
+
+
+def test_summary_identifies_its_own_run(tmp_path):
+    """A summary separated from its manifest still says what produced it."""
+    c = Campaign(validate_campaign(camp()))
+    led = Ledger(c, params={"trials": 5300000, "seeds": [7]})
+    led.start_experiment(c.families[0], seed=7)
+    led.end_experiment()
+    s = led.summary()
+    assert s["params"]["trials"] == 5300000
+    assert s["snapshot"]["head"] == led.manifest()["snapshot"]["head"]
+
+
+def test_attached_log_travels_with_the_claim_that_rests_on_it(tmp_path):
+    """*.log is gitignored, so the excerpt goes into the committed manifest."""
+    log = tmp_path / "run.log"
+    log.write_text("rung 2000 -> 12\nrung 20000 -> 11\n5300000 trials spent\n")
+    c = Campaign(validate_campaign(camp()))
+    led = Ledger(c)
+    rec = led.attach_log(str(log), why="the 5.3M trial count in the note")
+    assert "5300000 trials spent" in rec["excerpt"]
+    assert rec["why"].startswith("the 5.3M")
+    assert not rec["truncated"]
+    assert led.manifest()["logs"][0]["sha256"] == rec["sha256"]
+
+
+def test_a_missing_log_is_recorded_rather_than_raised(tmp_path):
+    """Attaching a log that is gone must not lose the rest of the manifest."""
+    led = Ledger(Campaign(validate_campaign(camp())))
+    rec = led.attach_log(str(tmp_path / "nope.log"), why="x")
+    assert "error" in rec
+    assert led.manifest()["logs"] == [rec]
+
+
+def test_a_long_log_is_truncated_and_says_so(tmp_path):
+    """An excerpt that silently dropped its head would be worse than none."""
+    log = tmp_path / "big.log"
+    log.write_text("x" * (MAX_LOG_EXCERPT + 500) + "TAIL")
+    rec = read_log_excerpt(str(log))
+    assert rec["truncated"]
+    assert rec["excerpt"].endswith("TAIL")
+    assert len(rec["excerpt"]) == MAX_LOG_EXCERPT
