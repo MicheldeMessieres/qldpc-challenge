@@ -145,9 +145,13 @@ def test_pairing_set_spans_every_logical_class(slug):
     HZ = sat_certify._matrix(doc["checks"]["Z"], n)
     k = n - gf2.rank(HX) - gf2.rank(HZ)
     for side, H_same, H_opp in (("X", HX, HZ), ("Z", HZ, HX)):
+        # certify() pairs this side against ker(H_same) modulo
+        # rowspace(H_opp), so H_opp is what the representatives must be
+        # independent of. Measuring against H_same instead reports a
+        # shortfall on codes whose sets are complete.
         L = sat_certify._logicals(H_opp, H_same)
         assert len(L) == k, f"{slug} {side}: {len(L)} representatives, k={k}"
-        spanned = gf2.rank(np.vstack([H_same, L])) - gf2.rank(H_same)
+        spanned = gf2.rank(np.vstack([H_opp, L])) - gf2.rank(H_opp)
         assert spanned == k, f"{slug} {side}: spans {spanned} classes, k={k}"
 
 

@@ -185,9 +185,11 @@ def certify(doc, tlim=600):
         L = _logicals(H_opp, H_same)
         # An UNSAT from a pairing set that does not span every class is not a
         # proof of anything, so refuse rather than record one. Counting rows
-        # is not enough: a row that lies in rowspace(H_same) is a stabilizer
-        # and constrains nothing, which is exactly how this failed before.
-        spanned = (gf2.rank(np.vstack([H_same, L])) - gf2.rank(H_same)
+        # is not enough: a row lying in the rowspace it was reduced against
+        # is a stabilizer and constrains nothing, which is exactly how this
+        # failed before. L is ker(H_same) modulo rowspace(H_opp), so H_opp is
+        # what it has to be independent of.
+        spanned = (gf2.rank(np.vstack([H_opp, L])) - gf2.rank(H_opp)
                    if len(L) else 0)
         if spanned != k:
             raise ValueError(
