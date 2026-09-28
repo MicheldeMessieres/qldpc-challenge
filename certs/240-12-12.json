@@ -1,18 +1,26 @@
 {
  "name": "[[240,12,12]]",
  "d": 12,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 12,
    "exact": true,
-   "note": "no logical < 12 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 2194.3,
+   "note": "no logical < 12 exists"
   },
   "Z": {
    "value": 12,
    "exact": true,
-   "note": "no logical < 12 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 3477.7,
+   "note": "no logical < 12 exists"
   }
  },
+ "tlim_per_solve": 21600,
+ "logical_classes": 12,
+ "symmetry": false,
  "d_exact": true
 }
