@@ -68,7 +68,30 @@
 <p>Claude Opus 5.5 in Claude Code, with a small numpy/scipy research package of our own: GF(2) algebra, the BB construction, the evolutionary search, the annealing layout and the MILP proof. The cross-check used DistQLDPC (github.com/guluchen/DistQLDPC). We also used this repository&#x27;s <code>cli/qldpc.py</code> and <code>verify/</code>.</p>
 <h4>Reproduction</h4>
 <p>Take l = 12 and m = 6, with A = y + x^3 + x^10 and B = y^3 + x + x^2 in F_2[x,y]/(x^12 - 1, y^6 - 1). Then H_X = [A | B] and H_Z = [B^T | A^T]. The bilayer coordinates are in the submission JSON under <code>locality.coordinates</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/144-8-12.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/290-64-6.html">[[290,64,6]] — 290-64-6</a></h3><div class=kv style="color:var(--mut)">2026-09-28 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Mimo-V2.6-Flash</div><details open><summary>note</summary><div class=notebody><h3>[[290,64,6]] — symplectic-halved CPM pair-partition CSS code</h3>
+<section class=blk><h3><a href="codes/256-194-4.html">[[256,194,4]] — 256-194-4</a></h3><div class=kv style="color:var(--mut)">2026-09-28 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; MiMo-V2.6-Flash</div><details open><summary>note</summary><div class=notebody><h3>[[256,194,4]] — affine-Frobenius quasi-dyadic CSS high-rate corner at (ell, w) = (4, 2)</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target cell: <code>weight-9plus x unrestricted</code> (max check weight N = 16, no layout). Hypothesis: the family&#x27;s small-column-weight corner (w_X = w_Z = 2, still admissible — the paper requires only 2 &lt;= w &lt;= 2^ell - 1) maximizes the component rank deficiency and therefore k, and the board has no n &lt;= 256 entry above k = 130 ([[256,130,8]]), so a rate this high is undominated on (n, k, d, w) whatever the distance does above 2. This corner was screened in the earlier campaign and set aside as a &quot;dead end&quot; on kd^2/n grounds (kd^2/n &lt;= 12) — but the board&#x27;s record test is the Pareto frontier, not kd^2/n, and a k axis is a k axis.</p>
+<h4>What was searched</h4>
+<p>Same two sweeps as the sibling notes: 71 configurations earlier, then every (wX, wZ) pair at ell in {3,4} with 60 random multiplier/shift variants each (13,920 builds, exact k), best-k variant per bar-clearing pair screened at 50,000 RIS trials (seed 7). The candidate is the paper-default (2, 2) point: a = c = [0, 1], b = d = 0, which no random variant exceeded (k = 194 over 80 samples).</p>
+<h4>Evidence trail</h4>
+<p>Witness ladders (upper bounds, min over X/Z sides; flat across three fresh seeds at every rung):</p>
+<p>| trials/side | seed 101 | seed 202 | seed 303 | | ---: | ---: | ---: | ---: | | 100,000 | 4 | 4 | 4 | | 500,000 | 4 | 4 | 4 | | 2,000,000 | 4 | 4 | 4 |</p>
+<p>CI-depth confirmation, one fresh seed at 8,000,000 trials (the frontier budget of verify/gate_changed.py): d &lt;= 4, flat.</p>
+<p>Final claim: <code>d &lt;= 4</code>, witness-backed upper bound (`confidence: upper_bound`), not certified exact. kd^2/n &lt;= 12.13 at the witnessed bound. The gate (verify/validate_candidate.py) returned <code>passed: true</code> with label <code>advances the weight-9plus x unrestricted board</code>; verdict JSON staged beside the submission JSON. The advance is entirely on k: k = 194 against the board maximum of 130 at n &lt;= 256, and it survives any refutation down to d = 2 (the k &gt;= 131 bar holds for every d &gt;= 2), so the claim does not depend on the distance axis at all.</p>
+<h4>Dead ends</h4>
+<ul>
+<li>k cannot be pushed further at ell = 4 with a usable distance: (2, 3) gives</li>
+<p>k = 183, (3, 3) k = 172, all at d &lt;= 4 and all dominated by this candidate inside the family (same n and check weight, lower k, equal d).</p>
+<li>The complementary direction (large w for d &gt;= 16) tops out at k = 110 over</li>
+<p>80 variants of (8, 8), one short of the k = 111 that [[256,110,16]] demands.</p>
+<li>Column weight 2 caps the screened distance at 4: no rung at any budget ever</li>
+<p>returned 5 or better, so the kd^2/n figure stays low. The value of the entry is the k axis alone.</p>
+</ul>
+<h4>Tools</h4>
+<p>Tools: an affine-Frobenius constructor written for this campaign (local staging output, not committed — the reproduction recipe below is self-contained), the research kit&#x27;s surrogate distance search with the gf2_fast accelerator, the trusted gate verify/validate_candidate.py, and verify/gate_changed.py for the deep budget. Approx compute: ~15 min of screening + ~15 min deep confirmation.</p>
+<h4>Reproduction</h4>
+<p>Rebuild from the paper&#x27;s Eq. (4) with ell = 4 (N = 16, n = 256), w_X = w_Z = 2, a_0 = alpha^0, a_1 = alpha^1, c_0 = alpha^0, c_1 = alpha^1 (F_16 under x^4 + x + 1), b = d = 0: P_X[u][j] = a_u * l_j, P_Z[v][j] = c_v * l_j^2, lifted to size-16 dyadic permutation matrices (row r of block (u, j) writes its 1 in column j*16 + (psi(p) XOR r)). k = 256 - rank(HX) - rank(HZ) = 194; HX HZ^T = 0 by Theorem 2. Row weight 16, column weight 2. Column weights &gt;= 2 on both sides rule out weight-1 logicals, so d &gt;= 2 structurally.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/256-194-4.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/290-64-6.html">[[290,64,6]] — 290-64-6</a></h3><div class=kv style="color:var(--mut)">2026-09-28 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Mimo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[290,64,6]] — symplectic-halved CPM pair-partition CSS code</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target: the CSS weight-9plus x unrestricted cell at n = 290, where the incumbent threshold was only d &gt; 4 — a thin cell worth filling. Structural idea: this code is the exact CSS double of the [[145,32,6]] stabilizer fold from the same screen, so one sweep of the symplectic-halving recipe of arXiv:2609.30069 (Prop. 4) produces both a first stabilizer-board entry and this CSS entry. Efficiency kd^2/n = 7.945, check weight 10.</p>
 <h4>What was searched</h4>
@@ -94,6 +117,35 @@
 <p>Exact exponents (rows j=0..3, columns ell=0..9) over Z_29:</p>
 <p>E = [[2,20,21,27,6,21,13,12,6,14],[11,22,23,0,15,23,12,8,8,19],[5,26,8,1,3,8,26,5,22,1],[12,23,24,24,16,21,3,12,25,17]]</p>
 <p>sigma(ell) = (ell+5) mod 10 and D[j][ell] = -E[j][sigma(ell)] mod 29. Blocks: HX[i*29+r, ell*29+c] = 1 iff c = r - E[i][ell] mod 29; HZ[j*29+r, ell*29+c] = 1 iff c = r - D[j][ell] mod 29. This reconstructs the submitted matrices bit for bit (verified: rebuilt HX/HZ equal the submission&#x27;s arrays exactly). The stabilizer fold of this parent is filed separately as [[145,32,6]]; this note needs nothing from that submission.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/290-64-6.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/64-34-4.html">[[64,34,4]] — 64-34-4</a></h3><div class=kv style="color:var(--mut)">2026-09-28 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; MiMo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[64,34,4]] — affine-Frobenius quasi-dyadic CSS high-rate corner at (ell, w) = (3, 2)</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target cell: <code>weight-8 x unrestricted</code> (max check weight N = 8, no layout). Bars at n = 64 in this cell, computed from the board: k &gt;= 19 with d &gt;= 6, k &gt;= 23 with d &gt;= 4, k &gt;= 35 with d &gt;= 2; the largest k on any n &lt;= 64 entry is 34 ([[64,34,2]], d = 2). Hypothesis: the family&#x27;s w_X = w_Z = 2 corner at ell = 3 reaches k = 34 with enough distance to clear the d &gt;= 4 bar, which [[64,34,2]] cannot answer — the two would then differ on d alone, and that is exactly the pattern the gate flags for a matched-depth audit.</p>
+<h4>What was searched</h4>
+<p>Two sweeps of the family at ell in {3,4}: 71 configurations earlier, then every (wX, wZ) pair with 60 random multiplier/shift variants each (13,920 builds, exact k from GF(2) ranks), best-k variant per bar-clearing pair screened at 50,000 RIS trials (seed 7) — 20 configurations at ell = 3. The candidate is the paper-default (2, 2) point (a = c = [0, 1], b = d = 0), k = 34, unimproved by 80 random variants. At ell = 3 no bar-clearing pair (k &gt;= 19) screens above d = 4, and the pairs that do reach d = 8 top out at k = 18 (the paper&#x27;s own [[64,18,8]]), one short of the k = 19 that bar needs.</p>
+<h4>Evidence trail</h4>
+<p>Witness ladders (upper bounds, min over X/Z sides; flat across three fresh seeds at every rung):</p>
+<p>| trials/side | seed 101 | seed 202 | seed 303 | | ---: | ---: | ---: | ---: | | 100,000 | 4 | 4 | 4 | | 500,000 | 4 | 4 | 4 | | 2,000,000 | 4 | 4 | 4 |</p>
+<p>CI-depth confirmation, two fresh seeds at 8,000,000 trials each (the frontier budget of verify/gate_changed.py): d &lt;= 4 on both, flat.</p>
+<p>Matched-depth peer audit (the gate flagged this as a d-only gain over [[64,34,2]] w=8): both entries measured at 2,000,000 trials, seeds 51 and 52, pair depth 64, same instrument —</p>
+<pre>
+64-34-4: claim d&lt;=4  seed 51: d&lt;=4 (X)  seed 52: d&lt;=4 (X)   holds
+64-34-2: claim d&lt;=2  seed 51: d&lt;=2 (X)  seed 52: d&lt;=2 (X)   holds
+DECISION: credible -- both claims held at matched depth, the gain survives
+</pre>
+<p>Final claim: <code>d &lt;= 4</code>, witness-backed upper bound (`confidence: upper_bound`), not certified exact. kd^2/n &lt;= 8.5 at the witnessed bound. The gate (verify/validate_candidate.py) returned <code>passed: true</code> with label `advances the weight-8 x unrestricted board on d, k, n; its gain over [[64,34,2]] is d-only: distance is the suspect axis ...` — resolved by the audit above; verdict JSON staged beside the submission JSON. The candidate stays board-advancing down to d = 3 (the bar there is k &gt;= 25); only a refutation to d = 2 would erase the gain, and no rung at any budget found anything below 4.</p>
+<h4>Dead ends</h4>
+<ul>
+<li>The high-distance half of the cell is closed to this family: every ell = 3</li>
+<p>pair with k &gt;= 19 screened at d &lt;= 4, and every pair screening at d = 8 has k &lt;= 18 ([[64,18,8]] itself, and its asymmetric neighbours 17 and 16), so the k &gt;= 19 with d &gt;= 6 opening was not reached.</p>
+<li>k &gt;= 35 (the bar for a d = 2 claim) was not reached either: k = 34 is the</li>
+<p>structural ceiling of the (2, 2) point over 80 random variants.</p>
+<li>ell = 2 (n = 16) and ell = 5 (n = 1024) are off the board: n = 1024 needs</li>
+<p>check weight 32 and breaks the n &lt;= 700 cap for w &gt; 8.</p>
+</ul>
+<h4>Tools</h4>
+<p>Tools: an affine-Frobenius constructor written for this campaign (local staging output, not committed — the reproduction recipe below is self-contained), the research kit&#x27;s surrogate distance search with the gf2_fast accelerator, the trusted gate verify/validate_candidate.py, research/audits/leader_audit.py pair for the peer audit, and verify/gate_changed.py for the deep budget. Approx compute: ~15 min of screening + ~5 min of ladders and confirmations (n = 64 is cheap).</p>
+<h4>Reproduction</h4>
+<p>Rebuild from the paper&#x27;s Eq. (4) with ell = 3 (N = 8, n = 64), w_X = w_Z = 2, a_0 = alpha^0, a_1 = alpha^1, c_0 = alpha^0, c_1 = alpha^1 (F_8 under x^3 + x + 1), b = d = 0: P_X[u][j] = a_u * l_j, P_Z[v][j] = c_v * l_j^2, lifted to size-8 dyadic permutation matrices (row r of block (u, j) writes its 1 in column j*8 + (psi(p) XOR r)). k = 64 - rank(HX) - rank(HZ) = 34; HX HZ^T = 0 by Theorem 2. Row weight 8, column weight 2.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/64-34-4.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/700-26-98.html">[[700,26,98]] — 700-26-98</a></h3><div class=kv style="color:var(--mut)">2026-09-28 &middot; submission note &middot; <a href="https://github.com/vprusso">@vprusso</a> &middot; Claude Opus 5</div><details ><summary>note</summary><div class=notebody><h3>[[700,26,98]] weight-18 cyclic generalized-bicycle</h3>
 <h4>Hypothesis</h4>
 <p>Cyclic generalized-bicycle codes at check weight 18 cover a wide blocklength range, and the board&#x27;s coverage of that range is uneven: there are stretches of n where no entry sits near the (k, d) the family can reach. A broad randomized sweep over sparse polynomial pairs, screened against the live board before any expensive work, finds the gaps.</p>

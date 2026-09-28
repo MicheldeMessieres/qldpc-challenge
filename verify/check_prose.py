@@ -62,6 +62,13 @@ GITIGNORED = (
     "__pycache__",
 )
 
+# Raw run logs are gitignored by *.log, so a note quoting a trial count or a
+# ladder trace out of one is citing a file no reviewer has. The way out is the
+# run manifest written by research/kit/campaign.py, which promotes the lines a
+# claim rests on into a committed file; this is called out separately from the
+# directories above because the fix is different.
+LOG_SUFFIXES = (".log",)
+
 # Top-level directories that make a token repo-relative rather than incidental
 # prose. Anything starting with one of these must resolve in the tree.
 TOPDIRS = (
@@ -186,6 +193,9 @@ def check_text(text, label, root, problems, is_note_slug=None):
         bare = strip_rel_prefix(tok)
         if any(g in bare for g in GITIGNORED):
             add("gitignored working output cited as evidence", tok)
+        elif bare.endswith(LOG_SUFFIXES) and not resolves(tok, root):
+            add("raw run log cited as evidence (*.log is gitignored; promote "
+                "the lines the claim rests on into a run manifest)", tok)
         elif not resolves(tok, root) and not external_ok:
             add("path does not exist in this tree", tok)
 
@@ -310,6 +320,10 @@ def main(argv):
     print("`path/in/that/repo.py`'). research/candidates/ is gitignored working")
     print("output and can never be cited as evidence. See AGENTS.md, 'Writing the")
     print("submission'.")
+    print("\nFor a number that came out of a campaign run, cite the run manifest")
+    print("committed beside the note (research/campaigns/<id>/manifest.json). It")
+    print("carries the code snapshot, the parameters actually invoked, the seeds,")
+    print("and any log excerpt the claim rests on. See research/campaigns/README.md.")
     return 1
 
 
