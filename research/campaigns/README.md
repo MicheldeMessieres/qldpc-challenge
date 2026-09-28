@@ -37,6 +37,49 @@ if led.stop_reason():
 `research/campaigns/smoke-bb-72/run.py` is the same thing end to end, small
 enough to run in a test.
 
+## The run contract
+
+Depth, trials, and seeds passed as free-form argv leave no record of what a
+lane ran at. Two distances read at different budgets are not comparable, which
+is why `leader_audit.py pair` re-runs both sides at matched depth; that repairs
+the problem after the fact, and `run_contract` records the same fact up front.
+
+```json
+"run_contract": {
+  "template": "python research/cyclic_gb.py --m {m} --trials {trials} --seed {seed}",
+  "parameters": { "m": 337, "trials": 2000000, "seed": [51, 52] }
+}
+```
+
+Every placeholder in the template needs a value in `parameters`, and every
+value needs a placeholder, so the declared depth cannot drift from the
+invocation. `research/campaigns/w8-2dlocal-n700-1000/campaign.json` carries a
+worked one.
+
+`Ledger.start_experiment` stamps the resolved parameters and a
+`contract_hash` onto the experiment row, and `summary()` carries the contract
+and its hash. Two summaries with the same `contract_hash` screened at the same
+depth: matched depth becomes a field comparison rather than a reconstruction
+from two shell histories.
+
+The sweeps read it:
+
+```
+python research/cyclic_gb.py --campaign research/campaigns/<id>/campaign.json
+```
+
+Flags still work, because a campaign file nobody may depart from is a campaign
+file nobody passes. An explicit flag wins and is reported as a deviation, on
+the experiment row and on stdout, instead of being absorbed:
+
+```
+campaign w8-2dlocal-n700-1000, contract 4660072e3076bb42: lx=20 trials=300000 ...
+  deviation: trials contract=100000 used=300000
+```
+
+The contract constrains nothing a campaign may claim. A candidate is a find
+when `verify/validate_candidate.py` says so and at no other point.
+
 ## Two things a campaign cannot do
 
 **Its constraints are a screening filter, never a claim.** A campaign may

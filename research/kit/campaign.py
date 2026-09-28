@@ -30,8 +30,10 @@ the board real entries before:
     if led.stop_reason():                        # which condition fired
         json.dump(led.summary(), open(out, "w"), indent=2)
 """
+import hashlib
 import json
 import os
+import string
 import time
 from datetime import datetime, timezone
 
@@ -45,6 +47,7 @@ _ROOT = os.path.dirname(os.path.dirname(_HERE))
 SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_VERSION = 1
 JOURNAL_VERSION = 1
+CONTRACT_VERSION = 1
 
 # The metrics :meth:`Campaign.score` computes from a survivor's (n, k, d), and
 # therefore the only ones a target_reached condition can ever fire on.
@@ -53,6 +56,28 @@ SCORABLE_METRICS = ("kd2_over_n", "distance", "logical_qubits")
 
 class CampaignError(ValueError):
     """A campaign definition that cannot be run as written."""
+
+
+def placeholders(template):
+    """List the {name} fields in an invocation template, in order."""
+    return [f for _, f, _, _ in string.Formatter().parse(template) if f]
+
+
+def contract_hash(run_contract):
+    """Hash a run contract so two runs can be compared in one field.
+
+    The point of the contract is that "these two lanes screened at the same
+    depth" is a string comparison on the committed summary rather than a
+    reconstruction from two shell histories. Keyed on the template and the
+    resolved parameters together, since either one changing changes what ran.
+    """
+    if not run_contract:
+        return None
+    blob = json.dumps({"v": CONTRACT_VERSION,
+                       "template": run_contract["template"],
+                       "parameters": run_contract["parameters"]},
+                      sort_keys=True)
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
 def _schema():
@@ -83,6 +108,20 @@ def validate_campaign(obj):
             raise CampaignError(
                 f"constraints.{field}: [{rng[0]}, {rng[1]}] is empty; the low "
                 "bound is above the high one")
+    rc = c.get("run_contract")
+    if rc is not None:
+        holes = set(placeholders(rc["template"]))
+        given = set(rc["parameters"])
+        if holes - given:
+            raise CampaignError(
+                "run_contract: template uses "
+                f"{', '.join(sorted(holes - given))} with no value in "
+                "parameters, so the recorded invocation is not resolvable")
+        if given - holes:
+            raise CampaignError(
+                "run_contract: parameters declares "
+                f"{', '.join(sorted(given - holes))} which the template "
+                "never uses, so the recorded depth is not the depth that ran")
     for cond in c["stopping"]:
         if cond["type"] == "candidates_found" and not cond.get("count"):
             raise CampaignError(
@@ -145,6 +184,35 @@ class Campaign:
     @property
     def status(self):
         return self.c.get("status", "draft")
+
+    @property
+    def run_contract(self):
+        """The declared invocation, or None when the campaign does not fix one."""
+        return self.c.get("run_contract")
+
+    @property
+    def contract_hash(self):
+        """Short hash of this campaign's run contract, or None."""
+        return contract_hash(self.run_contract)
+
+    def resolved_params(self, **overrides):
+        """Merge argv overrides onto the contract, and say which ones deviate.
+
+        Returns ``(params, deviations)``. The contract supplies the values;
+        an explicit override is applied, because a campaign file that cannot
+        be departed from is a campaign file people stop passing, but it is
+        returned separately so the experiment row records the departure. An
+        override equal to the contract value is not a deviation.
+        """
+        base = dict((self.run_contract or {}).get("parameters") or {})
+        deviations = {}
+        for key, value in overrides.items():
+            if value is None:
+                continue
+            if key in base and base[key] != value:
+                deviations[key] = {"contract": base[key], "used": value}
+            base[key] = value
+        return base, deviations
 
     @property
     def families(self):
@@ -238,15 +306,29 @@ class Ledger:
         self._dry_streak = 0
 
     # -- experiments ------------------------------------------------------
-    def start_experiment(self, family, *, seed=None, note=""):
-        """Begin one run: a family, a budget slice, and a seed."""
+    def start_experiment(self, family, *, seed=None, note="", **overrides):
+        """Begin one run: a family, a budget slice, a seed, and its depth.
+
+        Any further keyword is an argv-style override of the campaign's run
+        contract. The resolved parameters and the contract hash are stamped
+        on the experiment row, so the depth a lane ran at is readable off
+        the committed summary rather than reconstructed from a shell
+        history, and an override is recorded as a deviation rather than
+        silently applied.
+        """
         if family not in self.campaign.families and self.campaign.families:
             raise CampaignError(
                 f"family {family!r} is not one of this campaign's families "
                 f"({', '.join(self.campaign.families)})")
+        params, deviations = self.campaign.resolved_params(**overrides)
         self._current = {"family": family, "seed": seed, "note": note,
                          "spent": dict.fromkeys(BUDGET_FIELDS, 0),
                          "survivors": 0}
+        if self.campaign.run_contract or params:
+            self._current["params"] = params
+            self._current["contract_hash"] = self.campaign.contract_hash
+        if deviations:
+            self._current["contract_deviations"] = deviations
         self._exp_t0 = time.monotonic()
         self._mark = (len(self.survivors), len(self.negative_results))
         return self._current
@@ -542,6 +624,12 @@ class Ledger:
             "campaign_name": self.campaign.name,
             "status": status,
             "objective": self.campaign.c["objective"],
+            # What the lanes were supposed to run at, beside what each one
+            # did. Two summaries carrying the same contract_hash screened at
+            # the same depth; that is the comparison AUTORESEARCH.md 5b
+            # currently reconstructs after the fact.
+            "run_contract": self.campaign.run_contract,
+            "contract_hash": self.campaign.contract_hash,
             "stopped_by": {"type": fired[0], "detail": fired[1]} if fired
                           else {"type": None, "detail": "still running"},
             "budget": {"declared": budget,

@@ -119,6 +119,29 @@
             }
           }
         },
+        "run_contract": {
+          "type": "object",
+          "description": "The invocation this campaign is run at, so that 'matched depth' is readable off the committed summary instead of re-derived by an audit afterwards. Depth, trials and seeds passed as free-form argv leave no record of what each lane actually ran at, and two distances read at different budgets are not comparable; AUTORESEARCH.md 5b repairs that after the fact, and this is the same fact recorded up front. It constrains nothing a campaign may claim: a candidate is a find when verify/validate_candidate.py says so and at no other point. When present, the sweep entry points take their parameters from here rather than from argv, and an explicit argv override is recorded on the experiment row as a deviation rather than silently applied.",
+          "required": ["template", "parameters"],
+          "additionalProperties": false,
+          "properties": {
+            "template": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "The fixed invocation, with {name} placeholders naming keys of `parameters`, e.g. 'python research/cyclic_gb.py --m {m} --trials {trials} --seed {seed}'. It is a record of how the campaign is run, not something the kit executes."
+            },
+            "parameters": {
+              "type": "object",
+              "description": "The resolved values the template is filled with. Every placeholder in the template must appear here, and every key here must appear in the template, so neither can drift from the other unnoticed.",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": ["integer", "number", "string", "boolean", "array"],
+                "description": "A scalar, or an array for a swept parameter such as seeds or ladder rungs."
+              }
+            }
+          }
+        },
         "budget": {
           "type": "object",
           "description": "What may be spent. At least one field, and every one present must be positive: a campaign with a zero or absent budget is unbounded, which is the thing this object exists to prevent.",

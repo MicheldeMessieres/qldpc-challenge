@@ -505,7 +505,38 @@ if __name__ == "__main__":
     ap.add_argument("--confirm", type=str, default=None,
                     help="candidate JSON with n, a, b (confirm mode only)")
     ap.add_argument("--confirm-trials", type=int, default=2000000)
+    ap.add_argument("--campaign", type=str, default=None,
+                    help="campaign.json whose run_contract supplies m, deg, "
+                         "band, ideals, trials, screen, seed and threads; an "
+                         "explicit flag still wins but is reported as a "
+                         "deviation from the contract")
     args = ap.parse_args()
+
+    # A sweep whose depth lives only in argv leaves nothing that says what it
+    # ran at, and two distances read at different budgets are not comparable.
+    # With a campaign file the contract supplies the depth; the flags stay
+    # usable, and a departure from the contract is printed rather than
+    # absorbed, so it reaches the run's own log and from there the note.
+    if args.campaign:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "kit"))
+        from campaign import load_campaign  # noqa: PLC0415
+        camp = load_campaign(args.campaign)
+        if not camp.run_contract:
+            sys.exit(f"{args.campaign}: no run_contract to read parameters "
+                     "from; add one or drop --campaign")
+        given = {a.dest for a in ap._actions
+                 if any(f in sys.argv for f in a.option_strings)}
+        params, deviations = camp.resolved_params(
+            **{k: getattr(args, k) for k in given
+               if k in (camp.run_contract["parameters"] or {})})
+        for key, value in params.items():
+            if hasattr(args, key):
+                setattr(args, key, value)
+        print(f"campaign {camp.id}, contract {camp.contract_hash}: "
+              + " ".join(f"{k}={v}" for k, v in sorted(params.items())))
+        for key, d in sorted(deviations.items()):
+            print(f"  deviation: {key} contract={d['contract']} used={d['used']}")
+
     lo, hi = map(int, args.band.split("-"))
 
     if args.mode == "confirm":

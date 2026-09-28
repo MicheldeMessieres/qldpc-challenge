@@ -542,3 +542,117 @@ def test_a_ledger_with_no_journal_writes_nothing(tmp_path):
     led.start_experiment("bivariate-bicycle", seed=1)
     led.end_experiment()
     assert list(tmp_path.iterdir()) == []
+
+
+# -- run contracts (issue #2342) ------------------------------------------
+CONTRACT = {
+    "template": "python research/cyclic_gb.py --m {m} --trials {trials} "
+                "--seed {seed}",
+    "parameters": {"m": 337, "trials": 2000000, "seed": [51, 52]},
+}
+
+
+def test_a_campaign_without_a_contract_is_still_valid():
+    """run_contract is optional: it cannot retroactively invalidate a campaign."""
+    c = Campaign(validate_campaign(camp()))
+    assert c.run_contract is None
+    assert c.contract_hash is None
+
+
+def test_a_template_placeholder_with_no_value_is_refused():
+    """An invocation that cannot be resolved records nothing."""
+    bad = copy.deepcopy(CONTRACT)
+    bad["template"] += " --screen {screen}"
+    with pytest.raises(CampaignError, match="no value in parameters"):
+        validate_campaign(camp(run_contract=bad))
+
+
+def test_a_parameter_the_template_never_uses_is_refused():
+    """A declared depth the invocation ignores is worse than none.
+
+    It reads as the depth that ran while the run used something else, which
+    is exactly the confusion the contract exists to remove.
+    """
+    bad = copy.deepcopy(CONTRACT)
+    bad["parameters"]["screen"] = 400
+    with pytest.raises(CampaignError, match="never uses"):
+        validate_campaign(camp(run_contract=bad))
+
+
+def test_the_contract_hash_keys_on_template_and_parameters():
+    """Either one changing changes what ran, so both are in the hash."""
+    base = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    deeper = copy.deepcopy(CONTRACT)
+    deeper["parameters"]["trials"] = 20000000
+    other = copy.deepcopy(CONTRACT)
+    other["template"] = other["template"].replace("cyclic_gb", "bb_sweep")
+
+    h = base.contract_hash
+    assert h and len(h) == 16
+    assert h == Campaign(validate_campaign(camp(run_contract=CONTRACT))).contract_hash
+    assert h != Campaign(validate_campaign(camp(run_contract=deeper))).contract_hash
+    assert h != Campaign(validate_campaign(camp(run_contract=other))).contract_hash
+
+
+def test_an_experiment_row_records_the_depth_it_ran_at():
+    """The point of all this: depth is readable off the summary."""
+    c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle", seed=51)
+    exp = led.end_experiment()
+    assert exp["params"]["trials"] == 2000000
+    assert exp["contract_hash"] == c.contract_hash
+    assert "contract_deviations" not in exp
+
+    s = led.summary()
+    assert s["contract_hash"] == c.contract_hash
+    assert s["run_contract"]["parameters"]["m"] == 337
+
+
+def test_an_override_is_applied_and_reported_as_a_deviation():
+    """A campaign file nobody may depart from is one nobody passes.
+
+    So the override wins, and the row says it did. What must not happen is
+    the override being absorbed silently, which is the state this replaces.
+    """
+    c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle", seed=51, trials=300)
+    exp = led.end_experiment()
+    assert exp["params"]["trials"] == 300
+    assert exp["contract_deviations"] == {
+        "trials": {"contract": 2000000, "used": 300}}
+
+
+def test_an_override_equal_to_the_contract_is_not_a_deviation():
+    """Passing the contract's own value back is not a departure from it."""
+    c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    params, dev = c.resolved_params(trials=2000000)
+    assert params["trials"] == 2000000
+    assert dev == {}
+
+
+def test_two_lanes_at_one_contract_are_comparable_by_a_string():
+    """Matched depth becomes a field comparison, not an audit.
+
+    AUTORESEARCH.md 5b re-runs both sides at matched depth to repair
+    incomparable numbers after the fact. Same hash, same depth.
+    """
+    c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    rows = []
+    for seed in (51, 52):
+        led = Ledger(c)
+        led.start_experiment("bivariate-bicycle", seed=seed)
+        rows.append(led.end_experiment())
+    assert rows[0]["contract_hash"] == rows[1]["contract_hash"]
+    assert rows[0]["params"] == rows[1]["params"]
+
+
+def test_the_contract_cannot_weaken_the_gate():
+    """A contract constrains nothing a campaign may claim."""
+    c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle", seed=51)
+    with pytest.raises(CampaignError, match="passed"):
+        led.record_candidate({"n": 200, "k": 8, "distance": {"d": 12}},
+                             {"passed": False})

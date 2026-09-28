@@ -23,6 +23,18 @@
       },
       "escalation_gate": true
     },
+    "run_contract": {
+      "template": "python research/local2d/boundary_engine.py --lx {lx} --ly {ly} --weight {weight} --trials {trials} --screen {screen} --seed {seed} --threads {threads}",
+      "parameters": {
+        "lx": 20,
+        "ly": 22,
+        "weight": 8,
+        "trials": 100000,
+        "screen": 20000,
+        "seed": [101, 211, 307],
+        "threads": 8
+      }
+    },
     "budget": { "cpu_hours": 500, "gpu_hours": 100, "walltime_hours": 72 },
     "stopping": [
       { "type": "budget_exhausted" },
