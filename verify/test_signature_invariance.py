@@ -42,7 +42,7 @@ def test_a_tightened_distance_does_not_change_the_signature(code):
 
 
 def test_a_wrong_k_claim_does_not_change_the_signature(code):
-    """k is recomputed from the matrices, so a claim cannot move the hash."""
+    """K is recomputed from the matrices, so a claim cannot move the hash."""
     before = signature(code)["hash"]
     wrong = copy.deepcopy(code)
     wrong["k"] -= 1
@@ -83,3 +83,26 @@ def test_the_board_scan_names_the_pairs_it_finds():
     assert ("390-82-31", "390-82-31-b") in slugs
     for a, b, (unit, _sw) in hits:
         assert unit >= 1 and a != b
+
+def test_two_block_shape_without_the_circulant_structure_is_refused():
+    """Refuse a code that has the two-block shape without the structure.
+
+    The search reads one row per code, so it must not answer for a code that
+    merely looks like a two-block code. Corrupting a single row of a genuine GB
+    code leaves n, the row count and the first row intact, and must be refused.
+    """
+    import copy
+
+    from two_block_equivalence import equivalent, is_generalised_bicycle
+
+    a, b = load("390-82-31"), load("390-82-31-b")
+    assert is_generalised_bicycle(a) and is_generalised_bicycle(b)
+    assert equivalent(a, b) is not None            # the genuine pair still decides
+
+    broken = copy.deepcopy(a)
+    n = broken["n"]
+    last = sorted(broken["checks"]["X"][-1])
+    broken["checks"]["X"][-1] = sorted(set(last) ^ {(last[0] + 1) % (n // 2)})
+    assert not is_generalised_bicycle(broken)
+    assert equivalent(broken, b) is None
+    assert equivalent(a, broken) is None
