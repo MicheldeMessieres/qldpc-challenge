@@ -126,3 +126,66 @@ def test_symmetry_does_not_change_the_verdict():
         on, _ = sat_certify._solve_side(H_opp, L, W + 1, 300, use_symmetry=True)
         off, _ = sat_certify._solve_side(H_opp, L, W + 1, 300, use_symmetry=False)
         assert on == off, f"{side} at W+1: {off} -> {on}"
+
+
+@pytest.mark.parametrize("slug", ["37-1-7", "24-6-4", "144-12-12"])
+def test_pairing_set_spans_every_logical_class(slug):
+    """The pairing set has to reach all k classes, on both sides.
+
+    A class with no representative in the set is a class the cardinality
+    bound never constrains, so a logical living there is invisible to the
+    solver and the side comes back UNSAT with nothing searched. Codes chosen
+    to span the failure: 37-1-7 is the one where the old slice returned a
+    stabilizer and spanned nothing, and the other two are the codes the rest
+    of this file already exercises.
+    """
+    doc = _doc(slug)
+    n = doc["n"]
+    HX = sat_certify._matrix(doc["checks"]["X"], n)
+    HZ = sat_certify._matrix(doc["checks"]["Z"], n)
+    k = n - gf2.rank(HX) - gf2.rank(HZ)
+    for side, H_same, H_opp in (("X", HX, HZ), ("Z", HZ, HX)):
+        L = sat_certify._logicals(H_opp, H_same)
+        assert len(L) == k, f"{slug} {side}: {len(L)} representatives, k={k}"
+        spanned = gf2.rank(np.vstack([H_same, L])) - gf2.rank(H_same)
+        assert spanned == k, f"{slug} {side}: spans {spanned} classes, k={k}"
+
+
+def test_an_overstated_colour_code_distance_is_refuted():
+    """37-1-7 at d=8 must be refuted, not certified.
+
+    This is the case the old pairing set got wrong. Its X side returned a
+    single row that lies in rowspace(HZ), so every kernel vector commuted
+    with it, the at-least-one-anticommutation clause was unsatisfiable, and
+    both sides reported UNSAT. The certifier then recorded d=8 as exact for a
+    code whose own witness has weight 7.
+    """
+    doc = copy.deepcopy(_doc("37-1-7"))
+    assert int(doc["distance"]["d"]) == 7
+    doc["distance"]["d"] = 8
+    res = sat_certify.certify(doc, tlim=300)
+    assert not res["d_exact"], "an overstated distance was certified as exact"
+    assert any(b["status"] == "SAT" for b in res["sides"].values()), res["sides"]
+
+
+def test_a_short_pairing_set_is_refused_rather_than_certified():
+    """Certifying against a set that misses a class must raise.
+
+    Without this the failure is silent and looks exactly like a proof: the
+    solver reports UNSAT, certify() records exact=True, and the cert file
+    that upgrades the board entry gets written.
+    """
+    doc = copy.deepcopy(_doc("24-6-4"))
+    full = sat_certify._logicals
+    try:
+        sat_certify._logicals = lambda H_same, H_opp: full(H_same, H_opp)[:-1]
+        with pytest.raises(ValueError, match="logical classes"):
+            sat_certify.certify(doc, tlim=300)
+        # Same row count, no logical content: the guard has to measure the
+        # span rather than the length, since a stabilizer is a row too.
+        sat_certify._logicals = lambda H_same, H_opp: np.zeros_like(
+            full(H_same, H_opp))
+        with pytest.raises(ValueError, match="logical classes"):
+            sat_certify.certify(doc, tlim=300)
+    finally:
+        sat_certify._logicals = full

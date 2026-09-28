@@ -46,6 +46,18 @@ is what certifies v is outside rowspace(HX), because X-stabilizers commute with
 every Z-logical. Pairing against X-logicals instead admits stabilizers as
 "solutions", and the giveaway was a reported weight-9 logical on a code whose
 checks have weight 9.
+
+The pairing set itself is the other half of that, and got this wrong for
+longer. It has to span all k logical classes. A set that misses a class
+cannot constrain the operators in it, so a logical lighter than the claim
+slips through and the side reports UNSAT; a set that is short by every class
+makes the clause unsatisfiable outright, so the side reports UNSAT without
+searching at all. Either way the certifier answers the wrong question and
+calls it a proof. The earlier construction sliced rows out of
+rref([H_same; ker H_opp]) at rank(H_same), which assumed RREF leaves the
+stabilizer rows in the first block; RREF orders rows by pivot column, so the
+slice could keep stabilizers and drop logical classes. certify() now counts
+the classes the pairing set spans and refuses to solve unless it is all k.
 """
 import time
 
@@ -54,13 +66,14 @@ import numpy as np
 
 
 def _logicals(H_same, H_opp):
-    """Basis of one side's logicals: ker(H_opp) modulo rowspace(H_same)."""
-    K = np.asarray(gf2.kernel_basis(H_opp), dtype=np.int8)
-    if K.size == 0:
-        return np.zeros((0, H_opp.shape[1]), dtype=np.int8)
-    R = np.vstack([H_same, K]).astype(np.int8)
-    RR = np.asarray(gf2.rref(R)[0], dtype=np.int8)
-    return RR[gf2.rank(H_same):gf2.rank(R)]
+    """Basis of one side's logicals: ker(H_opp) modulo rowspace(H_same).
+
+    One representative per logical class, built by reducing each kernel
+    vector against the stabilizers and against the representatives already
+    kept, so every row returned is independent of the stabilizers and of the
+    other rows.
+    """
+    return np.asarray(gf2.logical_basis(H_opp, H_same), dtype=np.int8)
 
 
 def _shift_perm(n):
@@ -157,8 +170,10 @@ def certify(doc, tlim=600):
     HZ = _matrix(doc["checks"]["Z"], n)
     d = int(doc["distance"]["d"])
     W = d - 1
+    k = n - gf2.rank(HX) - gf2.rank(HZ)
     out = {"name": doc.get("name"), "d": d, "solver": "CryptoMiniSat 5.14 SAT",
-           "encoding": "selector", "sides": {}, "tlim_per_solve": tlim}
+           "encoding": "selector", "sides": {}, "tlim_per_solve": tlim,
+           "logical_classes": int(k)}
     # Symmetry breaking is applied only when the rotation is checked to fix
     # both row spaces, so a non-circulant entry degrades to the plain encoding
     # instead of being pruned by a constraint that does not hold for it.
@@ -167,8 +182,18 @@ def certify(doc, tlim=600):
     out["symmetry"] = bool(sym)
     for side, H_same, H_opp in (("X", HX, HZ), ("Z", HZ, HX)):
         t0 = time.time()
-        status, wit = _solve_side(H_opp, _logicals(H_opp, H_same), W, tlim,
-                                  use_symmetry=sym)
+        L = _logicals(H_opp, H_same)
+        # An UNSAT from a pairing set that does not span every class is not a
+        # proof of anything, so refuse rather than record one. Counting rows
+        # is not enough: a row that lies in rowspace(H_same) is a stabilizer
+        # and constrains nothing, which is exactly how this failed before.
+        spanned = (gf2.rank(np.vstack([H_same, L])) - gf2.rank(H_same)
+                   if len(L) else 0)
+        if spanned != k:
+            raise ValueError(
+                f"{side} side: pairing set spans {spanned} of {k} logical "
+                f"classes, so UNSAT here would not mean no light logical")
+        status, wit = _solve_side(H_opp, L, W, tlim, use_symmetry=sym)
         blk = {"value": d, "exact": status == "UNSAT",
                "status": status, "secs": round(time.time() - t0, 1)}
         if status == "UNSAT":
