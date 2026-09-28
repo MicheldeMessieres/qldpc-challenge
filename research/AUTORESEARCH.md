@@ -392,7 +392,10 @@ should not have to re-learn.
   the human will submit it beside the code, and your sweep counts, ladder traces (including
   collapses), and dead ends are exactly its required content — capture them while they are
   cheap to capture. Findings that are *not* attached to a candidate (blocked routes,
-  calibration results) belong in a drafted `fieldnotes/` entry instead.
+  calibration results) belong in a drafted `fieldnotes/` entry instead. Record the
+  ladder as rungs rather than as prose: `kit/promote.py` renders the note, the
+  `codes/` document, and the PR body from that one record once a human authorizes
+  the submission, so the ladder is transcribed once instead of three times.
 - Write each surviving candidate's **submission JSON + its full validator verdict** to a staging
   folder (`coordination.staging_dir()` gives this run its own one under `research/candidates/`),
   and print a short ranked summary:
@@ -415,6 +418,7 @@ should not have to re-learn.
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
 | `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and verdict reuse when several sessions run at once |
+| `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap; exact distance uses the trusted SAT certifier and needs the `research` extra |
 | `local2d/planar.py` | fast greedy open-boundary builder, exact planar distance (scipy MILP), `grid_coordinates` for the bilayer layout |

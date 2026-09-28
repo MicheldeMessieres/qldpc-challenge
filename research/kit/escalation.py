@@ -133,6 +133,12 @@ def _norm_rung(r):
     return {"trials": trials, "d": d, "fresh": bool(fresh), "label": label}
 
 
+# Public alias. ``promote.py`` renders the same rung records into a note's
+# confirmation-ladder table, so both read a ladder through one normalizer and a
+# rung the gate would reject cannot reach a submission.
+norm_rung = _norm_rung
+
+
 def _brief_id(n, k, bar, family, spec, rungs):
     payload = json.dumps({"n": n, "k": k, "bar": bar, "family": family,
                           "spec": spec, "rungs": rungs},

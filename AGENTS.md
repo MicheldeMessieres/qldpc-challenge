@@ -15,6 +15,11 @@ Use this when the user explicitly asks you to submit a code, prepare a PR, creat
 commit, push, or open a PR on their behalf. Follow `CONTRIBUTING.md`. After the candidate passes
 the trusted validation gate, the agent may write the verified submission to `codes/` and use
 `./qldpc submit ... --open-pr` to create the branch, commit, push, and PR.
+`research/kit/promote.py` is the alternative when the candidate already carries
+the witnesses the gate accepted: it assembles `codes/`, the note, and the PR body
+without re-running the distance search, runs the gate and the prose check in
+order, and returns what is still outstanding as JSON. It writes files and never
+runs git or gh, so the branch, push, and PR stay explicit.
 
 ### Unattended autoresearch
 
