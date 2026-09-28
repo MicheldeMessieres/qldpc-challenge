@@ -67,16 +67,25 @@ else:
 # 2. compute_k parity on every certified code on the board.
 codes_dir = os.path.join(_HERE, "..", "codes")
 mismatch = []
+skipped_noncss = 0
 for fname in sorted(os.listdir(codes_dir)):
     if not fname.endswith(".json"):
         continue
     doc = json.load(open(os.path.join(codes_dir, fname)))
+    # compute_k(HX, HZ) is a CSS parity check. A general stabilizer entry
+    # carries checks["S"] and has no X/Z split to hand it, so it is skipped
+    # rather than allowed to raise: this loop runs at import, so one such
+    # entry on the board fails collection and takes the whole file with it.
+    if doc.get("code_type", "CSS") != "CSS":
+        skipped_noncss += 1
+        continue
     n = doc["n"]
     HX = _matrix(doc["checks"]["X"], n)
     HZ = _matrix(doc["checks"]["Z"], n)
     if gf2_fast.compute_k(HX, HZ) != doc["k"]:
         mismatch.append(fname)
-check("compute_k parity (all board codes)", not mismatch, str(mismatch))
+check(f"compute_k parity (all CSS board codes; {skipped_noncss} non-CSS skipped)",
+      not mismatch, str(mismatch))
 
 # 3. distance_rand re-finds the known distance of a small certified code.
 doc = json.load(open(os.path.join(codes_dir, "72-6-6.json")))
