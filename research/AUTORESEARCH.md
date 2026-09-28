@@ -245,6 +245,20 @@ doc = make_submission(
 )
 ```
 
+Stage the result under this session's own directory rather than a shared flat name:
+
+```python
+from coordination import staging_dir, unique_path
+out = staging_dir()                            # research/candidates/<run_id>/
+save_submission(doc, unique_path(f"{out}/{n}-{k}-{d}.json", doc))
+```
+
+`save_submission` raises `CandidateCollision` rather than write over a candidate that is not the
+one in hand. Several sessions stage at once and the flat `<n>-<k>-<d>.json` convention hands two
+of them the same filename, so the second write used to delete the first one's witness. Re-writing
+the same candidate is not a collision, and `unique_path` gives a second candidate with the same
+parameters its own name.
+
 `family` is a filterable Layer-2 tag, never ranked. You do **not** declare which tracks you
 enter: the verifier computes primary-track membership (the weight and locality classes) from `H`
 and the layout. To enter the `2d-local-*` tracks, give the code a layout — pass
@@ -256,6 +270,20 @@ and computes the interaction radius, and the verifier derives the locality class
 Run `validate_candidate` on the packaged doc (see **The one rule** above). Keep only
 `passed: true`. The verdict's `gates` are your evidence; its `labels` are what you show the
 human. This — not the surrogate, not your own judgment — is what decides whether you have a find.
+
+Deep confirmation is the most expensive step in the loop, so do not pay twice for the same answer:
+
+```python
+from coordination import validate_cached
+verdict, reused = validate_cached(doc)         # the gate, or its own last word
+```
+
+`validate_cached` calls `verify/validate_candidate.py` exactly as you would and caches what it
+returned under the candidate's content hash, in the gitignored `research/candidates/.verdicts/`.
+An entry is served only while the validator source and the board it was judged against are both
+unchanged, since `dedup` and `novelty` are claims about `codes/` at a point in time and not about
+the candidate alone. Nothing in the cache is evidence, and deleting it costs compute rather than
+correctness.
 
 ## 5b. A win only on d: audit the peer before you package
 
@@ -366,7 +394,8 @@ should not have to re-learn.
   cheap to capture. Findings that are *not* attached to a candidate (blocked routes,
   calibration results) belong in a drafted `fieldnotes/` entry instead.
 - Write each surviving candidate's **submission JSON + its full validator verdict** to a staging
-  folder (e.g. `research/candidates/` or a scratch dir), and print a short ranked summary:
+  folder (`coordination.staging_dir()` gives this run its own one under `research/candidates/`),
+  and print a short ranked summary:
   `[[n,k,d]]`, cell, efficiency `kd²/n`, board-advancing?, and the honest labels.
 - **Persist any new constructor code you wrote** and a brief decision journal, so the run is
   reproducible and a good `sample_<family>` can later graduate into `research/`.
@@ -385,6 +414,7 @@ should not have to re-learn.
 | `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` |
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
+| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and verdict reuse when several sessions run at once |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap; exact distance uses the trusted SAT certifier and needs the `research` extra |
 | `local2d/planar.py` | fast greedy open-boundary builder, exact planar distance (scipy MILP), `grid_coordinates` for the bilayer layout |

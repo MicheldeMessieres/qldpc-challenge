@@ -43,9 +43,12 @@ and open a PR when the user explicitly authorized that submission.
 
 **A found low-weight logical (witness) is the most expensive data we produce — never lose it.**
 Persist every candidate through `research/kit/submit.make_submission` and then
-`submit.save_submission(doc, "research/candidates/<n>-<k>-<d>.json")`, which embed the witness;
-an ad-hoc `python -c` that calls a distance search and prints the result discards it. If a
-search finds a valid logical but the save fails, that is a hard error — stop and report it.
+`submit.save_submission(doc, f"{coordination.staging_dir()}/<n>-<k>-<d>.json")`, which embed the
+witness and stage it under this session's own run directory; an ad-hoc `python -c` that calls a
+distance search and prints the result discards it. If a search finds a valid logical but the save
+fails, that is a hard error — stop and report it. `save_submission` refuses to write over a
+candidate that is not the one in hand, because several sessions stage at once and the flat
+`<n>-<k>-<d>.json` name hands two of them the same file.
 
 ## Writing the submission (the PR body and the note)
 

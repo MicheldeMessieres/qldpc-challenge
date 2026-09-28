@@ -65,7 +65,23 @@ family is the finding. `summary.json` is the machine-readable half;
 `abandoned` keeps everything a run produced. Stopping early throws nothing
 away.
 
-The ledger is held in memory, so a kill loses it. On a run long enough for that
-to matter, write the summary at each experiment boundary:
-`write_summary(led.summary(), ".../summary.json")` overwrites in place, and the
-status it records is `paused` until a stopping condition fires.
+The ledger is held in memory, so a kill loses it. Pass `journal=` and every
+experiment is appended to a JSONL file as it closes, which narrows the loss to
+the experiment in flight:
+
+```python
+from coordination import staging_dir
+led = Ledger(camp, journal=f"{staging_dir()}/ledger.jsonl")
+...
+back = Ledger.from_journal(camp, path)      # everything that had closed
+```
+
+One journal per executor. `Ledger.merge` folds two of them into one, keyed by
+`(family, seed)`, so the same family at the same seed is counted once and its
+budget is not charged twice, and survivors are unioned on the verifier's
+fingerprint. That is what turns two executors handed the same campaign file
+into one campaign rather than two results a human compares by hand.
+
+`write_summary(led.summary(), ".../summary.json")` still overwrites in place
+whenever it is called, and the status it records is `paused` until a stopping
+condition fires.

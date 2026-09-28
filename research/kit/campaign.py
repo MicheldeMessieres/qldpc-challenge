@@ -33,6 +33,7 @@ the board real entries before:
 import json
 import os
 import time
+from datetime import datetime, timezone
 
 try:
     import jsonschema
@@ -43,6 +44,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_HERE))
 SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_VERSION = 1
+JOURNAL_VERSION = 1
 
 # The metrics :meth:`Campaign.score` computes from a survivor's (n, k, d), and
 # therefore the only ones a target_reached condition can ever fire on.
@@ -203,21 +205,36 @@ BUDGET_FIELDS = ("cpu_hours", "gpu_hours", "walltime_hours",
 class Ledger:
     """The running record of one campaign: what was spent, tried and found.
 
-    Held in memory while a campaign runs and written out at the end. It is the
-    committed half of the evidence trail, so it names only things a reviewer
-    can open: staged candidates live in the gitignored ``research/candidates/``
-    and are recorded by their parameters and verdict, never cited as files.
+    It is the committed half of the evidence trail, so it names only things a
+    reviewer can open: staged candidates live in the gitignored
+    ``research/candidates/`` and are recorded by their parameters and verdict,
+    never cited as files.
+
+    Pass ``journal=<path>`` and each experiment is appended to a JSONL file as
+    it closes, so a kill costs the current experiment rather than the run.
+    :meth:`from_journal` reads one back, and :meth:`merge` folds two ledgers of
+    the same campaign into one. That last part is what turns "two executors
+    handed the same file" from a human comparison exercise into a campaign
+    several sessions can run between them.
+
+    One journal per executor. Two processes appending to the same file would
+    interleave partial lines once a record outgrows the atomic write size, and
+    separate files merge cleanly anyway.
     """
 
-    def __init__(self, campaign):
+    def __init__(self, campaign, *, journal=None):
         self.campaign = campaign
+        self.journal = journal
         self.spent = dict.fromkeys(BUDGET_FIELDS, 0)
         self._t0 = time.monotonic()
+        self._walltime_base = 0.0
         self.experiments = []
         self.survivors = []
         self.negative_results = []
         self.frontier_advances = 0
         self._current = None
+        self._exp_t0 = None
+        self._mark = (0, 0)
         self._dry_streak = 0
 
     # -- experiments ------------------------------------------------------
@@ -230,17 +247,160 @@ class Ledger:
         self._current = {"family": family, "seed": seed, "note": note,
                          "spent": dict.fromkeys(BUDGET_FIELDS, 0),
                          "survivors": 0}
+        self._exp_t0 = time.monotonic()
+        self._mark = (len(self.survivors), len(self.negative_results))
         return self._current
 
     def end_experiment(self):
-        """Close the current run and fold it into the ledger."""
+        """Close the current run, fold it into the ledger, and journal it.
+
+        The experiment's own wall time is measured here rather than reported,
+        for the same reason the campaign's is: it is the only number a merged
+        or replayed ledger can add up, and a cap nothing observes is advisory.
+        """
         if self._current is None:
             raise CampaignError("end_experiment without start_experiment")
         exp = self._current
+        elapsed = (time.monotonic() - self._exp_t0) / 3600
+        exp["spent"]["walltime_hours"] = max(exp["spent"]["walltime_hours"],
+                                             elapsed)
         self.experiments.append(exp)
         self._dry_streak = 0 if exp["survivors"] else self._dry_streak + 1
+        si, ni = self._mark
+        self._append_journal(exp, self.survivors[si:],
+                             self.negative_results[ni:])
         self._current = None
+        self._exp_t0 = None
         return exp
+
+    # -- the journal ------------------------------------------------------
+    def _append_journal(self, exp, survivors, negatives):
+        """Append one experiment and what it produced, then force it to disk."""
+        if not self.journal:
+            return None
+        record = {"record_version": JOURNAL_VERSION,
+                  "campaign_id": self.campaign.id,
+                  "recorded_at": datetime.now(timezone.utc).isoformat(),
+                  "experiment": exp,
+                  "survivors": list(survivors),
+                  "negative_results": list(negatives)}
+        parent = os.path.dirname(os.path.abspath(self.journal))
+        os.makedirs(parent, exist_ok=True)
+        with open(self.journal, "a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(record, sort_keys=True) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        return self.journal
+
+    @classmethod
+    def from_journal(cls, campaign, path):
+        """Rebuild a ledger from one journal, or several merged.
+
+        What a journal cannot restore is spend recorded outside any
+        experiment, since nothing closes to carry it, and the in-flight
+        experiment the kill interrupted. Everything that closed is here.
+        """
+        paths = [path] if isinstance(path, (str, os.PathLike)) else list(path)
+        if not paths:
+            raise CampaignError("from_journal: no journal given")
+        out = None
+        for one in paths:
+            led = cls(campaign)
+            led._replay(one)
+            out = led if out is None else out.merge(led)
+        return out
+
+    def _replay(self, path):
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        for i, line in enumerate(lines):
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                if i == len(lines) - 1:
+                    break                        # the tail a kill truncated
+                raise CampaignError(
+                    f"{path}: line {i + 1} is not valid JSON, and it is not "
+                    "the last line, so this is corruption rather than an "
+                    "interrupted write") from None
+            if rec.get("campaign_id") != self.campaign.id:
+                raise CampaignError(
+                    f"{path}: journal is for campaign "
+                    f"{rec.get('campaign_id')!r}, not {self.campaign.id!r}")
+            exp = rec.get("experiment") or {}
+            exp.setdefault("spent", dict.fromkeys(BUDGET_FIELDS, 0))
+            self.experiments.append(exp)
+            self.survivors.extend(rec.get("survivors") or [])
+            self.negative_results.extend(rec.get("negative_results") or [])
+        self.spent = {f: sum(e["spent"].get(f, 0) for e in self.experiments)
+                      for f in BUDGET_FIELDS}
+        self._recount()
+        return self
+
+    def merge(self, other):
+        """Fold another executor's ledger for the same campaign into a new one.
+
+        Experiments are keyed by ``(family, seed)``: the same family at the
+        same seed is the same deterministic work, so it is counted once and
+        its budget is not charged twice. An experiment with no seed cannot be
+        told apart from another, so both copies are kept; that over-counts the
+        budget rather than silently discarding work someone paid for.
+
+        Survivors are unioned on the verifier's fingerprint, so one code found
+        by two executors is one survivor rather than two. Wall time is the sum
+        of the merged experiments' own measured wall times, because two
+        executors that ran in parallel each consumed theirs. Neither input
+        ledger is modified.
+        """
+        if other.campaign.id != self.campaign.id:
+            raise CampaignError(
+                f"merge: {other.campaign.id!r} is a different campaign from "
+                f"{self.campaign.id!r}; their budgets and objectives are not "
+                "the same task and adding them up would say nothing")
+        out = Ledger(self.campaign)
+        seen, dropped = set(), []
+        for src in (self, other):
+            for exp in src.experiments:
+                key = (exp.get("family"), exp.get("seed"))
+                if exp.get("seed") is not None and key in seen:
+                    dropped.append(exp)
+                    continue
+                seen.add(key)
+                out.experiments.append(exp)
+        out.spent = {f: self.spent.get(f, 0) + other.spent.get(f, 0)
+                     - sum(d["spent"].get(f, 0) for d in dropped)
+                     for f in BUDGET_FIELDS}
+        keys = set()
+        for src in (self, other):
+            for row in src.survivors:
+                key = row.get("fingerprint") or (
+                    row.get("n"), row.get("k"), row.get("d"),
+                    tuple(row.get("cell") or ()))
+                if key in keys:
+                    continue
+                keys.add(key)
+                out.survivors.append(row)
+        for src in (self, other):
+            for neg in src.negative_results:
+                if neg not in out.negative_results:
+                    out.negative_results.append(neg)
+        out._recount()
+        return out
+
+    def _recount(self):
+        """Recompute the derived counters from the rows now held."""
+        self.frontier_advances = sum(1 for r in self.survivors
+                                     if r.get("advanced_frontier"))
+        self._walltime_base = sum(e.get("spent", {}).get("walltime_hours", 0)
+                                  for e in self.experiments)
+        streak = 0
+        for exp in reversed(self.experiments):
+            if exp.get("survivors"):
+                break
+            streak += 1
+        self._dry_streak = streak
 
     def spend(self, **amounts):
         """Record consumption against the budget."""
@@ -282,6 +442,7 @@ class Ledger:
             "cell": novelty.get("cell"),
             "board_advancing": novelty.get("board_advancing"),
             "fingerprint": (verdict.get("candidate") or {}).get("fingerprint"),
+            "advanced_frontier": bool(advanced_frontier),
             "labels": list(verdict.get("labels") or []),
         }
         self.survivors.append(row)
@@ -307,8 +468,8 @@ class Ledger:
         observes is advisory, and the budget object exists to be enforceable.
         """
         out = dict(self.spent)
-        out["walltime_hours"] = max(out["walltime_hours"],
-                                    (time.monotonic() - self._t0) / 3600)
+        measured = self._walltime_base + (time.monotonic() - self._t0) / 3600
+        out["walltime_hours"] = max(out["walltime_hours"], measured)
         return out
 
     def budget_exhausted(self):

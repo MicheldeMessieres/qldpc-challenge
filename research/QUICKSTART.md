@@ -18,7 +18,10 @@ lose it.** Persist every candidate through `submit.make_submission` and
 prints a distance and exits throws away the part that cost the compute.
 
 Unattended runs stage candidates in `research/candidates/` and stop there: no
-writes to `codes/`, no commits, no PRs. A human decides what lands.
+writes to `codes/`, no commits, no PRs. A human decides what lands. Several
+sessions stage there at once, so take a run directory from
+`coordination.staging_dir()` rather than writing a flat `<n>-<k>-<d>.json`
+another session is about to write too.
 
 ## The loop
 
@@ -34,6 +37,7 @@ writes to `codes/`, no commits, no PRs. A human decides what lands.
 ```python
 import sys; sys.path[:0] = ["research/kit", "verify"]
 from bb import build_bb
+from coordination import staging_dir
 from surrogate import distance_rand
 from submit import make_submission, save_submission
 
@@ -43,11 +47,13 @@ doc = make_submission(HX, HZ, name=f"[[72,12,{d}]] my BB code",
                       construction="Bivariate bicycle on Z_6 x Z_6.",
                       authors=["your-handle"], family="bivariate-bicycle",
                       confidence="upper_bound")
-save_submission(doc, "research/candidates/72-12-6.json")
+path = f"{staging_dir()}/72-12-6.json"       # research/candidates/<run_id>/...
+save_submission(doc, path)                   # refuses to clobber another session
+print(path)
 ```
 
 ```bash
-uv run python verify/validate_candidate.py research/candidates/72-12-6.json
+uv run python verify/validate_candidate.py <the path it printed>
 ```
 
 Exit 0 and `passed: true`, or it is not a find. The gate is the expensive step,

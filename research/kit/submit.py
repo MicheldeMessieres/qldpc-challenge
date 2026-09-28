@@ -25,8 +25,8 @@ import os
 import sys
 
 import numpy as np
-
-from css import compute_k, verify_css, commutes, in_rowspace
+from coordination import CandidateCollision, holds_same_candidate
+from css import commutes, compute_k, in_rowspace, verify_css
 from surrogate import lightest_logical
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,8 +44,10 @@ def _vec(support, n):
 
 
 def _interaction_radius(checks, coordinates):
-    """Max check diameter under the given 2D or 3D coordinates (the quantity
-    the verifier recomputes for the locality tracks)."""
+    """Return the max check diameter under the given 2D or 3D coordinates.
+
+    The quantity the verifier recomputes for the locality tracks.
+    """
     def diam(sup):
         pts = [coordinates[q] for q in sup]
         return max((math.dist(a, b) for a in pts for b in pts), default=0.0)
@@ -53,8 +55,11 @@ def _interaction_radius(checks, coordinates):
 
 
 def validate(doc):
-    """Return a list of schema violations ([] means valid). Uses jsonschema if
-    available, else returns [] (the verifier will do the authoritative check)."""
+    """Return a list of schema violations ([] means valid).
+
+    Uses jsonschema if available, else returns [] (the verifier will do the
+    authoritative check).
+    """
     try:
         import jsonschema
         with open(_SCHEMA_PATH) as f:
@@ -158,9 +163,36 @@ def make_submission(HX, HZ, *, name, construction, authors, family=None,
     return doc
 
 
-def save_submission(doc, path):
-    """Write ``doc`` to ``path`` (pretty JSON) after a schema check; returns the
-    list of schema violations (empty on success)."""
+def save_submission(doc, path, *, on_collision="error"):
+    """Write ``doc`` to ``path`` as pretty JSON, after a schema check.
+
+    Returns the list of schema violations (empty on success).
+
+    A found low-weight logical is the most expensive data this kit produces, so
+    this refuses by default to write over a *different* candidate already at
+    ``path``. Several sessions now stage into ``research/candidates/`` at once
+    and the flat ``<n>-<k>-<d>.json`` convention gives two of them that find the
+    same parameters the same filename; before this the second write simply
+    deleted the first one's witness. Re-writing the same candidate is not a
+    collision and still succeeds, so re-running a search is unaffected.
+
+    ``on_collision`` is ``"error"`` (raise
+    :class:`coordination.CandidateCollision`) or ``"overwrite"`` (the old
+    behavior, for a caller that means to replace the file). To keep both
+    candidates instead, stage under ``coordination.staging_dir()`` or pass the
+    path through ``coordination.unique_path(path, doc)`` first.
+    """
+    if on_collision not in ("error", "overwrite"):
+        raise ValueError(f"on_collision: unknown mode {on_collision!r}; "
+                         "use 'error' or 'overwrite'")
+    if on_collision == "error" and os.path.exists(path) \
+            and not holds_same_candidate(path, doc):
+        raise CandidateCollision(
+            f"{path} already holds a different candidate. Overwriting it would "
+            "destroy a witness no one can recompute cheaply. Stage under "
+            "coordination.staging_dir(), or pass "
+            "coordination.unique_path(path, doc), or pass "
+            "on_collision='overwrite' if replacing it is what you mean.")
     errs = validate(doc)
     with open(path, "w") as f:
         json.dump(doc, f, indent=2)

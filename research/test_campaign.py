@@ -383,3 +383,162 @@ def test_a_definition_that_is_not_json_says_so(tmp_path):
     p.write_text("{not json")
     with pytest.raises(CampaignError, match="not valid JSON"):
         load_campaign(str(p))
+
+
+# -- the journal and the merge (issue #2314) ------------------------------
+
+def survivor_verdict(fingerprint, **over):
+    v = passed_verdict(**over)
+    v["candidate"]["fingerprint"] = fingerprint
+    return v
+
+
+def run_one(journal, family="bivariate-bicycle", *, seed, cpu_hours=1,
+            fingerprints=(), negatives=()):
+    """Run one experiment of the shared campaign and journal it."""
+    led = Ledger(Campaign(validate_campaign(camp())), journal=str(journal))
+    led.start_experiment(family, seed=seed)
+    led.spend(cpu_hours=cpu_hours)
+    for fp in fingerprints:
+        led.record_candidate(doc(), survivor_verdict(fp))
+    for what, detail in negatives:
+        led.record_negative(what, detail)
+    led.end_experiment()
+    return led
+
+
+def test_each_closed_experiment_is_journaled_as_it_closes(tmp_path):
+    """A kill then costs the experiment in flight, not the whole run."""
+    j = tmp_path / "ledger.jsonl"
+    led = Ledger(Campaign(validate_campaign(camp())), journal=str(j))
+    led.start_experiment("bivariate-bicycle", seed=1)
+    led.spend(cpu_hours=2)
+    assert not j.exists()                        # nothing is written mid-run
+    led.end_experiment()
+    led.start_experiment("bivariate-bicycle", seed=2)
+    led.record_candidate(doc(), passed_verdict())
+    led.end_experiment()
+    lines = j.read_text().strip().split("\n")
+    assert len(lines) == 2
+    first = json.loads(lines[0])
+    assert first["campaign_id"] == "test-campaign"
+    assert first["experiment"]["seed"] == 1 and first["survivors"] == []
+    assert json.loads(lines[1])["survivors"][0]["cell"] == \
+        ["weight-6", "unrestricted"]
+
+
+def test_a_journal_replays_into_the_ledger_it_came_from(tmp_path):
+    j = tmp_path / "ledger.jsonl"
+    run_one(j, seed=1, cpu_hours=4, fingerprints=("fp-a",),
+            negatives=[("closed family", "every draw collapsed")])
+    back = Ledger.from_journal(Campaign(validate_campaign(camp())), str(j))
+    assert back.consumed()["cpu_hours"] == 4
+    assert [s["fingerprint"] for s in back.survivors] == ["fp-a"]
+    assert back.negative_results[0]["what"] == "closed family"
+    assert back.frontier_advances == 1
+
+
+def test_a_truncated_last_line_loses_only_the_tail(tmp_path):
+    j = tmp_path / "ledger.jsonl"
+    run_one(j, seed=1, cpu_hours=4, fingerprints=("fp-a",))
+    with open(j, "a") as f:
+        f.write('{"record_version": 1, "campaign_id": "test-camp')
+    back = Ledger.from_journal(Campaign(validate_campaign(camp())), str(j))
+    assert len(back.experiments) == 1 and back.consumed()["cpu_hours"] == 4
+
+
+def test_a_corrupt_line_in_the_middle_is_not_quietly_skipped(tmp_path):
+    j = tmp_path / "ledger.jsonl"
+    run_one(j, seed=1)
+    with open(j, "a") as f:
+        f.write("{not json\n")
+    run_one(j, seed=2)
+    with pytest.raises(CampaignError, match="not the last line"):
+        Ledger.from_journal(Campaign(validate_campaign(camp())), str(j))
+
+
+def test_a_journal_for_another_campaign_is_refused(tmp_path):
+    j = tmp_path / "ledger.jsonl"
+    run_one(j, seed=1)
+    other = Campaign(validate_campaign(camp(id="some-other-campaign")))
+    with pytest.raises(CampaignError, match="journal is for campaign"):
+        Ledger.from_journal(other, str(j))
+
+
+def test_two_executors_of_the_same_campaign_merge(tmp_path):
+    a = run_one(tmp_path / "a.jsonl", seed=1, cpu_hours=3,
+                fingerprints=("fp-a",))
+    b = run_one(tmp_path / "b.jsonl", seed=2, cpu_hours=5,
+                fingerprints=("fp-b",),
+                negatives=[("wall", "nothing under weight 8")])
+    both = a.merge(b)
+    assert len(both.experiments) == 2
+    assert both.consumed()["cpu_hours"] == 8
+    assert sorted(s["fingerprint"] for s in both.survivors) == ["fp-a", "fp-b"]
+    assert both.negative_results[0]["what"] == "wall"
+    assert both.frontier_advances == 2
+    assert len(a.experiments) == 1 and len(b.experiments) == 1
+
+
+def test_the_same_seed_is_the_same_work_and_is_charged_once(tmp_path):
+    """Replicated execution is the point; paying twice for it is not."""
+    a = run_one(tmp_path / "a.jsonl", seed=7, cpu_hours=3,
+                fingerprints=("fp-a",))
+    b = run_one(tmp_path / "b.jsonl", seed=7, cpu_hours=3,
+                fingerprints=("fp-a",))
+    both = a.merge(b)
+    assert len(both.experiments) == 1
+    assert both.consumed()["cpu_hours"] == 3
+    assert len(both.survivors) == 1 and both.frontier_advances == 1
+
+
+def test_an_experiment_with_no_seed_cannot_be_deduplicated(tmp_path):
+    """Nothing tells the two apart, so over-count rather than discard work."""
+    a = run_one(tmp_path / "a.jsonl", seed=None, cpu_hours=3)
+    b = run_one(tmp_path / "b.jsonl", seed=None, cpu_hours=3)
+    both = a.merge(b)
+    assert len(both.experiments) == 2 and both.consumed()["cpu_hours"] == 6
+
+
+def test_merging_a_different_campaign_is_refused(tmp_path):
+    a = run_one(tmp_path / "a.jsonl", seed=1)
+    other = Ledger(Campaign(validate_campaign(camp(id="some-other-campaign"))))
+    with pytest.raises(CampaignError, match="different campaign"):
+        a.merge(other)
+
+
+def test_a_merged_ledger_stops_on_the_shared_budget(tmp_path):
+    """The budget is the campaign's, not each executor's."""
+    a = run_one(tmp_path / "a.jsonl", seed=1, cpu_hours=6)
+    b = run_one(tmp_path / "b.jsonl", seed=2, cpu_hours=6)
+    assert a.stop_reason() is None and b.stop_reason() is None
+    kind, detail = a.merge(b).stop_reason()
+    assert kind == "budget_exhausted" and "cpu_hours" in detail
+
+
+def test_a_merged_ledger_summarizes_like_any_other(tmp_path):
+    a = run_one(tmp_path / "a.jsonl", seed=1, cpu_hours=5,
+                fingerprints=("fp-a",))
+    b = run_one(tmp_path / "b.jsonl", seed=2, cpu_hours=5,
+                fingerprints=("fp-b",))
+    s = a.merge(b).summary()
+    assert s["budget"]["consumed"]["cpu_hours"] == 10
+    assert len(s["survivors"]) == 2 and s["frontier_advances"] == 2
+    assert "board entry until a human reviews" in s["authority"]
+
+
+def test_several_journals_load_as_one_ledger(tmp_path):
+    run_one(tmp_path / "a.jsonl", seed=1, cpu_hours=2, fingerprints=("fp-a",))
+    run_one(tmp_path / "b.jsonl", seed=2, cpu_hours=2, fingerprints=("fp-b",))
+    both = Ledger.from_journal(Campaign(validate_campaign(camp())),
+                               [str(tmp_path / "a.jsonl"),
+                                str(tmp_path / "b.jsonl")])
+    assert len(both.experiments) == 2 and both.consumed()["cpu_hours"] == 4
+    assert len(both.survivors) == 2
+
+
+def test_a_ledger_with_no_journal_writes_nothing(tmp_path):
+    led = Ledger(Campaign(validate_campaign(camp())))
+    led.start_experiment("bivariate-bicycle", seed=1)
+    led.end_experiment()
+    assert list(tmp_path.iterdir()) == []
