@@ -10,6 +10,16 @@ trials is d_ub >= d.
 Same nature as RIS (an upper-bound search, reproducible), but a genuinely
 different mechanism, so agreement strengthens a corroboration. Offline tooling
 (needs ldpc): run with `uv run --with ldpc python decode/distance.py codes/foo.json`.
+
+Not part of the refutation gate. Measured against all 20 historical
+over-claims at equal wall-clock (#1148), it was never closer than RIS,
+trailing by 4 to 15 weight units below n = 400 and by 30 to 45 near n = 670,
+and it ran 9x to 160x fewer trials per second. The reason is structural: one
+RIS trial is a single elimination that tests a few hundred candidates, while
+one decode costs an elimination or several and returns at most one residual,
+which is a light logical only if the decoder happens to fail toward a
+near-minimal codeword. There is no budget at which it catches up, so the
+seconds belong to RIS.
 Pinned decoder: BpOsdDecoder, osd_cs, order 10, max_iter 30.
 
 Usage: python decode/distance.py codes/foo.json [--trials N] [--seed S]
@@ -79,7 +89,10 @@ def _side(Hcheck, Lopp, n, weights, trials, seed, max_seconds=None):
             wt = int(r.sum())
             if wt < best:
                 best, wit = wt, r.copy()
-        if deadline and (t & 255) == 0 and time.monotonic() > deadline:
+        # Checked every trial, not every 256. Decode cost tracks the injected
+        # weight rather than n, so at ~2 s a decode the old stride overran a
+        # 10 s budget by minutes on the large codes.
+        if deadline and time.monotonic() > deadline:
             break
     return (best if wit is not None else None), wit
 

@@ -17,7 +17,7 @@ def git(root, *args):
     ("partial_cleanup", 1), ("remove_both", 0), ("remove_json_only", 1),
     ("rename_both", 0),
 ])
-def test_orphan_cleanup(tmp_path, capsys, monkeypatch, case, expected):
+def test_orphan_cleanup(tmp_path, capsys, case, expected):
     git(tmp_path, "init", "-q", "-b", "main")
     code = tmp_path / "codes" / "old.json"
     code.parent.mkdir()
@@ -53,7 +53,6 @@ def test_orphan_cleanup(tmp_path, capsys, monkeypatch, case, expected):
     if expected:
         assert "remaining circuits/ artifacts" in output
         assert "authors []" not in output
-    monkeypatch.setattr(gate, "_load_syndrome", lambda: None)
     if case == "rename_both":
         # Both sides of an exact rename stay visible regardless of similarity.
         assert set(gate.changed_codes("main", str(tmp_path))) == {

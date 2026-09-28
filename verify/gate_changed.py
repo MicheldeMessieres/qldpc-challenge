@@ -1,7 +1,7 @@
 """Distance-refutation gate for the codes changed in a PR (CI).
 
 Runs independent bounded, fixed-seed refutation searches -- python RIS
-(heuristic_distance), the syndrome decoder (decode/distance, needs ldpc), and,
+(heuristic_distance) and,
 for frontier-advancing claims, a ~150x-deeper accelerated RIS pass (gf2_fast,
 built via `make fast`; capped at FAST_SECONDS wall-clock or its trial target,
 whichever binds first, with the completed count in the receipt) whose finds
@@ -11,8 +11,7 @@ PR, and exits non-zero if ANY finds a logical lighter than the claimed distance
 (an over-claim). With the extension built, deep claims get 1 python RIS seed
 (the audited floor / canary) plus the fast pass; without it they get the full
 pre-accelerator battery of 3 python seeds, so a missing or broken extension can
-never leave the gate shallower than it was. The syndrome-decoder cross-check is
-skipped if ldpc is unavailable. Bulk
+never leave the gate shallower than it was. Bulk
 re-verification of the whole board stays cheap -- only new/changed files pay the
 search cost. The RIS budget is ADAPTIVE (see _budget): trials scale with code
 size, so a small code gets near-exhaustive coverage and a large one a
@@ -114,17 +113,6 @@ def fast_slices(trials):
 # larger target; everything else gets enough to catch the gross over-claims.
 STRUCT_TRIALS_DEEP = 400_000
 STRUCT_TRIALS_STD = 50_000
-
-
-def _load_syndrome():
-    """The syndrome-decoder cross-check (decode/distance.py); needs ldpc. Returns
-    the module or None so the gate degrades to RIS-only without it."""
-    try:
-        sys.path.insert(0, os.path.join(ROOT, "decode"))
-        import distance as sd
-        return sd
-    except Exception:
-        return None
 
 
 def map_changed(paths):
@@ -720,11 +708,6 @@ def main(argv):
           f"the fast pass is also wall-clock capped, see fast_trials in the "
           f"receipt)\n")
 
-    SD = _load_syndrome()
-    if SD is None:
-        print("note: syndrome-decoder cross-check unavailable (ldpc missing); "
-              "running RIS only\n")
-
     refuted = 0
     failed = 0
     records = board_record_slugs(code_root)
@@ -904,10 +887,6 @@ def main(argv):
                 results[f"RIS#{si}"] = H.refute_check(doc, seed=s,
                                                       max_seconds=budget,
                                                       trials=trials)
-            # the BP+OSD cross-check decodes per Pauli sector of a CSS code;
-            # a stabilizer code has no sectors and skips it
-            if SD is not None and not is_stabilizer(doc):
-                results["syndrome-decoder"] = SD.refute_check(doc, seed=seed + 1)
             # Frontier claims additionally face the accelerated deep search when
             # the extension is built (CI builds it; see Makefile `fast`): ~150x
             # the python trial target in the wall-clock freed by dropping 2 of
