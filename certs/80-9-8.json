@@ -1,5 +1,5 @@
 {
- "name": "[[80,9,9]] two-block group algebra CSS (arXiv:2306.16400)",
+ "name": "[[80,9,8]] two-block group algebra CSS (arXiv:2306.16400)",
  "d": 8,
  "solver": "scipy/HiGHS MILP",
  "sides": {

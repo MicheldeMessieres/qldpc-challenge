@@ -1,5 +1,5 @@
 {
- "name": "[[36,5,4]] SAT t3 w6 (a)",
+ "name": "[[36,6,4]] SAT t3 w6 (a)",
  "d": 4,
  "solver": "CryptoMiniSat 5.14.7 SAT",
  "encoding": "selector",
