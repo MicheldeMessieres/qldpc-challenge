@@ -1,18 +1,26 @@
 {
  "name": "[[100,20,8]] ZSZ-LP code",
  "d": 8,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 9.5,
+   "note": "no logical < 8 exists"
   },
   "Z": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 23.6,
+   "note": "no logical < 8 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 20,
+ "symmetry": false,
  "d_exact": true
 }

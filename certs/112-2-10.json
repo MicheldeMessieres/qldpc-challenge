@@ -1,18 +1,26 @@
 {
  "name": "[[112,2,10]] trivariate bicycle (arXiv:2406.19151), 2D-local bilayer layout",
  "d": 10,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 10,
    "exact": true,
+   "status": "UNSAT",
+   "secs": 10.0,
    "note": "no logical < 10 exists"
   },
   "Z": {
    "value": 10,
    "exact": true,
+   "status": "UNSAT",
+   "secs": 10.8,
    "note": "no logical < 10 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 2,
+ "symmetry": false,
  "d_exact": true
 }

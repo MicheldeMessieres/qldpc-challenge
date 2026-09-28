@@ -1,18 +1,26 @@
 {
- "name": "[[195,39,8]]",
+ "name": "[[195,39,8]] non-abelian lifted-product (mitten) code",
  "d": 8,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 35.8,
+   "note": "no logical < 8 exists"
   },
   "Z": {
    "value": 8,
    "exact": true,
-   "note": "no logical < 8 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 121.5,
+   "note": "no logical < 8 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 39,
+ "symmetry": false,
  "d_exact": true
 }

@@ -1,18 +1,26 @@
 {
  "name": "[[625,*,3]] holey rotated surface code, L=25 period-3",
  "d": 3,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 3,
    "exact": true,
-   "note": "no logical < 3 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 0.2,
+   "note": "no logical < 3 exists"
   },
   "Z": {
    "value": 3,
    "exact": true,
-   "note": "no logical < 3 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 0.2,
+   "note": "no logical < 3 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 50,
+ "symmetry": false,
  "d_exact": true
 }

@@ -1,18 +1,26 @@
 {
  "name": "[[128,13,10]] 2BGA on C8:Q8 (odd-k)",
  "d": 10,
- "solver": "CryptoMiniSat 5.14 SAT",
+ "solver": "CryptoMiniSat 5.14.7 SAT",
+ "encoding": "selector",
  "sides": {
   "X": {
    "value": 10,
    "exact": true,
-   "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 692.8,
+   "note": "no logical < 10 exists"
   },
   "Z": {
    "value": 10,
    "exact": true,
-   "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+   "status": "UNSAT",
+   "secs": 766.9,
+   "note": "no logical < 10 exists"
   }
  },
+ "tlim_per_solve": 1800,
+ "logical_classes": 13,
+ "symmetry": false,
  "d_exact": true
 }
