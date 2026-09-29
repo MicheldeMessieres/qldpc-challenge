@@ -26,6 +26,21 @@ slug:
     nothing in the index matches. **Not a proof of independence**: two sparse
     generating sets of the same stabilizer group can have non-isomorphic Tanner
     graphs, so this bucket means "not found", not "not published".
+``not_derived``
+    the index has not been run against this entry at all. Distinct from
+    ``no_match``, which means it was run and found nothing, and the distinction
+    is the whole point: an entry nobody has checked must not be counted as one
+    checked and cleared.
+
+Coverage is therefore a state the table can represent rather than an error.
+That matters because regenerating needs the literature index, which is not
+shipped, so a board that grows cannot be reconciled by whoever merged the code.
+``--top-up`` adds ``not_derived`` rows for new entries and drops rows for
+entries that left, needs neither the index nor pynauty, and a later
+``--from-matches`` promotes those rows. ``--check`` hard-fails only on things
+that are wrong (an unknown bucket, ``literature`` with no evidence, counts that
+disagree with the entries) and reports mere staleness loudly without failing,
+which is what this module docstring promised before it could deliver it.
 
 Two things this deliberately does not do. It does not write to ``codes/``,
 because a derived field that lives in the submission document would drift from
@@ -53,7 +68,7 @@ PROV = os.path.join(HERE, "provenance")
 SOURCES = os.path.join(PROV, "sources.json")
 DERIVED = os.path.join(PROV, "derived.json")
 
-BUCKETS = ("literature", "parameters_only", "no_match")
+BUCKETS = ("literature", "parameters_only", "no_match", "not_derived")
 
 
 def load_sources():
@@ -68,8 +83,13 @@ def board_slugs():
                   if f.endswith(".json"))
 
 
-def derive(matches_csv, param_csv=None):
-    """Bucket every board slug from the isomorphism and parameter tables."""
+def derive(matches_csv, param_csv=None, covered=None):
+    """Bucket every board slug from the isomorphism and parameter tables.
+
+    ``covered`` is the slug set the index run actually looked at. Anything
+    outside it is ``not_derived`` rather than ``no_match``: the run cannot
+    clear an entry it never saw.
+    """
     lit_sources, not_lit, param_sources = load_sources()
     hits = collections.defaultdict(list)
     params_from_iso = collections.defaultdict(list)
@@ -117,8 +137,10 @@ def derive(matches_csv, param_csv=None):
         elif slug in params:
             out[slug] = {"bucket": "parameters_only",
                          "matches": params[slug][:4]}
-        else:
+        elif covered is None or slug in covered:
             out[slug] = {"bucket": "no_match", "matches": []}
+        else:
+            out[slug] = {"bucket": "not_derived", "matches": []}
     return out, unknown_sources
 
 
@@ -151,6 +173,41 @@ def write(table, unknown):
     return payload
 
 
+def top_up():
+    """Reconcile the committed table with today's codes/, without the index.
+
+    New board entries get a ``not_derived`` row and entries that have left are
+    dropped. Nothing already derived is touched, so this never launders an
+    unchecked code into a checked bucket; it only records what is not yet
+    known. Needs no index and no pynauty, so whoever merges a code PR can run
+    it, which is the thing that made the previous exact-coverage rule
+    unsatisfiable.
+    """
+    with open(DERIVED, encoding="utf-8") as f:
+        payload = json.load(f)
+    table = payload["entries"]
+    want = set(board_slugs())
+    added = sorted(want - set(table))
+    gone = sorted(set(table) - want)
+    for slug in added:
+        table[slug] = {"bucket": "not_derived", "matches": []}
+    for slug in gone:
+        del table[slug]
+    payload["counts"] = counts(table)
+    with open(DERIVED, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(payload, f, indent=1, sort_keys=True)
+        f.write("\n")
+    print(f"topped up: +{len(added)} not_derived, -{len(gone)} departed, "
+          f"{len(table)} entries")
+    if added:
+        print("  added: " + " ".join(added[:12])
+              + (" ..." if len(added) > 12 else ""))
+    if gone:
+        print("  dropped: " + " ".join(gone[:12])
+              + (" ..." if len(gone) > 12 else ""))
+    return 0
+
+
 def check():
     """Confirm the committed table covers exactly today's codes/."""
     if not os.path.exists(DERIVED):
@@ -160,30 +217,52 @@ def check():
         payload = json.load(f)
     table = payload["entries"]
     have, want = set(table), set(board_slugs())
-    problems = []
-    for slug in sorted(want - have):
-        problems.append(f"  {slug}: on the board, absent from the table")
-    for slug in sorted(have - want):
-        problems.append(f"  {slug}: in the table, no longer on the board")
+
+    # Wrong, as opposed to merely incomplete. These are the only conditions
+    # that may fail CI: a table that cannot be regenerated in CI must not gate
+    # on being complete, or every merge of a code PR turns main red and the
+    # people blocked are exactly the ones who cannot fix it.
+    broken = []
     for slug, v in sorted(table.items()):
         if v["bucket"] not in BUCKETS:
-            problems.append(f"  {slug}: unknown bucket {v['bucket']!r}")
+            broken.append(f"  {slug}: unknown bucket {v['bucket']!r}")
         if v["bucket"] == "literature" and not v["matches"]:
-            problems.append(f"  {slug}: literature with no match recorded")
-    if payload.get("counts") != counts(table):
-        problems.append("  counts block disagrees with the entries")
-    if problems:
-        print(f"derived provenance is stale ({len(problems)} problems):")
-        print("\n".join(problems[:40]))
-        if len(problems) > 40:
-            print(f"  ... and {len(problems) - 40} more")
-        print("\nregenerate with --from-matches; see "
-              "research/provenance/README.md.")
+            broken.append(f"  {slug}: literature with no match recorded")
+    # Normalised both sides: a table written before a bucket existed omits it
+    # rather than being wrong, and a schema addition must not read as
+    # corruption.
+    stored = {b: (payload.get("counts") or {}).get(b, 0) for b in BUCKETS}
+    if stored != counts(table):
+        broken.append(f"  counts block disagrees with the entries: "
+                      f"says {stored}, entries give {counts(table)}")
+    if broken:
+        print(f"derived provenance is BROKEN ({len(broken)} problems):")
+        print("\n".join(broken[:40]))
+        if len(broken) > 40:
+            print(f"  ... and {len(broken) - 40} more")
         return 1
+
+    # Incomplete: reported loudly, never fatal.
+    missing, departed = sorted(want - have), sorted(have - want)
     c = payload["counts"]
+    if missing or departed:
+        print(f"derived provenance is STALE: {len(missing)} board entries "
+              f"absent from the table, {len(departed)} table rows no longer "
+              "on the board.")
+        if missing:
+            print("  absent: " + " ".join(missing[:12])
+                  + (" ..." if len(missing) > 12 else ""))
+        if departed:
+            print("  departed: " + " ".join(departed[:12])
+                  + (" ..." if len(departed) > 12 else ""))
+        print("  run `python research/derive_provenance.py --top-up` to record "
+              "them as not_derived (no index needed), then --from-matches when "
+              "the index is next run.")
+        return 0
     print(f"ok: derived provenance covers {len(table)} entries "
           f"({c['literature']} literature, {c['parameters_only']} "
-          f"parameters-only, {c['no_match']} no-match)")
+          f"parameters-only, {c['no_match']} no-match, "
+          f"{c.get('not_derived', 0)} not-derived)")
     return 0
 
 
@@ -191,11 +270,23 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--from-matches", help="isomorphism_matches.csv from iso_check.py")
     ap.add_argument("--from-params", help="param_matches.csv from param_check.py")
+    ap.add_argument("--covered", help="JSON list of the slugs the index run "
+                                      "looked at; anything outside it is "
+                                      "not_derived rather than no_match")
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--top-up", action="store_true",
+                    help="record new board entries as not_derived and drop "
+                         "departed ones; needs no index")
     a = ap.parse_args(argv)
+    if a.top_up:
+        return top_up()
     if a.check or not a.from_matches:
         return check()
-    table, unknown = derive(a.from_matches, a.from_params)
+    covered = None
+    if a.covered:
+        with open(a.covered, encoding="utf-8") as f:
+            covered = set(json.load(f))
+    table, unknown = derive(a.from_matches, a.from_params, covered)
     payload = write(table, unknown)
     c = payload["counts"]
     print(f"wrote {DERIVED}: {c['literature']} literature, "

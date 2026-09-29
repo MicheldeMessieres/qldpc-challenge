@@ -138,3 +138,106 @@ def test_no_entry_is_literature_via_an_excluded_source():
         for m in v["matches"]:
             assert m["source"] not in not_lit, \
                 f"{slug}: bucketed from an excluded source {m['source']}"
+
+
+# -- staleness is a state, not a failure (issue #2391) --------------------
+def _payload():
+    with open(dp.DERIVED, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _write(payload, tmp_path, monkeypatch):
+    p = tmp_path / "derived.json"
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(payload, f)
+    monkeypatch.setattr(dp, "DERIVED", str(p))
+    return p
+
+
+def test_a_table_missing_new_board_entries_does_not_fail(tmp_path,
+                                                         monkeypatch, capsys):
+    """The table cannot be regenerated in CI, so it must not gate on coverage.
+
+    Regenerating needs the literature index, which is deliberately not
+    shipped. Failing on coverage meant the first code PR merged after the
+    check landed turned main red, and the people blocked were exactly the
+    ones who could not fix it.
+    """
+    payload = _payload()
+    dropped = sorted(payload["entries"])[0]
+    del payload["entries"][dropped]
+    payload["counts"] = dp.counts(payload["entries"])
+    _write(payload, tmp_path, monkeypatch)
+    assert dp.check() == 0
+    out = capsys.readouterr().out
+    assert "STALE" in out and dropped in out, "staleness must be reported"
+
+
+def test_a_broken_table_still_fails(tmp_path, monkeypatch):
+    """Integrity is not relaxed: only coverage is."""
+    payload = _payload()
+    slug = next(s for s, v in payload["entries"].items()
+                if v["bucket"] == "literature")
+    payload["entries"][slug]["matches"] = []
+    _write(payload, tmp_path, monkeypatch)
+    assert dp.check() == 1, "literature with no evidence must fail"
+
+    payload = _payload()
+    slug = sorted(payload["entries"])[0]
+    payload["entries"][slug]["bucket"] = "definitely_new"
+    _write(payload, tmp_path, monkeypatch)
+    assert dp.check() == 1, "an unknown bucket must fail"
+
+
+def test_a_bucket_added_later_is_not_read_as_corruption(tmp_path, monkeypatch):
+    """A table written before a bucket existed omits it rather than lying."""
+    payload = _payload()
+    # the shape a table written before the bucket existed actually has:
+    # no not_derived rows and no not_derived key
+    payload["entries"] = {s: v for s, v in payload["entries"].items()
+                          if v["bucket"] != "not_derived"}
+    payload["counts"] = {b: v for b, v
+                         in dp.counts(payload["entries"]).items()
+                         if b != "not_derived"}
+    _write(payload, tmp_path, monkeypatch)
+    assert dp.check() == 0, "omitting a later bucket is not corruption"
+
+
+def test_top_up_records_new_entries_without_the_index(tmp_path, monkeypatch):
+    """Anyone merging a code PR can reconcile coverage; no index needed."""
+    payload = _payload()
+    dropped = sorted(payload["entries"])[0]
+    del payload["entries"][dropped]
+    payload["entries"]["9999-0-0"] = {"bucket": "no_match", "matches": []}
+    payload["counts"] = dp.counts(payload["entries"])
+    _write(payload, tmp_path, monkeypatch)
+
+    assert dp.top_up() == 0
+    after = json.load(open(dp.DERIVED, encoding="utf-8"))["entries"]
+    assert after[dropped]["bucket"] == "not_derived", \
+        "a board entry the index has not seen is not_derived"
+    assert "9999-0-0" not in after, "a departed entry is dropped"
+    assert dp.check() == 0
+
+
+def test_top_up_never_promotes_an_underived_entry(tmp_path, monkeypatch):
+    """It records what is unknown; it must not launder it into a verdict."""
+    payload = _payload()
+    slug = next(s for s, v in payload["entries"].items()
+                if v["bucket"] == "literature")
+    before = dict(payload["entries"][slug])
+    _write(payload, tmp_path, monkeypatch)
+    dp.top_up()
+    after = json.load(open(dp.DERIVED, encoding="utf-8"))["entries"][slug]
+    assert after == before, "an already-derived row must not change"
+
+
+def test_not_derived_is_distinct_from_no_match(tmp_path):
+    """The distinction is the point: unchecked is not the same as cleared."""
+    assert "not_derived" in dp.BUCKETS
+    csvp = matches(tmp_path, [])
+    covered = set(dp.board_slugs()[:5])
+    table, _ = dp.derive(csvp, covered=covered)
+    buckets = {s: v["bucket"] for s, v in table.items()}
+    assert all(buckets[s] == "no_match" for s in covered)
+    assert any(v == "not_derived" for v in buckets.values())

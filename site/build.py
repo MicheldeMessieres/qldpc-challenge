@@ -1624,10 +1624,11 @@ def _model_str(m):
 def provenance_counts(slugs):
     """Bucket counts from research/provenance/derived.json, or None.
 
-    Returns None unless the committed table covers exactly the slugs being
-    rendered. A table that has drifted from the board would publish a split
-    over the wrong set of codes, which is a worse failure than the site not
-    showing one.
+    Returns None only when the table is unreadable. An entry the table has not
+    been derived against is reported as ``not_derived``, which is honest and
+    keeps the split visible; suppressing the block on any drift meant a single
+    merged code PR removed the figure until someone with the literature index
+    regenerated it.
     """
     path = os.path.join(ROOT, "research", "provenance", "derived.json")
     try:
@@ -1636,14 +1637,14 @@ def provenance_counts(slugs):
     except (OSError, ValueError):
         return None
     table = payload.get("entries") or {}
-    if not slugs <= set(table):
-        missing = len(slugs - set(table))
-        print(f"  note: derived provenance covers {len(table)} slugs and is "
-              f"missing {missing} rendered entries; omitting the split")
-        return None
+    # A rendered entry the table has not seen is counted as not_derived rather
+    # than suppressing the whole split. Dropping the block entirely was worse
+    # than it looked: one merged code PR hid the figure indefinitely, because
+    # regenerating the table needs an index CI does not have.
     counts = {}
     for slug in slugs:
-        counts[table[slug]["bucket"]] = counts.get(table[slug]["bucket"], 0) + 1
+        bucket = (table.get(slug) or {}).get("bucket", "not_derived")
+        counts[bucket] = counts.get(bucket, 0) + 1
     counts["method"] = "isomorphism against the literature index"
     counts["caveat"] = payload.get("caveat")
     return counts

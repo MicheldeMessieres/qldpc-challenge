@@ -19,6 +19,23 @@ qubit permutation. `derived.json` is that output, bucketed:
 | `literature` | isomorphic to a published code, with source, reference, and the matched id |
 | `parameters_only` | a published code shares its parameters but ships no matrices, so equivalence is undecided |
 | `no_match` | nothing in the index matches |
+| `not_derived` | the index has not been run against this entry at all |
+
+## Coverage is a state, not an error
+
+Regenerating needs the literature index, which is not shipped, so nobody
+merging a code PR can reconcile the table. Requiring it to cover `codes/`
+exactly therefore turned `main` red on the first code merge and blocked the
+people least able to fix it (issue #2391).
+
+So a board entry the index has not seen gets its own bucket, `not_derived`,
+distinct from `no_match`. `--top-up` adds those rows and drops rows for
+entries that have left the board; it needs neither the index nor pynauty, so
+it is a normal part of merging. A later `--from-matches` promotes them.
+
+`--check` hard-fails only on what is wrong: an unknown bucket, `literature`
+with no evidence, or counts that disagree with the entries. Staleness is
+reported loudly and exits 0.
 
 ## What `no_match` does not mean
 
@@ -53,6 +70,9 @@ python research/derive_provenance.py \
 
 # validate the committed table against codes/ (needs neither)
 python research/derive_provenance.py --check
+
+# reconcile coverage after codes/ changes (needs neither)
+python research/derive_provenance.py --top-up
 ```
 
 `iso_check.py` and `iso_common.py` are vendored from this project'"'"'s `novelty`

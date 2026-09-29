@@ -2,7 +2,8 @@
  "caveat": "no_match means the index holds no match, not that the code is unpublished: two sparse generating sets of one stabilizer group can have non-isomorphic Tanner graphs",
  "counts": {
   "literature": 449,
-  "no_match": 870,
+  "no_match": 868,
+  "not_derived": 13,
   "parameters_only": 255
  },
  "derivation_version": 1,
@@ -124,6 +125,10 @@
   },
   "102-18-9": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "102-20-10": {
+   "bucket": "not_derived",
    "matches": []
   },
   "102-22-9": {
@@ -6276,6 +6281,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "320-80-14": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "322-2-41": {
    "bucket": "no_match",
    "matches": []
@@ -6590,6 +6599,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "352-88-16": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "354-18-5": {
    "bucket": "no_match",
    "matches": []
@@ -6901,6 +6914,10 @@
     }
    ]
   },
+  "364-13-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "364-8-32": {
    "bucket": "no_match",
    "matches": []
@@ -7129,6 +7146,10 @@
   },
   "393-53-3": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "394-13-11": {
+   "bucket": "not_derived",
    "matches": []
   },
   "394-2-30": {
@@ -7416,6 +7437,10 @@
   },
   "414-6-9": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "416-104-17": {
+   "bucket": "not_derived",
    "matches": []
   },
   "416-36-8": {
@@ -7792,6 +7817,10 @@
   },
   "447-7-9": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "448-112-18": {
+   "bucket": "not_derived",
    "matches": []
   },
   "449-61-3": {
@@ -8323,6 +8352,10 @@
   },
   "495-67-3": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "497-13-13": {
+   "bucket": "not_derived",
    "matches": []
   },
   "498-6-63": {
@@ -9518,6 +9551,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "612-13-15": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "612-4-66": {
    "bucket": "no_match",
    "matches": []
@@ -10296,6 +10333,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "674-168-76": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "674-170-64": {
    "bucket": "no_match",
    "matches": []
@@ -10472,8 +10513,8 @@
    "bucket": "no_match",
    "matches": []
   },
-  "684-10-101": {
-   "bucket": "no_match",
+  "684-10-90": {
+   "bucket": "not_derived",
    "matches": []
   },
   "684-12-66": {
@@ -10488,8 +10529,8 @@
    "bucket": "no_match",
    "matches": []
   },
-  "684-14-72": {
-   "bucket": "no_match",
+  "684-14-54": {
+   "bucket": "not_derived",
    "matches": []
   },
   "684-20-40": {
@@ -10518,6 +10559,10 @@
   },
   "691-11-9": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "693-13-16": {
+   "bucket": "not_derived",
    "matches": []
   },
   "696-174-4": {
