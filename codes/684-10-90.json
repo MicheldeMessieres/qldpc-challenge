@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "name": "[[684,10,90]] 2BGA on the affine group Aff(F_19)",
   "code_type": "CSS",
   "n": 684,
@@ -9796,9 +9796,9 @@
           "@vprusso"
         ],
         "date": "2026-09-29",
-        "tool": "research/provenance single-block annihilator basis, then information-set decoding inside that subspace",
-        "found_at_samples": 40000,
-        "note": "40000 information sets over the ker(one block) subspace; the full-code uniform searches on record did not reach this operator"
+        "tool": "single-block annihilator + ISD in the subspace",
+        "found_at_samples": 3000,
+        "survived_samples": 40000
       }
     }
   },
