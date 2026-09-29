@@ -9,7 +9,8 @@ records the path an entry arrived by, not where the code came from, and
 relabelling by hand would reproduce the same problem the first time someone
 forgets a field.
 
-So the tag is computed instead. ``novelty/iso_check.py`` decides permutation
+So the tag is computed instead. ``research/provenance/iso_check.py`` decides
+permutation
 equivalence of the given generating sets with nauty's canonical form of the
 typed Tanner graph and re-verifies every hit by mapping row spaces with the
 recovered qubit permutation. This module turns that output into one bucket per
@@ -32,8 +33,9 @@ the derivation the moment the index grows; the table is the artifact and the
 entry is joined to it by slug. And it does not touch ``verify/``: nothing here
 gates a submission, it only reports.
 
-    # regenerate from a novelty/ checkout (needs the index and pynauty)
-    python research/derive_provenance.py --from-matches ../novelty/isomorphism_matches.csv
+    # regenerate (needs the literature index and pynauty; see provenance/README.md)
+    LITERATURE_INDEX=/path/to/index python research/provenance/iso_check.py
+    python research/derive_provenance.py --from-matches isomorphism_matches.csv
 
     # check the committed table still describes codes/ (no index needed)
     python research/derive_provenance.py --check
@@ -175,7 +177,8 @@ def check():
         print("\n".join(problems[:40]))
         if len(problems) > 40:
             print(f"  ... and {len(problems) - 40} more")
-        print("\nregenerate with --from-matches against a novelty/ checkout.")
+        print("\nregenerate with --from-matches; see "
+              "research/provenance/README.md.")
         return 1
     c = payload["counts"]
     print(f"ok: derived provenance covers {len(table)} entries "
@@ -186,8 +189,8 @@ def check():
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--from-matches", help="novelty/isomorphism_matches.csv")
-    ap.add_argument("--from-params", help="novelty/param_matches.csv")
+    ap.add_argument("--from-matches", help="isomorphism_matches.csv from iso_check.py")
+    ap.add_argument("--from-params", help="param_matches.csv from param_check.py")
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args(argv)
     if a.check or not a.from_matches:

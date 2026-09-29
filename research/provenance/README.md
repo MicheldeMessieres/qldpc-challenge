@@ -9,7 +9,7 @@ construction text. `submission` records the path an entry arrived by, not
 where the code came from. `arXiv:2306.16400` alone appears in 326 construction
 strings.
 
-So the tag is computed. `novelty/iso_check.py` decides permutation equivalence
+So the tag is computed. `iso_check.py` in this directory decides permutation equivalence
 of the given generating sets using nauty's canonical form of the typed Tanner
 graph, and re-verifies every hit by mapping row spaces with the recovered
 qubit permutation. `derived.json` is that output, bucketed:
@@ -43,14 +43,24 @@ entries.
 ## Regenerating
 
 ```
-# needs a novelty/ checkout, its index, and pynauty
-python research/derive_provenance.py \
-    --from-matches ../novelty/isomorphism_matches.csv \
-    --from-params  ../novelty/param_matches.csv
+# 1. run the isomorphism check (needs pynauty, networkx, and the index)
+LITERATURE_INDEX=/path/to/index python research/provenance/iso_check.py
 
-# validate the committed table against codes/ (no index needed)
+# 2. bucket its output
+python research/derive_provenance.py \
+    --from-matches isomorphism_matches.csv \
+    --from-params  param_matches.csv
+
+# validate the committed table against codes/ (needs neither)
 python research/derive_provenance.py --check
 ```
+
+`iso_check.py` and `iso_common.py` are vendored from this project'"'"'s `novelty`
+working repository so the method is reviewable here rather than taken on
+trust. Only the algorithm is committed: the literature index it reads is about
+1.3 GB of matrices, so it stays out of the repository and its location is
+given by `LITERATURE_INDEX`. The board side reads `codes/` directly, so the
+checker runs against any checkout.
 
 The table is keyed by slug and lives here rather than inside each
 `codes/*.json`, because a derived field written into a submission document
