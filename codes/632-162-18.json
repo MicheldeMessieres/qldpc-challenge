@@ -4810,5 +4810,5 @@
   "date": "2026-09-05",
   "model": "Claude Opus 5"
  },
- "family": "lifted-product"
+ "family": "pair-partition-cpm"
 }

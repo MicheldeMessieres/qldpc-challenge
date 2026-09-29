@@ -4454,5 +4454,5 @@
   "date": "2026",
   "notes": "Literature baseline (arXiv:2607.14091). Exact d=18, girth 8. Complete exclusion through weight 16 on both sides. Published X and Z witnesses (distance_X_through18.json, distance_Z_through18.json)."
  },
- "family": "lifted-product"
+ "family": "pair-partition-cpm"
 }

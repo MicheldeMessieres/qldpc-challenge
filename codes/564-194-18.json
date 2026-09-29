@@ -5336,5 +5336,5 @@
   "date": "2026-08-12",
   "notes": "Witness-backed upper bound; no exact-distance claim."
  },
- "family": "lifted-product"
+ "family": "pair-partition-cpm"
 }

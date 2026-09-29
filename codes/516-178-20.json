@@ -4894,5 +4894,5 @@
   "date": "2026",
   "notes": "Literature baseline (arXiv:2607.14091). Exact distance d=20: 14148 X-side lower-bound certificates exclude through weight 18; verified CPM-affine X/Z isomorphism transfers exclusion to Z side. X weight-20 witness and isomorphism data published at kasai.ict.eng.isct.ac.jp/pair_partition_cpm_css_codes_20260714.html. The paper's catalogue also includes [[492,170,20]] (eff=117.5), [[584,150,18]] girth-8 (eff=84.1), [[472,122,16]] girth-8 (eff=64.2), and [[970,392,16]] (eff=125.9) with exact distances, but their witness data is in tar.gz archives not embedded here."
  },
- "family": "lifted-product"
+ "family": "pair-partition-cpm"
 }

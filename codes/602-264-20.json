@@ -5593,5 +5593,5 @@
   "notes": "Frontier candidate in the weight-9plus/unrestricted cell (kd^2/n=175.415). The supplied X/Z logical witnesses have weights 24/20 and certify only d<=20; no lower-bound or exact-distance claim.",
   "model": "Magic State Labs (Custom) v0.1"
  },
- "family": "lifted-product"
+ "family": "pair-partition-cpm"
 }

@@ -6873,7 +6873,7 @@
    }
   }
  },
- "family": "lifted-product",
+ "family": "pair-partition-cpm",
  "provenance": {
   "authors": [
    "@vprusso"

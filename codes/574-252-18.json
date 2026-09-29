@@ -5309,7 +5309,7 @@
       ]
     }
   },
-  "family": "lifted-product",
+  "family": "pair-partition-cpm",
   "provenance": {
     "authors": [
       "okada-kasai (reconstruction)"
