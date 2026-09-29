@@ -4810,5 +4810,5 @@
   "novelty": "known_parameters",
   "model": "human"
  },
- "family": "pair-partition-cpm"
+ "family": "lifted-product"
 }

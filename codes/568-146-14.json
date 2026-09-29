@@ -4313,7 +4313,7 @@
       ]
     }
   },
-  "family": "pair-partition-cpm",
+  "family": "lifted-product",
   "provenance": {
     "authors": [
       "@MathysRennela"
