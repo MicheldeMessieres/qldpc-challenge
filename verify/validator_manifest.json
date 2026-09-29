@@ -2,7 +2,7 @@
   "_comment": "Pinned SHA-256 of the repo-local production validation and policy-gate execution closure. CI (check_validator_integrity.py) fails if any of these files drifts from this pin. Re-pin deliberately with `python verify/check_validator_integrity.py --update` and get the diff reviewed.",
   "files": {
     ".github/workflows/prose.yml": "29f78c591eba315576a68134bb5787debdf1d81c0c99710786953b98cf7dbfed",
-    ".github/workflows/refute-weekly.yml": "5a3d9b6d6b0563f3b0259eb918ccfcf4f0a419d6b3fc74cdd321ce5dc3e95ff6",
+    ".github/workflows/refute-weekly.yml": "885755550844b96202562607bc208d3ade890cee4d0b806332719cdf5112f22c",
     ".github/workflows/verify.yml": "a28c0ecd80143dff64a48200e8f87d33a7f12ba9eed0676ce0ed1ba687bc7454",
     "Makefile": "30f2d73d7fc62cb05171a603d899bc27cd4f1b4bbdc3bf59bfdf98b8d8b4bc56",
     "pyproject.toml": "80042e2387ce95973d1abdc12435f09c0ebf27faff489195ed19c89f383b3a65",
@@ -19,7 +19,7 @@
     "verify/circuit_tools.py": "37a3082aabc26d908bcf2612a6a2f5fb35788a5aa7e93249692f976aaa148106",
     "verify/circuit_verify.py": "b55f03ebbc82c83b19abcbad2798b789c4aa1b9543cea47d6dba5199d124bbca",
     "verify/fixtures/72-6-6.json": "5660f9b429f507276fade0aa1a4dbed5a7ecd384f4a333c28daaa83255ccad4b",
-    "verify/gate_changed.py": "191144bba178bc5a42050ca47ff6b9ccb4d7beda5816f2cc8c94ef8a483cb838",
+    "verify/gate_changed.py": "4584a2b51922cf1bad1b62aa9a83b5fdb56cca011f0e38dd0cf200f700e32135",
     "verify/gf2.py": "47e8999a4e22a12a852d81ce0f5a9e0248cd04a9d8940b9cb3edba7e85ad5508",
     "verify/heuristic_distance.py": "a3f5fc57d9583e6fba636fec05d9c7894ecad66f15df9a372f2e4b910aec09b0",
     "verify/ler_tools.py": "eba2f4d01159b70dd34842ddc2211f796d84bafc3e8e37726f0632cbdd71e216",

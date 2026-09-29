@@ -20,3 +20,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: refute every board entry (random seed)
         run: uv run --frozen python verify/refute_board.py
+      - name: frontier consistency audit (the three record implementations)
+        run: uv run --frozen python verify/board_frontier_audit.py

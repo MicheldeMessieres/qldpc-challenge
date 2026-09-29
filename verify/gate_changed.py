@@ -306,10 +306,18 @@ def classify_diff(base_doc: dict | None, new_doc: dict) -> tuple[str, str]:
 def _locality_rank(doc):
     """Home locality class as a tightness rank: 0 = local-2d-single,
     1 = local-2d-bilayer, 2 = unrestricted. Mirrors the verifier's derivation
-    (TRACKS.md): an honest layout -- full coverage, at most `layers` qubits per
-    site, distinct sites unit-spaced -- earns a class when the measured check
-    radius is within the class cap; anything else is unrestricted. Used only
-    to pick the refutation BUDGET; the authoritative classification stays in
+    (TRACKS.md): an honest layout -- full coverage, planar coordinates, at
+    most `layers` qubits per site, distinct sites unit-spaced -- earns a class
+    when the measured check radius is within the class cap; anything else is
+    unrestricted. The verifier's honesty test and class caps both carry a
+    1e-9 float tolerance (qldpc_verify: site_spacing_at_least_one, and
+    `radius <= cap + 1e-9`), so this mirror must too: without it a layout
+    whose spacing computes to 1.0 - 1e-16 is honest to the verifier (and is
+    starred by the site, which reads the verifier's report) but ranks
+    unrestricted here, and the budget gate then disagrees with the board
+    about who is a record. verify/test_frontier_consistency.py pins this
+    mirror to the verifier across all of codes/. Used only to pick the
+    refutation BUDGET; the authoritative classification stays in
     qldpc_verify."""
     import math
     from collections import Counter
@@ -318,6 +326,8 @@ def _locality_rank(doc):
     if not loc or len(loc.get("coordinates", [])) != n:
         return 2
     coords = loc["coordinates"]
+    if {len(c) for c in coords} != {2}:     # the verifier's local classes are planar
+        return 2
     layers = loc.get("layers", 1)
 
     def diam(sup):
@@ -328,10 +338,10 @@ def _locality_rank(doc):
     sites = sorted(mult)
     min_sp = min((math.dist(a, b) for i, a in enumerate(sites)
                   for b in sites[i + 1:]), default=float("inf"))
-    if min_sp < 1.0:
+    if max(mult.values()) > layers or min_sp < 1.0 - 1e-9:
         return 2
     for rank, (lay, cap) in enumerate(((1, 4.0), (2, 7.0))):
-        if layers <= lay and max(mult.values()) <= lay and radius <= cap:
+        if layers <= lay and radius <= cap + 1e-9:
             return rank
     return 2
 
