@@ -120,8 +120,22 @@ jobs:
           else
             only_codes=false
           fi
+          # A circuit.ler claim nothing in the PR touched can only go stale
+          # through the stack that measures it: the verifier sources, the
+          # decoder, the pinned dependencies (a stim bump in uv.lock) or the
+          # accelerator build. A PR that leaves all of those alone gets the
+          # --ler-base run; a PR that touches any of them re-measures every
+          # claim. The integrity manifest is a hash listing and cannot change a
+          # measurement, so re-pinning it does not count. A diff that cannot be
+          # computed exits non-zero and so counts as changed (fail closed).
+          if git diff --quiet "$base"...HEAD -- verify decode pyproject.toml uv.lock Makefile ':(exclude)verify/validator_manifest.json'; then
+            ler_stack_changed=false
+          else
+            ler_stack_changed=true
+          fi
           echo "codes_changed=$codes_changed" >> "$GITHUB_OUTPUT"
           echo "only_codes=$only_codes" >> "$GITHUB_OUTPUT"
+          echo "ler_stack_changed=$ler_stack_changed" >> "$GITHUB_OUTPUT"
       - name: submission scope check (code data cannot change its own verifier)
         if: github.event_name == 'pull_request' && steps.changes.outputs.codes_changed == 'true'
         working-directory: trusted
@@ -138,10 +152,17 @@ jobs:
         working-directory: trusted
         # --ler-base: the sampled LER replica (~4 min/entry on the runner) runs only
         # for entries this PR changed; unchanged claims are re-measured on every
-        # push to main (the step below, without the flag).
+        # push to main and by any PR that touches the LER stack (the steps below).
         run: uv run --frozen --extra research python verify/verify_all.py --root ../submitted --ler-base origin/${{ github.base_ref }}
-      - name: verify all submissions
-        if: github.event_name != 'pull_request' || steps.changes.outputs.codes_changed != 'true'
+      - name: verify all submissions (LER stack unchanged)
+        if: github.event_name == 'pull_request' && steps.changes.outputs.codes_changed != 'true' && steps.changes.outputs.ler_stack_changed != 'true'
+        working-directory: submitted
+        # A non-code PR that leaves verify/, decode/ and the pinned dependencies
+        # alone cannot have changed what any existing ler claim measures, so it
+        # re-measures nothing (the diff vs base is empty under codes/ and circuits/).
+        run: uv run --frozen --extra research python verify/verify_all.py --ler-base origin/${{ github.base_ref }}
+      - name: verify all submissions (full LER re-measure)
+        if: github.event_name != 'pull_request' || (steps.changes.outputs.codes_changed != 'true' && steps.changes.outputs.ler_stack_changed == 'true')
         working-directory: submitted
         run: uv run --frozen --extra research python verify/verify_all.py
       # Cheap metadata checks run BEFORE the (up to ~95-minute) refutation gate: a PR that
