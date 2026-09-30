@@ -1,0 +1,325 @@
+{
+ "schema_version": "0.4",
+ "name": "[[20,3,5]]",
+ "code_type": "stabilizer",
+ "n": 20,
+ "k": 3,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     0,
+     9,
+     10,
+     11
+    ],
+    "Z": [
+     0,
+     7,
+     10,
+     13
+    ]
+   },
+   {
+    "X": [
+     1,
+     10,
+     11,
+     12
+    ],
+    "Z": [
+     1,
+     8,
+     11,
+     14
+    ]
+   },
+   {
+    "X": [
+     2,
+     11,
+     12,
+     13
+    ],
+    "Z": [
+     2,
+     9,
+     12,
+     15
+    ]
+   },
+   {
+    "X": [
+     3,
+     12,
+     13,
+     14
+    ],
+    "Z": [
+     3,
+     10,
+     13,
+     16
+    ]
+   },
+   {
+    "X": [
+     4,
+     13,
+     14,
+     15
+    ],
+    "Z": [
+     4,
+     11,
+     14,
+     17
+    ]
+   },
+   {
+    "X": [
+     5,
+     14,
+     15,
+     16
+    ],
+    "Z": [
+     5,
+     12,
+     15,
+     18
+    ]
+   },
+   {
+    "X": [
+     6,
+     15,
+     16,
+     17
+    ],
+    "Z": [
+     6,
+     13,
+     16,
+     19
+    ]
+   },
+   {
+    "X": [
+     7,
+     16,
+     17,
+     18
+    ],
+    "Z": [
+     0,
+     7,
+     14,
+     17
+    ]
+   },
+   {
+    "X": [
+     8,
+     17,
+     18,
+     19
+    ],
+    "Z": [
+     1,
+     8,
+     15,
+     18
+    ]
+   },
+   {
+    "X": [
+     0,
+     9,
+     18,
+     19
+    ],
+    "Z": [
+     2,
+     9,
+     16,
+     19
+    ]
+   },
+   {
+    "X": [
+     0,
+     1,
+     10,
+     19
+    ],
+    "Z": [
+     0,
+     3,
+     10,
+     17
+    ]
+   },
+   {
+    "X": [
+     0,
+     1,
+     2,
+     11
+    ],
+    "Z": [
+     1,
+     4,
+     11,
+     18
+    ]
+   },
+   {
+    "X": [
+     1,
+     2,
+     3,
+     12
+    ],
+    "Z": [
+     2,
+     5,
+     12,
+     19
+    ]
+   },
+   {
+    "X": [
+     2,
+     3,
+     4,
+     13
+    ],
+    "Z": [
+     0,
+     3,
+     6,
+     13
+    ]
+   },
+   {
+    "X": [
+     3,
+     4,
+     5,
+     14
+    ],
+    "Z": [
+     1,
+     4,
+     7,
+     14
+    ]
+   },
+   {
+    "X": [
+     4,
+     5,
+     6,
+     15
+    ],
+    "Z": [
+     2,
+     5,
+     8,
+     15
+    ]
+   },
+   {
+    "X": [
+     5,
+     6,
+     7,
+     16
+    ],
+    "Z": [
+     3,
+     6,
+     9,
+     16
+    ]
+   },
+   {
+    "X": [
+     6,
+     7,
+     8,
+     17
+    ],
+    "Z": [
+     4,
+     7,
+     10,
+     17
+    ]
+   },
+   {
+    "X": [
+     7,
+     8,
+     9,
+     18
+    ],
+    "Z": [
+     5,
+     8,
+     11,
+     18
+    ]
+   },
+   {
+    "X": [
+     8,
+     9,
+     10,
+     19
+    ],
+    "Z": [
+     6,
+     9,
+     12,
+     19
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 5,
+  "P": {
+   "value": 5,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [
+     1,
+     6,
+     11
+    ],
+    "Z": [
+     4,
+     6,
+     8
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "@FarLab"
+  ],
+  "construction": "One-block cyclic stabilizer code: generator X^a Z^b and its 20 cyclic shifts, a(x) = 1 + x^9 + x^10 + x^11, b(x) = 1 + x^7 + x^10 + x^13 in F_2[x]/(x^20 - 1); a = g p, b = g q with p, q palindromic so that a b* + b a* = 0; k = deg gcd(a, b, x^20 - 1)",
+  "origin": "submission",
+  "date": "2026-10-01",
+  "model": "Claude Fable 5.1",
+  "notes": "Found by a sweep of one-block palindromic cyclic codes (Camara-Ollivier-Tillich-type group-algebra code over Z_20, arXiv:quant-ph/0502086), n = 17..200, weight <= 8. Distance ladder: 300-trial Pauli-weight RIS screen, then 2 x 20,000 trials on fresh seeds (held). Novelty unknown: not checked against codetables.de; the dedup gate found no exact, WL-equivalent or Hadamard-image board entry. Genuinely non-CSS: a and b overlap, so every generator carries Y.",
+  "references": [
+   "arXiv:quant-ph/0502086"
+  ],
+  "novelty": "unknown"
+ },
+ "family": "other"
+}
