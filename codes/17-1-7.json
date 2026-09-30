@@ -1,0 +1,288 @@
+{
+ "schema_version": "0.4",
+ "name": "[[17,1,7]] cyclic stabilizer code",
+ "code_type": "stabilizer",
+ "n": 17,
+ "k": 1,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     1,
+     16
+    ],
+    "Z": [
+     3,
+     5,
+     6,
+     11,
+     12,
+     14
+    ]
+   },
+   {
+    "X": [
+     0,
+     2
+    ],
+    "Z": [
+     4,
+     6,
+     7,
+     12,
+     13,
+     15
+    ]
+   },
+   {
+    "X": [
+     1,
+     3
+    ],
+    "Z": [
+     5,
+     7,
+     8,
+     13,
+     14,
+     16
+    ]
+   },
+   {
+    "X": [
+     2,
+     4
+    ],
+    "Z": [
+     0,
+     6,
+     8,
+     9,
+     14,
+     15
+    ]
+   },
+   {
+    "X": [
+     3,
+     5
+    ],
+    "Z": [
+     1,
+     7,
+     9,
+     10,
+     15,
+     16
+    ]
+   },
+   {
+    "X": [
+     4,
+     6
+    ],
+    "Z": [
+     0,
+     2,
+     8,
+     10,
+     11,
+     16
+    ]
+   },
+   {
+    "X": [
+     5,
+     7
+    ],
+    "Z": [
+     0,
+     1,
+     3,
+     9,
+     11,
+     12
+    ]
+   },
+   {
+    "X": [
+     6,
+     8
+    ],
+    "Z": [
+     1,
+     2,
+     4,
+     10,
+     12,
+     13
+    ]
+   },
+   {
+    "X": [
+     7,
+     9
+    ],
+    "Z": [
+     2,
+     3,
+     5,
+     11,
+     13,
+     14
+    ]
+   },
+   {
+    "X": [
+     8,
+     10
+    ],
+    "Z": [
+     3,
+     4,
+     6,
+     12,
+     14,
+     15
+    ]
+   },
+   {
+    "X": [
+     9,
+     11
+    ],
+    "Z": [
+     4,
+     5,
+     7,
+     13,
+     15,
+     16
+    ]
+   },
+   {
+    "X": [
+     10,
+     12
+    ],
+    "Z": [
+     0,
+     5,
+     6,
+     8,
+     14,
+     16
+    ]
+   },
+   {
+    "X": [
+     11,
+     13
+    ],
+    "Z": [
+     0,
+     1,
+     6,
+     7,
+     9,
+     15
+    ]
+   },
+   {
+    "X": [
+     12,
+     14
+    ],
+    "Z": [
+     1,
+     2,
+     7,
+     8,
+     10,
+     16
+    ]
+   },
+   {
+    "X": [
+     13,
+     15
+    ],
+    "Z": [
+     0,
+     2,
+     3,
+     8,
+     9,
+     11
+    ]
+   },
+   {
+    "X": [
+     14,
+     16
+    ],
+    "Z": [
+     1,
+     3,
+     4,
+     9,
+     10,
+     12
+    ]
+   },
+   {
+    "X": [
+     0,
+     15
+    ],
+    "Z": [
+     2,
+     4,
+     5,
+     10,
+     11,
+     13
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 7,
+  "P": {
+   "value": 7,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [
+     0,
+     5,
+     12,
+     13
+    ],
+    "Z": [
+     4,
+     10,
+     12,
+     13,
+     14
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "Calderbank, A. Robert",
+   "Rains, Eric M.",
+   "Shor, Peter W.",
+   "Sloane, Neil J. A."
+  ],
+  "construction": "Cyclic stabilizer code, one-block circulant form: generator X^a Z^b with a(x) = x^1 + x^16, b(x) = x^3 + x^5 + x^6 + x^11 + x^12 + x^14 in F_2[x]/(x^17 - 1) and its n cyclic shifts; palindromic a, b make the shifts commute",
+  "origin": "baseline",
+  "date": "1998",
+  "notes": "Literature baseline: parameters of the cyclic (GF(4)-additive) code of Calderbank-Rains-Shor-Sloane / codetables.de at n = 17, k = 1. Generators rebuilt by exhaustive search over palindromic circulant pairs; distance 7 is exact by enumeration of all Paulis of weight < 7 (see the note); filed as upper_bound because the board's certifier does not minimise Pauli weight. Not a Hadamard image of a CSS code (generators carry X and Z on overlapping supports with k = 1 at this n); dedup gate found no match.",
+  "novelty": "known_parameters",
+  "references": [
+   "arXiv:quant-ph/9608006"
+  ]
+ },
+ "family": "other"
+}
