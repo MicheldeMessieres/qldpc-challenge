@@ -3624,7 +3624,8 @@
   "references": [
    "arXiv:cond-mat/0404182",
    "arXiv:1006.4871"
-  ]
+  ],
+  "model": "Claude Fable 5.1"
  },
  "family": "topological",
  "locality": {
