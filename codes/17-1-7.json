@@ -270,19 +270,17 @@
  },
  "provenance": {
   "authors": [
-   "Calderbank, A. Robert",
-   "Rains, Eric M.",
-   "Shor, Peter W.",
-   "Sloane, Neil J. A."
+   "@FarLab"
   ],
   "construction": "Cyclic stabilizer code, one-block circulant form: generator X^a Z^b with a(x) = x^1 + x^16, b(x) = x^3 + x^5 + x^6 + x^11 + x^12 + x^14 in F_2[x]/(x^17 - 1) and its n cyclic shifts; palindromic a, b make the shifts commute",
-  "origin": "baseline",
-  "date": "1998",
-  "notes": "Literature baseline: parameters of the cyclic (GF(4)-additive) code of Calderbank-Rains-Shor-Sloane / codetables.de at n = 17, k = 1. Generators rebuilt by exhaustive search over palindromic circulant pairs; distance 7 is exact by enumeration of all Paulis of weight < 7 (see the note); filed as upper_bound because the board's certifier does not minimise Pauli weight. Not a Hadamard image of a CSS code (generators carry X and Z on overlapping supports with k = 1 at this n); dedup gate found no match.",
+  "origin": "submission",
+  "date": "2026-09-30",
+  "notes": "Known parameters, new generators: the parameters are those of the cyclic (GF(4)-additive) code of Calderbank-Rains-Shor-Sloane / codetables.de at n = 17, k = 1. Generators rebuilt by exhaustive search over palindromic circulant pairs; distance 7 is exact by enumeration of all Paulis of weight < 7 (see the note); filed as upper_bound because the board's certifier does not minimise Pauli weight. Not a Hadamard image of a CSS code (generators carry X and Z on overlapping supports with k = 1 at this n); dedup gate found no match. The generators filed here are the ones our search found; equivalence to the published cyclic code was not checked, so this is a submission with known parameters, credited to CRSS for the parameters.",
   "novelty": "known_parameters",
   "references": [
    "arXiv:quant-ph/9608006"
-  ]
+  ],
+  "model": "Claude Fable 5.1"
  },
  "family": "other"
 }
