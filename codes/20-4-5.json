@@ -1,0 +1,363 @@
+{
+ "schema_version": "0.4",
+ "name": "[[20,4,5]]",
+ "code_type": "stabilizer",
+ "n": 20,
+ "k": 4,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     9,
+     13
+    ],
+    "Z": [
+     0,
+     2,
+     7,
+     9,
+     10,
+     12,
+     13,
+     15
+    ]
+   },
+   {
+    "X": [
+     10,
+     14
+    ],
+    "Z": [
+     1,
+     3,
+     8,
+     10,
+     11,
+     13,
+     14,
+     16
+    ]
+   },
+   {
+    "X": [
+     11,
+     15
+    ],
+    "Z": [
+     2,
+     4,
+     9,
+     11,
+     12,
+     14,
+     15,
+     17
+    ]
+   },
+   {
+    "X": [
+     12,
+     16
+    ],
+    "Z": [
+     3,
+     5,
+     10,
+     12,
+     13,
+     15,
+     16,
+     18
+    ]
+   },
+   {
+    "X": [
+     13,
+     17
+    ],
+    "Z": [
+     4,
+     6,
+     11,
+     13,
+     14,
+     16,
+     17,
+     19
+    ]
+   },
+   {
+    "X": [
+     14,
+     18
+    ],
+    "Z": [
+     0,
+     5,
+     7,
+     12,
+     14,
+     15,
+     17,
+     18
+    ]
+   },
+   {
+    "X": [
+     15,
+     19
+    ],
+    "Z": [
+     1,
+     6,
+     8,
+     13,
+     15,
+     16,
+     18,
+     19
+    ]
+   },
+   {
+    "X": [
+     0,
+     16
+    ],
+    "Z": [
+     0,
+     2,
+     7,
+     9,
+     14,
+     16,
+     17,
+     19
+    ]
+   },
+   {
+    "X": [
+     1,
+     17
+    ],
+    "Z": [
+     0,
+     1,
+     3,
+     8,
+     10,
+     15,
+     17,
+     18
+    ]
+   },
+   {
+    "X": [
+     2,
+     18
+    ],
+    "Z": [
+     1,
+     2,
+     4,
+     9,
+     11,
+     16,
+     18,
+     19
+    ]
+   },
+   {
+    "X": [
+     3,
+     19
+    ],
+    "Z": [
+     0,
+     2,
+     3,
+     5,
+     10,
+     12,
+     17,
+     19
+    ]
+   },
+   {
+    "X": [
+     0,
+     4
+    ],
+    "Z": [
+     0,
+     1,
+     3,
+     4,
+     6,
+     11,
+     13,
+     18
+    ]
+   },
+   {
+    "X": [
+     1,
+     5
+    ],
+    "Z": [
+     1,
+     2,
+     4,
+     5,
+     7,
+     12,
+     14,
+     19
+    ]
+   },
+   {
+    "X": [
+     2,
+     6
+    ],
+    "Z": [
+     0,
+     2,
+     3,
+     5,
+     6,
+     8,
+     13,
+     15
+    ]
+   },
+   {
+    "X": [
+     3,
+     7
+    ],
+    "Z": [
+     1,
+     3,
+     4,
+     6,
+     7,
+     9,
+     14,
+     16
+    ]
+   },
+   {
+    "X": [
+     4,
+     8
+    ],
+    "Z": [
+     2,
+     4,
+     5,
+     7,
+     8,
+     10,
+     15,
+     17
+    ]
+   },
+   {
+    "X": [
+     5,
+     9
+    ],
+    "Z": [
+     3,
+     5,
+     6,
+     8,
+     9,
+     11,
+     16,
+     18
+    ]
+   },
+   {
+    "X": [
+     6,
+     10
+    ],
+    "Z": [
+     4,
+     6,
+     7,
+     9,
+     10,
+     12,
+     17,
+     19
+    ]
+   },
+   {
+    "X": [
+     7,
+     11
+    ],
+    "Z": [
+     0,
+     5,
+     7,
+     8,
+     10,
+     11,
+     13,
+     18
+    ]
+   },
+   {
+    "X": [
+     8,
+     12
+    ],
+    "Z": [
+     1,
+     6,
+     8,
+     9,
+     11,
+     12,
+     14,
+     19
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 5,
+  "P": {
+   "value": 5,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [],
+    "Z": [
+     1,
+     5,
+     9,
+     13,
+     17
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "@FarLab"
+  ],
+  "construction": "One-block cyclic stabilizer code: generator X^a Z^b and its 20 cyclic shifts, a(x) = x^9 + x^13, b(x) = 1 + x^2 + x^7 + x^9 + x^10 + x^12 + x^13 + x^15 in F_2[x]/(x^20 - 1); a = g p, b = g q with p, q palindromic so that a b* + b a* = 0; k = deg gcd(a, b, x^20 - 1)",
+  "origin": "submission",
+  "date": "2026-10-01",
+  "model": "Claude Fable 5.1",
+  "notes": "Found by a sweep of one-block palindromic cyclic codes (Camara-Ollivier-Tillich-type group-algebra code over Z_20, arXiv:quant-ph/0502086), n = 17..200, weight <= 8. Distance ladder: 300-trial Pauli-weight RIS screen, then 2 x 20,000 trials on fresh seeds (held). Novelty unknown: not checked against codetables.de; the dedup gate found no exact, WL-equivalent or Hadamard-image board entry. Genuinely non-CSS: a and b overlap, so every generator carries Y.",
+  "references": [
+   "arXiv:quant-ph/0502086"
+  ],
+  "novelty": "unknown"
+ },
+ "family": "other"
+}
