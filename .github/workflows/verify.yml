@@ -143,6 +143,9 @@ jobs:
       - name: trusted validation stack integrity (the autoresearch gate can't be silently weakened)
         working-directory: submitted
         run: uv run --frozen python verify/check_validator_integrity.py
+      - name: certificate levels (no cert may claim evidence it lacks)
+        working-directory: submitted
+        run: uv run --frozen python verify/check_certs.py
       - name: self-tests (every verify/ and research/ test_*.py; skipped for codes-only PRs)
         if: github.event_name != 'pull_request' || steps.changes.outputs.only_codes != 'true'
         working-directory: submitted

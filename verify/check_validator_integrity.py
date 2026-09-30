@@ -43,10 +43,12 @@ TRUSTED = (
     "verify/gf2_fast.cpp",
     # Local data/module dependencies outside verify/.
     "decode/distance.py",
+    "schema/cert.schema.json",
     "schema/code.schema.json",
     # CI and autoresearch entrypoints plus their in-tree Python dependencies.
     "verify/build_receipt.py",
     "verify/check_authorship.py",
+    "verify/check_certs.py",
     "verify/check_prose.py",
     "verify/check_submission_scope.py",
     "verify/check_validator_integrity.py",

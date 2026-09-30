@@ -15,5 +15,9 @@
   }
  },
  "d_exact": true,
- "tlim_per_solve": 120
+ "tlim_per_solve": 120,
+ "verification": {
+  "level": "solver",
+  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+ }
 }
