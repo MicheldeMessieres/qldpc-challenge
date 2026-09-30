@@ -109,12 +109,13 @@ jobs:
           else
             codes_changed=true
           fi
-          # A PR whose every changed file lives under codes/ or circuits/ cannot
-          # have touched the stack the self-tests exercise (the scope check
-          # forbids combining code data with verify/, workflows, schema, or
-          # run_tests.py), so the self-tests are skipped for it. Anything else
-          # changed -> they run.
-          if [ "$codes_changed" = true ] && git diff --quiet "$base"...HEAD -- ':(exclude)codes' ':(exclude)circuits'; then
+          # A PR whose every changed file lives under codes/, circuits/, notes/ or
+          # fieldnotes/ cannot have touched the stack the self-tests exercise: the
+          # scope check forbids combining code data with verify/, workflows, schema
+          # or run_tests.py, and no self-test reads the committed prose (notes/ and
+          # fieldnotes/ are checked by the prose workflow). So the self-tests are
+          # skipped for it. Anything else changed -> they run.
+          if [ "$codes_changed" = true ] && git diff --quiet "$base"...HEAD -- ':(exclude)codes' ':(exclude)circuits' ':(exclude)notes' ':(exclude)fieldnotes'; then
             only_codes=true
           else
             only_codes=false
