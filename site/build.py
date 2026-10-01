@@ -3170,12 +3170,14 @@ def progress_panel(entries, best_geo_e):
 LB_DEFAULT_W = 8
 
 
-def contributors_panel(entries):
+def contributors_panel(entries, stabilizer=False):
     """A leaderboard of who submitted the codes on the board. Ranks GitHub-handle
     authors of contributed (non-baseline) codes by the best kd2/n among their
     codes, then by how many sit on a track frontier, then by how many they have
     on the board. The seeded literature authors are not contributors and are
-    excluded.
+    excluded. Rendered once per board over that board's entries, so the two
+    boards never share a ranking; `stabilizer` only changes the submission
+    hint in the Participate modal (a symplectic matrix, not H_X / H_Z).
 
     A toggle re-ranks the same contributors by best geometric efficiency g
     (issue #356), or by how many of their codes currently sit on a track
@@ -3358,6 +3360,9 @@ def contributors_panel(entries):
     cmd = (f"git clone {REPO_ROOT}\n"
            "cd qldpc-challenge\n"
            "./qldpc submit mycode.npz --authors @you")
+    hint = ("# bring your symplectic matrix S = (A | B) as mycode.npz "
+            "(key s, or a and b)" if stabilizer else
+            "# bring your H_X / H_Z as mycode.npz (keys hx, hz)")
     modal = (
         '<dialog id=participate class=modal>'
         '<form method=dialog><button class=modalx autofocus aria-label="close">'
@@ -3370,8 +3375,7 @@ def contributors_panel(entries):
         'copy</button></div>'
         f'<pre><code>git clone {REPO_ROOT}\n'
         'cd qldpc-challenge\n'
-        '<span class=cmt># bring your H_X / H_Z as mycode.npz (keys hx, hz)'
-        '</span>\n'
+        f'<span class=cmt>{hint}</span>\n'
         './qldpc submit mycode.npz --authors @you</code></pre></div>'
         '<p class=modalfoot>It finds the distance witness, runs the verifier, '
         'and opens the PR for you.</p>'
@@ -4904,15 +4908,22 @@ def board_legend(asym=True):
 def stabilizer_page(entries):
     """Render the general (non-CSS) stabilizer leaderboard (issue #2131).
 
-    The same computed grid, filters, and table as the CSS board, over the
-    entries typed code_type "stabilizer" only, so the two boards never
-    compare. What differs is stated up front: one Pauli-weight distance, no
-    X/Z sides, no circuit tier yet, dedup up to local Hadamards against the
-    CSS board.
+    The same headline cards, contributor leaderboard, computed grid, filters,
+    and table as the CSS board, over the entries typed code_type "stabilizer"
+    only, so the two boards never compare: a contributor's rank here counts
+    only their stabilizer codes, and on the CSS board only their CSS ones.
+    What differs is stated up front: one Pauli-weight distance, no X/Z sides,
+    no circuit tier yet, and no code that is CSS up to a local Clifford.
     """
     records = compute_records(entries)
     lrec = ler_frontier(entries)
     n_exact = sum(1 for e in entries if e["tier"] == "exact")
+    # g needs a verified layout; the formula and GEO_MIN_D are the CSS
+    # board's, computed over the generator supports (geo_score)
+    geo_pool = [e for e in entries
+                if e["geo"] is not None and e["d"] >= GEO_MIN_D]
+    best_geo_e = max(geo_pool, key=lambda e: (e["geo"], -e["n"]),
+                     default=None)
     P = [head("Stabilizer board · QEC Challenge",
               page_properties={"page_type": "leaderboard_stabilizer"})]
     P.append(page_hero(
@@ -4921,6 +4932,8 @@ def stabilizer_page(entries):
         'the CSS board. <a href="index.html">Back to the CSS board.</a>',
         ("index.html", "CSS board")))
     P.append('<div class=wrap>')
+    if entries:
+        P.append(progress_panel(entries, best_geo_e))
     P.append(
         '<section class=stabintro>'
         '<p>A general stabilizer code has one binary symplectic check matrix '
@@ -4966,6 +4979,9 @@ def stabilizer_page(entries):
                  'general stabilizer code submitted under <code>codes/</code> '
                  'opens this board</div></section>')
     else:
+        # who set the records before the records themselves, as on the CSS
+        # board; the panel ranks this board's contributors only
+        P.append(contributors_panel(entries, stabilizer=True))
         P.append(primary_tracks_grid(entries, records, code_type="stabilizer"))
         P.append(board_controls(entries, records))
         P.append('<div class=explorer>')
