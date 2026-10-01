@@ -322,7 +322,7 @@ is an instrument artifact, not a distance difference. One of four decisions come
 | decision | meaning | do this next |
 |---|---|---|
 | `drop: ...` | your own claim came down at its own budget | drop the candidate; the ladder was right, the packaging would have been wrong |
-| `redirect: ...` | the board peer came down | file the peer's **distance revision**: a correction to that entry, not a new submission (see below) |
+| `redirect: ...` | the board peer came down | persist the witness first (it is the most expensive object in the loop and the ledger will not take a verdict without `passed: true`), then file the peer's **distance revision**: a correction to that entry, not a new submission, per [Filing a distance revision](audits/README.md#filing-a-distance-revision) |
 | `credible: ...` | both claims held at matched depth | the gain survives; package it (step 4) |
 | `inconclusive: ...` | neither claim was reached | no information at all; go deeper or stop, and never report it as corroboration |
 

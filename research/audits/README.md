@@ -217,7 +217,12 @@ File it the way every merged correction has been filed:
    note beside it.
 2. Lower the side that came down and store the witness that lowered it, with
    `witness_provenance` recording who found it, at what budget, and with
-   which tool. `d` is the minimum over the sides.
+   which tool. `d` is the minimum over the sides. The `found_by` handle has
+   to be yours: `verify/check_authorship.py` refuses a `witness_provenance`
+   the PR adds that does not name the PR author. Leave `survived_samples`
+   out unless you mean it, because a survival stamp makes
+   `verify/gate_changed.py` price the edit as a `stamp` rather than a
+   `tightening` and run the deep battery on it.
 3. Update the `name` field and the note's first `[[n,k,d]]`, which has to
    match the filename.
 4. Leave everything else alone. `verify/check_authorship.py` binds a
@@ -225,9 +230,10 @@ File it the way every merged correction has been filed:
    `provenance.notes` sentence. Any other change to `provenance.*` is the
    constructor's and will be refused.
 
-`verify/gate_changed.py` classifies the result as a `tightening` diff and
-gives it the standard pass, because the entry already faced the deep battery
-when it merged and the claim only came down.
+`verify/gate_changed.py` classifies a revision with no survival stamp as a
+`tightening` diff and gives it the standard pass, because the entry already
+faced the deep battery when it merged and the claim only came down. Add a
+stamp and it goes deep instead, which is correct but slower.
 
 Worked examples in the history: `[[684,14,72]]` to `[[684,14,54]]`,
 `[[540,12,44]]` to `[[540,12,41]]`, `[[682,140,83]]` to 66.
