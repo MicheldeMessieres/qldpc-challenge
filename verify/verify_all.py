@@ -130,8 +130,8 @@ def main(argv=None):
                 # a CSS entry is also filed under its local-Hadamard images
                 # (its X/Z swap, for a connected code), so a relabeled copy
                 # collides with it; a stabilizer entry that is CSS up to
-                # local Cliffords is rejected outright (#2361), so it never
-                # reaches this point
+                # local Cliffords is rejected outright, so it never reaches
+                # this point
                 ceq = rep.get("css_equivalent") or {}
                 for fp in set(ceq.get("fingerprints") or []):
                     fps.setdefault(fp, []).append(rel + " (via local Hadamard)")

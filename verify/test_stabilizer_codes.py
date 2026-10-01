@@ -3,7 +3,7 @@
 The fixtures under verify/fixtures/ are the [[5,1,3]] code, the one-block
 palindromic cyclic [[17,1,7]] code (both non-CSS under every local Clifford),
 and the XZZX toric code at L = 3 and 4 (the toric code with a Hadamard on
-half its qubits, so rejected as CSS up to a local Clifford, #2361). The
+half its qubits, so rejected as CSS up to a local Clifford). The
 tests here build the adversarial variants in place: a CSS code typed
 "stabilizer" (rejected, with the fix spelled out), a Hadamard- or
 S-conjugated copy of a CSS code (rejected the same way, whether or not the
@@ -128,8 +128,8 @@ def toric_css(L):
 
 def xzzx(L):
     """The XZZX toric code: the toric code with a Hadamard on every vertical
-    edge, typed stabilizer. Rejected since #2361 as CSS up to a local
-    Clifford; here it is the solver's and the rejection's test input."""
+    edge, typed stabilizer. Rejected as CSS up to a local Clifford; here it
+    is the solver's and the rejection's test input."""
     return hadamard_copy(toric_css(L), list(range(L * L, 2 * L * L)))
 
 
@@ -254,7 +254,7 @@ def test_exact_claim_accepted_as_upper_bound():
     assert any(c["check"] == "distance_P_exact_flagged" for c in rep["checks"])
 
 
-# --- CSS up to a local Clifford (#2361) -------------------------------------
+# --- CSS up to a local Clifford ---------------------------------------------
 
 def test_hadamard_solver_finds_the_subset_and_the_css_image():
     for L in (3, 4):
@@ -285,8 +285,9 @@ def test_hadamard_solver_finds_the_subset_and_the_css_image():
 
 @pytest.mark.parametrize("L", (3, 4))
 def test_xzzx_toric_is_rejected_as_the_toric_code_behind_hadamards(L, monkeypatch):
-    """Gap 1 of #2361: the rejection does not depend on the parent being on
-    the board. With an empty board the entry is still refused, with the fix."""
+    """The rejection does not depend on the parent being on the board (the
+    dedup gate could only see a parent that was). With an empty board the
+    entry is still refused, with the fix."""
     doc = xzzx(L)
     rep = Q.verify(doc)
     assert not rep["ok"]
@@ -332,8 +333,8 @@ def test_hadamard_copy_of_a_css_code_is_rejected_not_deduped():
 
 
 def test_s_rotated_css_code_is_rejected_beyond_hadamards():
-    """Gap 2 of #2361: an S on some qubits (X -> Y) leaves no pure-making
-    Hadamard subset, yet the code is still a CSS code in disguise."""
+    """An S on some qubits (X -> Y) leaves no pure-making Hadamard subset,
+    yet the code is still a CSS code in disguise."""
     steane = load_code("7-1-3")
     doc = phase_copy(steane, [0, 1, 2])
     A, B = Q.stabilizer_matrices(doc)

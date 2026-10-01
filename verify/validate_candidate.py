@@ -166,8 +166,8 @@ def validate_candidate(doc, *, seed=None, refute=True):
     #    through its own), so a Hadamard-relabeled copy of a board entry is
     #    marked a duplicate of it rather than admitted as a new code. A
     #    stabilizer candidate that is CSS up to local Cliffords never gets
-    #    here: the verifier rejects it with its CSS image spelled out
-    #    (#2361). The CSS and stabilizer boards are separate, so this is the
+    #    here: the verifier rejects it with its CSS image spelled out. The
+    #    CSS and stabilizer boards are separate, so this is the
     #    ONE place the two types meet, and only to recognize the same code.
     cand_fp = rep.get("fingerprint")
     cand_fps, cand_sigs = _identity_sets(rep)

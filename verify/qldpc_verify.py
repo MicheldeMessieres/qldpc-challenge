@@ -1376,7 +1376,7 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
                "a valid P witness is required to earn a distance" if stab else
                "valid X and Z witnesses are required to earn a global distance")
 
-    # 7a. local-Clifford equivalence (#2361). A CSS code with a single-qubit
+    # 7a. local-Clifford equivalence. A CSS code with a single-qubit
     #     Clifford on some qubits (a Hadamard, an S, any of the six) is a
     #     stabilizer code with the same [[n, k, d]] and weight, and neither
     #     rref(S) nor the labeled WL signature matches the original. It
