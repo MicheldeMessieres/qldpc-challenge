@@ -200,6 +200,28 @@ essentially the full target while the CI job stays bounded; the receipt's
 `fast_trials` records how many trials were actually searched. The cap is
 raise-only and rises as the tooling improves.
 
+## Correcting a distance already on the board
+
+Everything above is about adding a **new** code. Lowering the claimed distance
+of a code that is already on the board is a different, and welcome, kind of
+contribution, and it goes in by a different route.
+
+The matrices do not change, so it is a correction to the existing entry rather
+than a submission of your own. Rename the entry to its new `[[n,k,d]]`, lower
+the side that came down, and store the witness that lowered it with its
+`witness_provenance`. Leave everything else alone:
+`verify/check_authorship.py` lets a non-author change the distance claim and
+append a sentence to `provenance.notes`, and refuses any other change to
+`provenance.*`, because the construction is the original author's.
+
+Do not run it through the new-candidate path. A code whose checks match a
+board entry fingerprints as a duplicate there, which is correct, since it is
+not a new code. `verify/validate_candidate.py` will say so and name the entry
+you are revising.
+
+`research/audits/README.md`, "Filing a distance revision", has the step list
+and worked examples.
+
 ## Contribute with an LLM
 
 If you have an LLM or coding agent, it can do the whole loop: pick a target,

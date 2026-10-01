@@ -322,7 +322,7 @@ is an instrument artifact, not a distance difference. One of four decisions come
 | decision | meaning | do this next |
 |---|---|---|
 | `drop: ...` | your own claim came down at its own budget | drop the candidate; the ladder was right, the packaging would have been wrong |
-| `redirect: ...` | the board peer came down | the submission is the peer's **distance revision** — a valid contribution on its own (`../CONTRIBUTING.md`) |
+| `redirect: ...` | the board peer came down | file the peer's **distance revision**: a correction to that entry, not a new submission (see below) |
 | `credible: ...` | both claims held at matched depth | the gain survives; package it (step 4) |
 | `inconclusive: ...` | neither claim was reached | no information at all; go deeper or stop, and never report it as corroboration |
 

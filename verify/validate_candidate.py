@@ -191,7 +191,26 @@ def validate_candidate(doc, *, seed=None, refute=True):
             f"on {len(rep.get('css_equivalent', {}).get('hadamard_qubits', []))} "
             f"qubit(s)")
     elif exact_dup:
-        verdict["labels"].append(f"duplicate: identical to board entry {exact_dup}")
+        # A candidate with the same matrices but a strictly LOWER claimed
+        # distance is not someone filing the same code twice; it is a distance
+        # revision that arrived at the wrong door. Revisions are corrections to
+        # the existing entry, filed as a rename with the lowered claim and the
+        # new witness, and gate_changed.classify_diff has a `tightening` class
+        # for exactly that shape. Saying so costs nothing and is the difference
+        # between a submitter re-deriving the rule and discarding the work
+        # (issue #2583).
+        prior = next((b.get("d") for b in board if b["name"] == exact_dup), None)
+        if prior is not None and claimed_d is not None and claimed_d < prior:
+            verdict["labels"].append(
+                f"distance revision, not a duplicate: same checks as board "
+                f"entry {exact_dup}, which claims d = {prior}, against this "
+                f"candidate's d = {claimed_d}. File it as a correction to that "
+                f"entry (rename it to the new [[n,k,d]] and carry the witness), "
+                f"not as a new submission; this path only accepts new codes")
+            g["dedup"]["revision_of"] = exact_dup
+        else:
+            verdict["labels"].append(
+                f"duplicate: identical to board entry {exact_dup}")
     elif wl_equiv:
         verdict["labels"].append(f"possibly equivalent (same WL signature) to {wl_equiv}")
 

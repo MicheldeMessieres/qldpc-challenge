@@ -64,7 +64,8 @@ the candidate also beat some other entry on `k`, or `w`, or `n`.
 The matched-depth pair audit (`research/audits/leader_audit.py pair`) then
 re-measures the candidate and that entry on the same trials, seeds and pair
 depth, and its `redirect` verdict — the board's number, not the candidate's, was
-the soft one — is a distance revision, which is itself a valid submission. The
+the soft one — is a distance revision, which is a correction to that entry
+rather than a new submission (`research/audits/README.md`). The
 board still ranks claims exactly as claimed; the flag says which claim to
 re-measure first.
 
