@@ -1390,7 +1390,14 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
     #     reader can match it against the board by hand.
     if stab:
         found = is_css_up_to_local_clifford(A, B)
-        if found is not None:
+        if found is not None and not found[1]:
+            # No Clifford needed: every generator is already pure, which is
+            # the CSS code step 3 rejects with its own instruction. A second
+            # rejection naming zero qubits would only confuse the submitter.
+            record("stabilizer_code_is_not_locally_css", True,
+                   "every generator is already pure, see "
+                   "stabilizer_code_is_not_css")
+        elif found is not None:
             types, ops = found
             images = clifford_css_images(doc, types)
             qubits = sorted(ops)
@@ -1426,7 +1433,7 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
                    "pure Z: the code is non-CSS under any local Clifford")
     else:
         # A CSS entry is filed under its own local-Hadamard images too, so the
-        # two families are deduped up to the same relation (#2327). Without
+        # two families are deduped up to the same relation. Without
         # this the verdict depended on the submitter's code_type: a Hadamard
         # relabelling of a board entry was caught when typed `stabilizer` and
         # missed when typed `CSS`. Informational, like the branch above: it

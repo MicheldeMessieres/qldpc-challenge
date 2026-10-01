@@ -57,7 +57,7 @@
       "arXiv:quant-ph/0502086"
     ],
     "date": "2005",
-    "notes": "Synthetic-free fixture: the generators are written out from a and b. Non-CSS under every single-qubit Clifford (generators i and i+2 share an X qubit and generators i and i-2 meet X against Z, so no two-colouring of the generators exists), which is what makes it a stabilizer fixture that verifies: the XZZX toric code is the toric code behind Hadamards and is rejected. Distance 7 is exact by Pauli enumeration; recorded as upper_bound because the Pauli-weight certifier is not available."
+    "notes": "The checks are byte-for-byte those of the board entry codes/17-1-7.json (the one-block palindromic cyclic code); a correction to that entry should be mirrored here. Non-CSS under every single-qubit Clifford (generators i and i+2 share an X qubit and generators i and i-2 meet X against Z, so no two-coloring of the generators exists), which is what makes it a stabilizer fixture that verifies: the XZZX toric code is the toric code behind Hadamards and is rejected. Distance 7 is exact by Pauli enumeration; recorded as upper_bound because the Pauli-weight certifier is not available."
   },
   "family": "other"
 }

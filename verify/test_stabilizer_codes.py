@@ -205,6 +205,9 @@ def test_css_code_typed_stabilizer_is_rejected_with_the_fix():
     assert not rep["ok"]
     msg = failed(rep)["stabilizer_code_is_not_css"]
     assert 'set code_type to "CSS"' in msg and "checks.X" in msg
+    # step 3 owns the all-pure case; the local-Clifford check does not pile
+    # a second rejection naming zero qubits on top of it
+    assert "stabilizer_code_is_not_locally_css" not in failed(rep)
     # and the same code typed CSS still passes as it always did
     assert Q.verify(steane)["ok"]
 

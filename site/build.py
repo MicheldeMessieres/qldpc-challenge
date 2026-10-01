@@ -4943,7 +4943,7 @@ def stabilizer_page(entries):
         'the special case where every row is pure X or pure Z; here every code '
         'has at least one mixed generator, and stays mixed under every '
         'single-qubit Clifford (a code that is CSS up to a Hadamard or an S '
-        'on some qubits is rejected in favour of its CSS image, which belongs '
+        'on some qubits is rejected in favor of its CSS image, which belongs '
         'on the CSS board). These codes are ranked on their own board because the '
         'quantities the CSS board reads per side have no side here:</p>'
         '<table><tr><th></th><th>CSS board</th><th>this board</th></tr>'
