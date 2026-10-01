@@ -4852,7 +4852,6 @@ def page_footer():
         '<a href="faq.html">FAQ</a>'
         '<a href="research-log.html">Research log</a>'
         '<a href="references.html">References</a>'
-        '<a href="qec_challenge.pdf">Whitepaper</a>'
         '</nav></div>'
         '<div class=footbar>&copy; 2026 &middot; Built by '
         '<a href="https://unitary.foundation">Unitary Foundation</a> '
@@ -5023,8 +5022,7 @@ def build():
               page_properties={"page_type": "leaderboard"})]
     P.append(page_hero(
         'QEC Challenge',
-        'Find better quantum LDPC codes. '
-        '<a href="whitepaper.html">Read the whitepaper.</a>',
+        'Find better quantum LDPC codes.',
         ("stabilizer.html", "Stabilizer board")))
     P.append('<div class=wrap>')
     P.append(progress_panel(entries, best_geo_e))
@@ -5128,19 +5126,6 @@ def build():
         f.write(research_log_page(all_entries, load_fieldnotes()))
     with open(os.path.join(DOCS, "404.html"), "w", encoding="utf-8") as f:
         f.write(not_found_page())
-    # Wrapper so the whitepaper opens with the site favicon and a proper tab
-    # title (a raw PDF tab shows the browser's PDF-viewer icon instead).
-    with open(os.path.join(DOCS, "whitepaper.html"), "w", encoding="utf-8") as f:
-        f.write(
-            '<!doctype html><html lang=en><head><meta charset=utf-8>'
-            '<meta name=viewport content="width=device-width,initial-scale=1">'
-            '<title>The QEC Challenge whitepaper</title>'
-            '<link rel=icon type="image/svg+xml" href="favicon.svg">'
-            + plausible_snippet({"page_type": "whitepaper"}) +
-            '<style>html,body{margin:0;height:100%}'
-            'embed{width:100%;height:100%}</style></head><body>'
-            '<embed src="qec_challenge.pdf" type="application/pdf">'
-            '</body></html>')
     write_code_artifacts(all_entries)
     check_analytics_coverage()
 
