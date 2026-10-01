@@ -104,7 +104,13 @@ jobs:
           # circuits/<slug>/ is part of an entry's claim surface (PR #1012): the
           # authorship check and the gate map it back to codes/<slug>.json, so a
           # circuits-only PR must take the same trusted path as a codes PR.
-          if git diff --quiet --diff-filter=AM "$base"...HEAD -- codes circuits; then
+          #
+          # D is in the filter (issue #2638). Removing an entry is a change to
+          # the board, and leaving deletions out meant a PR that tightened a
+          # rule in verify/ and deleted the entries the new rule would reject
+          # read as a non-code PR: the scope check below never ran, and
+          # verify_all ran from the PR's own tree rather than the trusted one.
+          if git diff --quiet --diff-filter=AMD "$base"...HEAD -- codes circuits; then
             codes_changed=false
           else
             codes_changed=true
