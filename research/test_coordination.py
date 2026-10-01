@@ -3,10 +3,14 @@
 Two properties are worth more than the rest and are tested hardest, because
 both are about not losing something expensive. A staging write never destroys
 another session's witness, and the verdict cache never serves an answer the
-gate would not give right now: not after the validator changed, not after the
-board changed, and not for a document that would fail the schema. A cache that
-can produce a pass the gate did not is worse than no cache at all, so the
-staleness conditions are pinned here one at a time.
+gate would not give right now: not after the validator changed, and not for a
+document that would fail the schema. A cache that can produce a pass the gate
+did not is worse than no cache at all, so the conditions that keep the reuse
+subtractive are pinned here one at a time.
+
+The board is deliberately not one of them. Only the refutation is cached;
+``dedup`` and ``novelty`` are recomputed on every call, which is what a hit
+is tested to do.
 """
 import json
 import os
@@ -21,7 +25,6 @@ from coordination import (  # noqa: E402
     RUN_ID_ENV,
     CandidateCollision,
     VerdictCache,
-    board_token,
     content_digest,
     holds_same_candidate,
     run_id,
@@ -54,11 +57,17 @@ def candidate(**over):
     return doc
 
 
-def stamped(passed=True, **over):
+REFUTE_OK = {"refuted": False, "seed": 7, "detail": "no lighter operator"}
+REFUTED = {"refuted": True, "seed": 9, "detail": "found weight 1 < 2"}
+
+
+def stamped(passed=True, refute=None, **over):
     """A verdict shaped like the gate's, carrying the real source stamp."""
     v = {"passed": passed,
          "candidate": {"n": 4, "k": 2, "d": 2, "fingerprint": "abc123"},
-         "gates": {"novelty": {"board_advancing": False}},
+         "gates": {"refute": dict(REFUTE_OK if refute is None else refute),
+                   "dedup": {"exact_duplicate_of": None},
+                   "novelty": {"board_advancing": False}},
          "labels": [],
          "validator": {"source_sha256": validator_sha256(), "seed": 7}}
     v.update(over)
@@ -66,8 +75,7 @@ def stamped(passed=True, **over):
 
 
 def cache_at(tmp_path, board=None):
-    return VerdictCache(root=str(tmp_path / "verdicts"),
-                        codes_dir=str(board or tmp_path / "codes"))
+    return VerdictCache(root=str(tmp_path / "verdicts"))
 
 
 # -- run identity and staging ---------------------------------------------
@@ -178,28 +186,28 @@ def test_a_caller_that_means_to_replace_still_can(tmp_path):
 
 # -- the verdict cache ----------------------------------------------------
 
-def test_a_stored_verdict_comes_back_unchanged(tmp_path):
+def test_a_stored_refutation_comes_back_unchanged(tmp_path):
     c = cache_at(tmp_path)
     assert c.get(candidate()) is None
     c.put(candidate(), stamped())
-    assert c.get(candidate()) == stamped()
+    assert c.get(candidate()) == REFUTE_OK
 
 
-def test_a_verdict_is_reused_for_the_same_code_packaged_by_someone_else(tmp_path):
+def test_a_refutation_is_reused_for_the_same_code_packaged_by_someone_else(tmp_path):
     c = cache_at(tmp_path)
     c.put(candidate(), stamped())
     mine = candidate(name="my own name")
     mine["provenance"] = {"authors": ["@me"], "construction": "my own search",
                           "date": "2026-09-30"}
-    assert c.get(mine) == stamped()
+    assert c.get(mine) == REFUTE_OK
 
 
 def test_a_verdict_without_the_gate_s_stamp_is_refused(tmp_path):
     """Otherwise the cache is a place to plant a pass, not a cache."""
     c = cache_at(tmp_path)
-    assert c.put(candidate(), {"passed": True}) is None
-    assert c.put(candidate(), {"passed": True,
-                              "validator": {"source_sha256": "0" * 64}}) is None
+    assert c.put(candidate(), stamped(validator={})) is None
+    assert c.put(candidate(),
+                 stamped(validator={"source_sha256": "0" * 64})) is None
     assert c.get(candidate()) is None
 
 
@@ -209,22 +217,49 @@ def test_a_verdict_that_skipped_the_refutation_is_not_kept(tmp_path):
     assert c.get(candidate()) is None
 
 
-def test_a_failing_verdict_is_cached_too(tmp_path):
-    """A refusal cost the same compute as a pass and is worth as much."""
+def test_a_verdict_with_no_refutation_block_is_not_kept(tmp_path):
+    """A structural failure returns before the search, so it costs nothing."""
     c = cache_at(tmp_path)
-    c.put(candidate(), stamped(passed=False))
-    assert c.get(candidate())["passed"] is False
+    v = stamped(passed=False)
+    v["gates"] = {"verify": {"ok": False, "failed_checks": ["css_commuting"]}}
+    assert c.put(candidate(), v) is None
+    assert c.get(candidate()) is None
 
 
-def test_a_changed_board_retires_the_entry(tmp_path):
-    """dedup and novelty are claims about codes/, not about the candidate."""
+def test_a_refutation_is_cached_too(tmp_path):
+    """A refusal cost the same compute as a pass and is worth more."""
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped(passed=False, refute=REFUTED))
+    assert c.get(candidate())["refuted"] is True
+
+
+def test_a_found_refutation_is_never_downgraded(tmp_path):
+    """The search is one-sided: a lighter operator found once stays found.
+
+    A later run that happens not to rediscover it has not shown it is absent,
+    so overwriting the witness with that silence would lose the only hard
+    fact the cache holds.
+    """
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped(passed=False, refute=REFUTED))
+    c.put(candidate(), stamped(refute=REFUTE_OK))
+    assert c.get(candidate()) == REFUTED
+    assert json.load(open(c.path_for(candidate())))["attempts"] == 2
+
+
+def test_a_changed_board_keeps_the_entry(tmp_path):
+    """The point of the split: dedup and novelty move, the search does not.
+
+    Keying on the board is what made the first version of this cache miss
+    almost always (7 hits against 366 validations, #2314). Nothing served
+    from here is a claim about codes/.
+    """
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped())
     board = tmp_path / "codes"
     board.mkdir()
     (board / "a.json").write_text('{"n": 1}')
-    cache_at(tmp_path, board).put(candidate(), stamped())
-    assert cache_at(tmp_path, board).get(candidate()) == stamped()
-    (board / "b.json").write_text('{"n": 2}')
-    assert cache_at(tmp_path, board).get(candidate()) is None
+    assert cache_at(tmp_path).get(candidate()) == REFUTE_OK
 
 
 def test_a_changed_validator_retires_the_entry(tmp_path):
@@ -250,41 +285,80 @@ def test_a_document_that_would_fail_the_schema_is_never_served(tmp_path):
 def test_an_unreadable_entry_is_a_miss_and_not_a_crash(tmp_path):
     c = cache_at(tmp_path)
     c.put(candidate(), stamped())
-    open(c.path_for(candidate()), "w").write('{"entry_version": 1, "verdi')
+    open(c.path_for(candidate()), "w").write('{"entry_version": 2, "refu')
     assert c.get(candidate()) is None
-
-
-def test_the_board_token_moves_with_the_bytes(tmp_path):
-    board = tmp_path / "codes"
-    board.mkdir()
-    (board / "a.json").write_text('{"n": 1}')
-    first = board_token(str(board))
-    (board / "a.json").write_text('{"n": 2}')
-    assert board_token(str(board)) != first
-    assert board_token(str(tmp_path / "nowhere")) == "no-board"
 
 
 # -- the wrapper ----------------------------------------------------------
 
-def test_the_gate_runs_once_and_the_second_call_reuses_it(tmp_path):
-    calls = []
+def test_a_hit_still_runs_the_gate_and_only_skips_the_search(tmp_path):
+    """Reuse is of the refutation alone; the board half is always recomputed."""
+    seen = []
 
     def fake_gate(doc, *, seed=None, refute=True):
-        calls.append(seed)
-        return stamped()
+        seen.append(refute)
+        return stamped(**({"gates": dict(stamped()["gates"],
+                                         novelty={"board_advancing": True})}
+                          if len(seen) > 1 else {}))
 
     c = cache_at(tmp_path)
     first, reused = validate_cached(candidate(), cache=c, validator=fake_gate)
-    assert first == stamped() and reused is False
+    assert reused is False and first["gates"]["novelty"]["board_advancing"] is False
     second, reused = validate_cached(candidate(), cache=c, validator=fake_gate)
-    assert second == stamped() and reused is True
-    assert len(calls) == 1
+    assert reused is True
+    assert seen == [True, False], "the second call must skip only the search"
+    assert second["gates"]["novelty"]["board_advancing"] is True, \
+        "novelty came from the fresh call, not the cache"
+    assert second["gates"]["refute"] == REFUTE_OK
+
+
+def test_a_cached_refutation_can_only_take_a_pass_away(tmp_path):
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped(passed=False, refute=REFUTED))
+
+    def passes(doc, *, seed=None, refute=True):
+        return stamped(passed=True)
+
+    verdict, reused = validate_cached(candidate(), cache=c, validator=passes)
+    assert reused is True
+    assert verdict["passed"] is False
+    assert verdict["gates"]["refute"] == REFUTED
+    assert any("refuted" in lab for lab in verdict["labels"])
+
+
+def test_a_clean_cached_refutation_cannot_give_a_pass_back(tmp_path):
+    """The board half decides a failure on its own and the cache cannot undo it."""
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped())
+
+    def duplicate(doc, *, seed=None, refute=True):
+        v = stamped(passed=False)
+        v["gates"]["dedup"] = {"exact_duplicate_of": "4-2-2.json"}
+        return v
+
+    verdict, reused = validate_cached(candidate(), cache=c, validator=duplicate)
+    assert reused is True and verdict["passed"] is False
+
+
+def test_a_structural_failure_on_a_hit_is_left_alone(tmp_path):
+    """The gate returns before gates.refute exists; there is nothing to splice."""
+    c = cache_at(tmp_path)
+    c.put(candidate(), stamped(refute=REFUTED))
+
+    def rejects(doc, *, seed=None, refute=True):
+        v = stamped(passed=False)
+        v["gates"] = {"verify": {"ok": False, "failed_checks": ["css_commuting"]}}
+        return v
+
+    verdict, _ = validate_cached(candidate(), cache=c, validator=rejects)
+    assert verdict["passed"] is False
+    assert "refute" not in verdict["gates"]
 
 
 def test_a_shallow_run_neither_reads_nor_writes_the_cache(tmp_path):
     """refute=False skips the expensive half, so its answer is not the answer."""
     c = cache_at(tmp_path)
-    c.put(candidate(), stamped())
+    c.put(candidate(), stamped(refute=REFUTED))
     seen = []
 
     def fake_gate(doc, *, seed=None, refute=True):
@@ -294,4 +368,4 @@ def test_a_shallow_run_neither_reads_nor_writes_the_cache(tmp_path):
     verdict, reused = validate_cached(candidate(), cache=c, validator=fake_gate,
                                       refute=False)
     assert seen == [False] and reused is False and verdict["passed"] is False
-    assert c.get(candidate())["passed"] is True     # the deep answer survives
+    assert c.get(candidate()) == REFUTED             # the deep answer survives
