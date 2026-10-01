@@ -141,3 +141,50 @@ paste the ready-made prompt from
 agent. The tool-agnostic operating manual for the research loop (constructors,
 the distance surrogate, packaging, and the validation gate) is
 [`research/AUTORESEARCH.md`](research/AUTORESEARCH.md).
+
+## Why nothing a submission says is trusted
+
+Machine discovery already outpaces human refereeing, and an overstated
+distance is its characteristic failure mode. Most entries on this board were
+machine-found and name the producing model in their provenance. So the
+pipeline is built so that nothing a submission contains is taken on trust,
+which is also what makes it usable as the verification harness of an
+automated research loop.
+
+- **Scope separation.** A PR that adds code data may not touch the verifier,
+  the schema, the workflows, or the site builder
+  ([`verify/check_submission_scope.py`](verify/check_submission_scope.py)),
+  and a code PR is judged entirely from the base-branch checkout, so a
+  submission cannot alter the code that judges it.
+- **A pinned validation stack.** The trusted closure, meaning the verifier,
+  the refutation engine, the GF(2) core, the circuit and error-rate verifiers,
+  the local `validate_candidate` gate, and the integrity checker itself, is
+  pinned by a SHA-256 manifest
+  ([`verify/validator_manifest.json`](verify/validator_manifest.json)). Any
+  drift fails CI, and re-pinning is a deliberate, reviewable act.
+- **Authorship binding.** The PR author must be a listed author, by GitHub
+  handle, of the codes they add
+  ([`verify/check_authorship.py`](verify/check_authorship.py), which fails
+  closed on any git error). A non-author may still correct a distance, add a
+  first layout or circuit tier, or fix a family tag, each bound through its own
+  credit field, so an entry's author list never changes under it.
+- **Duplicate detection, and its limits.** The reduced row echelon form of the
+  check matrices pins the exact stabilizer group, and an identical fingerprint
+  is a hard CI error. A permutation-invariant Weisfeiler-Leman signature on the
+  Tanner graph *flags* possible equivalents; it is a necessary condition, never
+  a sufficient one, so a flag is a review item rather than a verdict. For
+  cyclic two-block codes
+  ([`verify/two_block_equivalence.py`](verify/two_block_equivalence.py))
+  the question is decided outright by a finite search.
+- **An evidence trail a reader can open.** The prose gate
+  ([`verify/check_prose.py`](verify/check_prose.py)) rejects a PR body or note
+  citing a path absent from the PR's own tree, gitignored staging output, a
+  private checkout, or leftover scaffolding. An external source must be named
+  and pinned to a commit.
+- **A local gate for agents.** An agent may explore freely, but by convention
+  ([`research/AUTORESEARCH.md`](research/AUTORESEARCH.md)) no code is a find
+  until the pinned `validate_candidate` returns `passed: true`, the same
+  verdict CI will reach, computable before a PR is opened.
+
+Agent-to-agent attestation is worth nothing here by design: the only thing
+that makes a code a find is the pinned gate's own verdict.
