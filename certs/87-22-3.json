@@ -13,5 +13,9 @@
    "note": "no logical < 3 exists"
   }
  },
- "d": 3
+ "d": 3,
+ "verification": {
+  "level": "solver",
+  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+ }
 }

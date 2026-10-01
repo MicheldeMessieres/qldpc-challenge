@@ -14,5 +14,9 @@
    "note": "no logical < 6 exists"
   }
  },
- "d_exact": true
+ "d_exact": true,
+ "verification": {
+  "level": "solver",
+  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+ }
 }

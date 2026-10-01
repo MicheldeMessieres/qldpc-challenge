@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unitaryfoundation.github.io/qldpc-challenge/schema/cert.schema.json",
+  "title": "qLDPC challenge exact-distance certificate",
+  "description": "A certs/<slug>.json with d_exact true is what upgrades a board entry from a witnessed upper bound to an exact distance. The upper bound always ships an explicit logical operator anyone can re-verify in seconds; the lower bound is the harder direction and, until this schema, shipped only a solver's verdict and a sentence. `verification` makes the strength of that verdict explicit and lets a stronger one be attached without changing anything else (issue #2511).",
+  "type": "object",
+  "required": ["d", "d_exact", "solver", "sides", "verification"],
+  "properties": {
+    "name": { "type": "string" },
+    "d": { "type": "integer", "minimum": 1,
+           "description": "the distance this certificate is about" },
+    "d_exact": { "type": "boolean",
+                 "description": "true only when every side closed; a timeout proves nothing and leaves the entry at its upper bound" },
+    "solver": { "type": "string", "minLength": 1,
+                "description": "the solver and its version, stamped from what was loaded rather than hardcoded (#2349)" },
+    "encoding": { "type": "string" },
+    "symmetry": { "type": "boolean" },
+    "tlim_per_solve": { "type": "number", "exclusiveMinimum": 0 },
+    "logical_classes": { "type": "integer", "minimum": 0,
+                         "description": "how many logical classes the pairing set spanned. Recorded because a set that spans fewer than k makes UNSAT meaningless, which is how 255 certificates came to prove nothing (#2273)" },
+    "sides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "integer", "minimum": 1 },
+          "exact": { "type": "boolean" },
+          "status": { "type": "string" },
+          "secs": { "type": "number", "minimum": 0 },
+          "note": { "type": "string" },
+          "witness": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "How strong this certificate is, kept separate from how it was produced. `solver` and `tlim_per_solve` say what ran; this says what the result is worth to someone who does not trust us.",
+      "required": ["level"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["solver", "proof_log", "formal"],
+          "description": "solver: a solver reported UNSAT or optimal, with no artifact a third party can check without re-running our encoding. This is the weakest level and the one every certificate held before #2511. proof_log: a machine-checkable refutation artifact accompanies the run, so the CNF handed to the solver is independently confirmed unsatisfiable. NOTE that this does NOT confirm the CNF encodes the distance question: the #2273 failure produced a satisfiable-checkable CNF that asked the wrong thing. formal: a machine-checked proof of the distance statement itself, in which the reduction from the code to the decision problem is also verified, so an encoding bug is unrepresentable rather than merely unlikely."
+        },
+        "artifact": {
+          "type": "string",
+          "description": "repo-relative path to the proof object for proof_log or formal; required for those levels"
+        },
+        "checker": {
+          "type": "string",
+          "description": "the tool and version that checked the artifact, e.g. 'drat-trim 2024-05' or 'Lean 4.x + mathlib'"
+        },
+        "reference": {
+          "type": "string",
+          "description": "for formal: the formalization the proof was produced against, e.g. 'arXiv:2605.16523'"
+        },
+        "note": { "type": "string", "maxLength": 500 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "enum": ["proof_log", "formal"] } } },
+          "then": { "required": ["level", "artifact", "checker"] }
+        }
+      ]
+    }
+  }
+}

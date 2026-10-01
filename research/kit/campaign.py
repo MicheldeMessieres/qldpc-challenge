@@ -729,6 +729,12 @@ class Ledger:
             "experiments": len(self.experiments),
             "consumed": {f: round(v, 3) for f, v in self.consumed().items()
                          if v},
+            # Dead ends travel with the run, not only with the summary. A
+            # stage-only run that is never promoted writes no note, and
+            # AUTORESEARCH.md counts collapsed ladders and closed routes as
+            # required content, so the manifest has to carry them or they are
+            # lost with the staging directory.
+            "negative_results": list(self.negative_results),
             "survivor_verdicts": [
                 {"n": s.get("n"), "k": s.get("k"), "d": s.get("d"),
                  "fingerprint": _verdict_fingerprint(s)}

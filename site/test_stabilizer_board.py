@@ -106,6 +106,33 @@ def test_stabilizer_code_page_shows_pauli_weight_and_generators(tmp_path):
     assert json.loads(_read(build, "codes", "5-1-3.json")) == doc
 
 
+def test_stabilizer_board_has_its_own_headline_cards_and_leaderboard(tmp_path):
+    """The stabilizer page carries the stats bar and the contributor
+    leaderboard the CSS board has, over its own entries: a handle that only
+    submitted a stabilizer code ranks there and nowhere on the CSS board."""
+    stab_doc = _fixture("5-1-3.json")
+    stab_doc["provenance"] = dict(stab_doc["provenance"], authors=["@stabber"],
+                                  origin="submission", date="2026-10-01")
+    css_doc = _fixture("72-6-6.json")
+    css_doc["provenance"] = dict(css_doc["provenance"], authors=["@csser"],
+                                 origin="submission", date="2026-10-01")
+    build = _build_board(tmp_path, {"72-6-6": css_doc, "5-1-3": stab_doc})
+    index = _read(build, "index.html")
+    stab = _read(build, "stabilizer.html")
+
+    assert "<section class=statsbar>" in stab
+    assert "best kd&sup2;/n at w &le;" in stab
+    assert "1 codes on the board" in stab or "<b>1</b><span>codes on the board" in stab
+    assert "id=leaderboard" in stab
+    assert 'data-h="@stabber"' in stab and 'data-h="@csser"' not in stab
+    assert 'data-h="@csser"' in index and 'data-h="@stabber"' not in index
+    # the Participate modal asks for the symplectic matrix, not H_X / H_Z
+    assert "key s, or a and b" in stab and "keys hx, hz" not in stab
+    assert "keys hx, hz" in index
+    # no layout, so no g: the headline card shows the dot, the row the dot
+    assert "has no code with a verifier-accepted layout" in stab
+
+
 def test_pauli_string_marks_y_once():
     build = load_site_build()
     assert build.pauli_string({"X": [0, 2], "Z": [2, 3]}, 5) == "XIYZI"

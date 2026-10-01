@@ -388,14 +388,27 @@ should not have to re-learn.
 
 ## Output & housekeeping
 
-- For each staged candidate, also draft its **research note** (`notes/TEMPLATE.md` format):
-  the human will submit it beside the code, and your sweep counts, ladder traces (including
-  collapses), and dead ends are exactly its required content — capture them while they are
-  cheap to capture. Findings that are *not* attached to a candidate (blocked routes,
-  calibration results) belong in a drafted `fieldnotes/` entry instead. Record the
-  ladder as rungs rather than as prose: `kit/promote.py` renders the note, the
-  `codes/` document, and the PR body from that one record once a human authorizes
-  the submission, so the ladder is transcribed once instead of three times.
+- **Capture the evidence; draft the note only where it will be submitted.** Your sweep
+  counts, ladder traces (including collapses), and dead ends are required content either
+  way — capture them while they are cheap to capture. Where they go depends on the mode:
+
+  - *Unattended, stage-only* (the default this document governs): record them in the
+    run's **manifest**, not in a drafted note. One note per staged candidate is the
+    largest generative step in the loop and most of those candidates are never
+    promoted, so the notes are written and never read. Worse, a note drafted against
+    a staging path cannot cite its own evidence: `research/candidates/` is gitignored
+    and `verify/check_prose.py` rejects it. The manifest carries the snapshot,
+    resolved parameters, seeds, screening counts, dead ends and survivor verdicts,
+    so nothing is lost by deferring the prose. `kit/promote.py` renders the note, the
+    `codes/` document and the PR body from that one record once a human authorizes a
+    submission, so the ladder is transcribed once rather than three times.
+  - *Contributor-driven* (an agent a contributor is driving interactively, per
+    `../CONTRIBUTING.md`, "Contribute with an LLM"): draft the **research note**
+    (`notes/TEMPLATE.md` format) beside the candidate, because that path submits.
+
+  Findings not attached to any candidate (blocked routes, calibration results) belong
+  in a drafted `fieldnotes/` entry in either mode. Record the ladder as rungs rather
+  than as prose.
 - Write each surviving candidate's **submission JSON + its full validator verdict** to a staging
   folder (`coordination.staging_dir()` gives this run its own one under `research/candidates/`),
   and print a short ranked summary:

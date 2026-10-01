@@ -13,5 +13,9 @@
    "exact": true
   }
  },
- "d": 6
+ "d": 6,
+ "verification": {
+  "level": "solver",
+  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+ }
 }

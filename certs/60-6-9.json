@@ -21,5 +21,9 @@
  },
  "tlim_per_solve": 120,
  "symmetry": true,
- "d_exact": true
+ "d_exact": true,
+ "verification": {
+  "level": "solver",
+  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+ }
 }
