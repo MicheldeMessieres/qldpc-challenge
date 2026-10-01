@@ -1571,8 +1571,15 @@ def board_reports(code_dir):
 
     One process pays for the pass once, whoever asks: the site builder, the
     candidate validator and several tests each used to rescan and re-verify
-    the whole board (~15-20 s per pass locally, two to three passes per pytest
-    session, all producing identical reports).
+    the whole board, all producing identical reports.
+
+    The pass costs what the board costs, so the figure here goes stale as the
+    board grows: it was "~15-20 s locally" when written, and measured 141 s
+    over 1,560 entries on 2026-10-01 (issue #2328). Treat it as minutes, not
+    seconds, when sizing anything that starts a fresh process. The memo is
+    per-process, so a new session pays it again, and the key is a digest of
+    every board byte, so an active campaign landing corrections re-pays it on
+    each merge rather than amortising it.
 
     The memo key is a digest of the file names and the exact bytes the pass
     verifies, so a changed file re-verifies the board however it was written
