@@ -46,8 +46,10 @@ tracks a logical error rate is less settled for non-CSS codes.
 A stabilizer code's check weight is the number of qubits each generator acts
 on (a `Y` counts once) and its locality class comes from the generator
 supports, so the (locality, weight) grid is the same on both boards. A code
-that is CSS up to a Hadamard on some qubits belongs on the CSS board; the
-verifier detects these and the dedup gate marks them as duplicates.
+that is CSS up to single-qubit Cliffords on some qubits (a Hadamard, an S,
+any of the six) belongs on the CSS board: the verifier finds the Cliffords
+and rejects the entry with its CSS image spelled out, so the stabilizer board
+holds only codes that are non-CSS under every local Clifford.
 
 A record whose only strict axis is `d` — the candidate ties an existing entry on
 n, k and w and raises nothing but the distance — is a different kind of claim

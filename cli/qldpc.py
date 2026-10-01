@@ -65,7 +65,7 @@ import heuristic_distance as hd  # noqa: E402
 # states exactly what the board will show (no drift between the two).
 from build import LOCALITY_LABEL, WEIGHT_LABEL, cells, pareto  # noqa: E402
 from check_authorship import HANDLE  # noqa: E402
-from qldpc_verify import verify  # noqa: E402
+from qldpc_verify import is_css_up_to_local_clifford, verify  # noqa: E402
 
 
 # ----------------------------------------------------------------------------
@@ -168,8 +168,9 @@ def build_stabilizer_submission(A, B, args):
     |A_i union B_i|, and one Pauli-weight distance witness (RIS by Pauli
     weight, tightened by the accelerator on the doubled matrices and
     re-scored). Writes code_type "stabilizer" at schema 0.4. A code whose
-    every row is pure X or pure Z is refused here with the same instruction
-    the verifier gives: type it CSS.
+    every row is pure X or pure Z, or becomes so under single-qubit
+    Cliffords, is refused here with the same instruction the verifier gives:
+    type it CSS.
     """
     n = A.shape[1]
     if B.shape != A.shape:
@@ -181,6 +182,18 @@ def build_stabilizer_submission(A, B, args):
         raise SystemExit("every generator is pure X or pure Z: this is a CSS "
                          "code; submit it as H_X / H_Z (keys hx, hz) so it is "
                          "typed CSS and ranked on the CSS board")
+    found = is_css_up_to_local_clifford(A, B)
+    if found is not None:
+        types, ops = found
+        kinds = ", ".join(sorted({v for v in ops.values()}))
+        xs = [i for i, t in enumerate(types) if t == "X"]
+        raise SystemExit(
+            f"single-qubit Cliffords on {len(ops)} qubit(s) (X,Y,Z -> {kinds}) "
+            f"make every generator pure X or pure Z: this is a CSS code up to a "
+            f"local Clifford, which the verifier rejects. Submit its CSS image "
+            f"as H_X / H_Z (keys hx, hz): the supports of generators {xs[:8]}"
+            f"{', ...' if len(xs) > 8 else ''} ({len(xs)} of {len(types)}) as "
+            f"H_X rows and the rest as H_Z rows")
     S = np.concatenate([A, B], axis=1)
     k = n - gf2.rank(S)
     if k < 1:

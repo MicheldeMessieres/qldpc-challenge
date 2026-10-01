@@ -99,10 +99,13 @@ entry. What changes, and what does not:
   `H'_X = (A | B)`, `H'_Z = (B | A)`, re-scoring every find by Pauli weight.
 - A code whose every generator is pure `X` or pure `Z` is a CSS code, and a
   submission that types one `stabilizer` is rejected.
-- A CSS board code with a Hadamard on some of its qubits is a stabilizer
-  code with the same parameters. The verifier looks for such a qubit subset;
-  when it finds one, the CSS code it maps to is compared with the board and a
-  match is recorded as a duplicate of that entry, not as a new code.
+- So is a code that becomes one under single-qubit Cliffords: a CSS code
+  with a Hadamard (or an S, or any local Clifford) on some of its qubits is a
+  stabilizer code with the same parameters and nothing more. The verifier
+  solves for such Cliffords (`stabilizer_code_is_not_locally_css`) and, when
+  they exist, rejects the entry naming the qubits and which generators become
+  X-type; submit that CSS image as `H_X` / `H_Z` instead, where the CSS
+  board's own dedup applies to it.
 - Stabilizer codes rank on a separate leaderboard. Novelty, dominance, and
   records are computed among stabilizer codes only; a stabilizer code never
   dominates or is dominated by a CSS entry.
