@@ -28,6 +28,11 @@ def run(path):
     if res.get("d_exact"):
         res["solver"] = "scipy/HiGHS cutoff IP"
         res["tlim_per_solve"] = TLIM
+        # Every certificate declares what it is worth. A solver verdict with no
+        # proof object is level "solver", which is what this writer produces;
+        # verify/check_certs.py requires the block and refuses a stronger level
+        # without an artifact to back it.
+        res["verification"] = {"level": "solver"}
         os.makedirs(CERTS, exist_ok=True)
         with open(os.path.join(CERTS, slug + ".json"), "w") as f:
             json.dump(res, f, indent=1)

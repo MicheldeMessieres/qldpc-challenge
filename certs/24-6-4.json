@@ -1,22 +1,22 @@
 {
- "name": "[[24,6,4]] weight-6 generalized bicycle (2BGA) code",
- "d": 4,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "name": "[[24,6,4]] weight-6 generalized bicycle (2BGA) code",
+  "d": 4,
+  "solver": "scipy/HiGHS MILP",
+  "sides": {
+    "X": {
+      "value": 4,
+      "exact": true,
+      "note": "no logical < 4 exists"
+    },
+    "Z": {
+      "value": 4,
+      "exact": true,
+      "note": "no logical < 4 exists"
+    }
   },
-  "Z": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "d_exact": true,
+  "verification": {
+    "level": "solver",
+    "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

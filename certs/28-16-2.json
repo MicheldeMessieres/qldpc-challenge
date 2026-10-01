@@ -1,23 +1,23 @@
 {
- "name": "[[28,16,2]] 2BGA",
- "d": 2,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 2,
-   "exact": true,
-   "note": "no logical < 2 exists"
+  "name": "[[28,16,2]] 2BGA",
+  "d": 2,
+  "solver": "scipy/HiGHS MILP",
+  "sides": {
+    "X": {
+      "value": 2,
+      "exact": true,
+      "note": "no logical < 2 exists"
+    },
+    "Z": {
+      "value": 2,
+      "exact": true,
+      "note": "no logical < 2 exists"
+    }
   },
-  "Z": {
-   "value": 2,
-   "exact": true,
-   "note": "no logical < 2 exists"
+  "d_exact": true,
+  "tlim_per_solve": 120,
+  "verification": {
+    "level": "solver",
+    "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
   }
- },
- "d_exact": true,
- "tlim_per_solve": 120,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

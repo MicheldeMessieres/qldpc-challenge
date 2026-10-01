@@ -53,7 +53,7 @@ def test_a_stronger_level_needs_an_artifact_that_exists(level):
 
     c["verification"]["artifact"] = "certs/proofs/does-not-exist.drat"
     probs = C.evidence_problems("x", c)
-    assert probs and "not in the tree" in probs[0], \
+    assert probs and "not a file committed in this tree" in probs[0], \
         "an artifact that is not committed must be refused"
 
 
@@ -88,3 +88,51 @@ def test_a_well_formed_stronger_certificate_passes():
                          "checker": "Lean 4 + mathlib",
                          "reference": "arXiv:2605.16523"}
     assert C.evidence_problems("x", c) == []
+
+
+@pytest.mark.parametrize("art", [
+    "/etc/hosts",                      # absolute: os.path.join drops ROOT
+    "certs/../verify/check_certs.py",  # resolves in-tree, still not a path to
+                                       # store, since a reader has to normalise
+                                       # it before it names anything
+    "certs",                           # a directory is not an artifact
+    "certs/heuristic",
+])
+def test_an_artifact_outside_the_tree_is_refused(art):
+    c = copy.deepcopy(BASE)
+    c["verification"] = {"level": "proof_log", "artifact": art,
+                         "checker": "drat-trim 2024-05"}
+    assert C.evidence_problems("x", c), f"{art} must not be accepted"
+
+
+@pytest.mark.parametrize("field", ["artifact", "checker", "reference"])
+def test_solver_level_claims_no_check_it_did_not_run(field):
+    """A checker named on a bare solver verdict asserts a check that is not
+    there, exactly as an artifact would."""
+    c = copy.deepcopy(BASE)
+    c["verification"] = {"level": "solver", field: "drat-trim 2024-05"}
+    assert C.evidence_problems("x", c)
+
+
+def test_the_cert_writer_stamps_a_level_the_checker_accepts(tmp_path,
+                                                           monkeypatch):
+    """The gate is only worth having if the next regeneration satisfies it.
+
+    certify_all.py writes certs/<slug>.json, so a cert written today has to
+    carry the block check_certs.py requires, rather than needing a backfill
+    after every run.
+    """
+    import certify_all
+
+    monkeypatch.setattr(certify_all, "certify", lambda doc, tlim: {
+        "d": 7, "d_exact": True, "sides": {"X": {"value": 7, "exact": True}}})
+    monkeypatch.setattr(certify_all, "CERTS", str(tmp_path / "certs"))
+
+    src = tmp_path / "98-6-7.json"
+    src.write_text(json.dumps({"name": "98-6-7"}), encoding="utf-8")
+    certify_all.run(str(src))
+
+    with open(tmp_path / "certs" / "98-6-7.json", encoding="utf-8") as f:
+        written = json.load(f)
+    assert written["verification"] == {"level": "solver"}
+    assert C.evidence_problems("98-6-7", written) == []

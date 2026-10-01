@@ -47,6 +47,29 @@ def load_schema():
         return json.load(f)
 
 
+def _inside_tree(art):
+    """True when `art` is a file inside the repository.
+
+    os.path.join discards the root when the second argument is absolute, and
+    `..` walks out of it, so joining and calling os.path.exists accepts
+    "/etc/hosts" and "certs/../verify/check_certs.py". This is the field whose
+    entire job is pointing at committed evidence, so it is resolved and
+    required to land under ROOT, and to be a file rather than a directory.
+    """
+    if os.path.isabs(art):
+        return False
+    # "certs/../verify/x.py" resolves in-tree and is still wrong to store: the
+    # recorded path should name where the evidence is, so a reader can find it
+    # without normalising it first.
+    if os.path.normpath(art) != art.rstrip("/"):
+        return False
+    full = os.path.realpath(os.path.join(ROOT, art))
+    root = os.path.realpath(ROOT)
+    if os.path.commonpath([full, root]) != root:
+        return False
+    return os.path.isfile(full)
+
+
 def evidence_problems(slug, cert):
     """Rules a schema cannot state: the artifact has to be there."""
     out = []
@@ -55,15 +78,20 @@ def evidence_problems(slug, cert):
     if level not in LEVELS:
         return [f"{slug}: verification.level {level!r} is not one of {LEVELS}"]
     if level == "solver":
-        if v.get("artifact"):
-            out.append(f"{slug}: level 'solver' but an artifact is named; "
-                       "if it is checkable, claim the level it earns")
+        # The rule is "no evidence you cannot point at", so it has to cover
+        # every field that asserts one. A checker or a reference on a bare
+        # solver verdict claims a check that did not happen.
+        for field in ("artifact", "checker", "reference"):
+            if v.get(field):
+                out.append(f"{slug}: level 'solver' names a {field}; if "
+                           "something was checked, claim the level it earns")
         return out
     art = v.get("artifact")
     if not art:
         out.append(f"{slug}: level {level!r} with no artifact")
-    elif not os.path.exists(os.path.join(ROOT, art)):
-        out.append(f"{slug}: level {level!r} names {art}, which is not in the tree")
+    elif not _inside_tree(art):
+        out.append(f"{slug}: level {level!r} names {art}, which is not a file "
+                   "committed in this tree")
     if not v.get("checker"):
         out.append(f"{slug}: level {level!r} with no checker recorded")
     return out
@@ -75,6 +103,11 @@ def main(argv):
                     help="print the level mix and exit")
     a = ap.parse_args(argv)
 
+    # Non-recursively, on purpose. certs/heuristic/ holds a different artifact
+    # entirely (claimed_d / verdict / methods / seed) that this schema does not
+    # describe and should not be made to; making the glob recursive would fail
+    # all six wholesale. Heuristic evidence is also the weakest thing under
+    # certs/ and has no level in the enum yet, which is its own question.
     certs = sorted(glob.glob(os.path.join(ROOT, "certs", "*.json")))
     if not certs:
         print("no certificates found")
