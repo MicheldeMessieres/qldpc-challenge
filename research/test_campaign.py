@@ -768,3 +768,39 @@ def test_a_long_log_is_truncated_and_says_so(tmp_path):
     assert rec["truncated"]
     assert rec["excerpt"].endswith("TAIL")
     assert len(rec["excerpt"]) == MAX_LOG_EXCERPT
+
+
+def test_the_manifest_carries_the_dead_ends(tmp_path):
+    """A stage-only run writes no note, so the manifest must hold them.
+
+    AUTORESEARCH.md counts collapsed ladders and closed routes as required
+    content, and the note that used to carry them is now drafted only on the
+    contributor path. If they are not in the manifest they go with the
+    gitignored staging directory, which is the one place that can never be
+    cited as evidence.
+    """
+    c = Campaign(validate_campaign(camp()))
+    led = Ledger(c)
+    led.start_experiment("bivariate-bicycle", seed=1)
+    led.record_negative("weight-6 at n=72", "ladder collapsed at rung 2")
+    led.record_negative("Z_31 quotient", "no survivor below the bar")
+    led.end_experiment()
+
+    man = led.manifest()
+    assert len(man["negative_results"]) == 2
+    whats = {n["what"] for n in man["negative_results"]}
+    assert whats == {"weight-6 at n=72", "Z_31 quotient"}
+    assert any("collapsed" in n["detail"] for n in man["negative_results"])
+
+
+def test_dead_ends_survive_a_write_and_reload(tmp_path):
+    """They have to be in the committed artifact, not just in memory."""
+    c = Campaign(validate_campaign(camp()))
+    path = tmp_path / "manifest.json"
+    led = Ledger(c, manifest=str(path))
+    led.start_experiment("bivariate-bicycle", seed=1)
+    led.record_negative("closed route", "exhausted at P=113")
+    led.end_experiment()
+
+    on_disk = json.load(open(path, encoding="utf-8"))
+    assert on_disk["negative_results"][0]["what"] == "closed route"
