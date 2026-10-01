@@ -83,7 +83,7 @@ def board(tmp_path, monkeypatch):
     d = tmp_path / "codes"
     d.mkdir()
     shutil.copy(os.path.join(_HERE, "fixtures", "72-6-6.json"), d / "72-6-6.json")
-    shutil.copy(os.path.join(_HERE, "fixtures", "18-2-3.json"), d / "18-2-3.json")
+    shutil.copy(os.path.join(_HERE, "fixtures", "17-1-7.json"), d / "17-1-7.json")
     Q._BOARD_CACHE.clear()
     return d
 
