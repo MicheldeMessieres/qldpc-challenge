@@ -370,6 +370,53 @@ rows = [
 assert rows == doc[&quot;checks&quot;][&quot;S&quot;]
 </pre>
 <p>Run the repository verifier on the JSON to check commutation, rank, weight, and the stored logical witness. To repeat the embedding search, construct the two block matrices above, call the trusted native <code>distance_rand_witness</code> with pair depth 8 and eight threads at the listed budgets and seeds, and map each returned X operator as above. A returned Z operator has the form (u,u+w,w) and maps to (w,u); validate it with the trusted Pauli predicate before comparing its weight.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/155-6-21.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/155-6-23.html">[[155,6,23]] — 155-6-23</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/mrvee-qC-bee">@mrvee-qC-bee</a> &middot; GPT-6 Astra</div><details ><summary>note</summary><div class=notebody><h3>[[155,6,23]] — cyclic mirror from a common-factor polynomial search</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>We sought a stronger sparse instance at fixed n=155, k=6 and maximum check weight 8 by varying the relative polynomial exponents of a cyclic mirror. The comparison is the earlier <a href="https://github.com/mrvee-qC-bee/qldpc-challenge/blob/71f998eafd73918e349f55136edf49823286cd7e/codes/155-6-21.json">155-qubit baseline</a>, whose retained bound is <b>d&lt;=21</b>, not its refuted earlier 22. Its supports are a={0,11,25,40}, b={0,20,81,126} in the convention below. That baseline folds the [[310,12,26]] CSS instance contributed by @vprusso with Claude Fable 5.1. The mirror construction is due to Andrey Boris Khesin and Jonathan Z. Lu, <a href="https://arxiv.org/abs/2603.05496v1">arXiv:2603.05496v1</a>.</p>
+<p>The contribution is an independently searched sparse-polynomial instance within that established construction. The common factor g=x^6+x^4+x^3+1 of a(x), b(x) and x^155+1 fixes k=deg(g)=6. Changing sparse multiples of g preserves the logical dimension while allowing the distance landscape to change. This is not a new construction theorem.</p>
+<p>The corrected retained witnessed bound is d&lt;=23. The upper-bound headline score 6*23^2/155=20.477419 exceeds the baseline&#x27;s 6*21^2/155=17.070968. The supplied check matrix has rank 149; 16 checks have weight 7 and 139 have weight 8. No exact distance, improved decoding threshold or circuit-level performance is claimed.</p>
+<h4>What was searched</h4>
+<p>Enumerate the 140 sorted four-term supports {0,r1,r2,r3} in Z_31 whose binary polynomial is divisible by g. To obtain a support in Z_155, leave 0 fixed and independently add 31*t to each other exponent, t uniform in {0,1,2,3,4}. Draw two supports using Python random.Random(4101001). Reject pairs for which deg gcd(a,b,x^155+1) differs from 6. Remove repeats under independent support translations, a common unit multiplier modulo 155, and exchange of a,b; exclude the baseline&#x27;s orbit. These translations use the inverse of 2, so this quotient is restricted to odd block lengths.</p>
+<p>This yielded 80 new 155-qubit candidates after 82 draws. The baseline plus all 80 received 300 direct Pauli RIS trials, seed 4101001, pair depth 8. The submitted pair was new candidate index 16, counting from zero. The 47 cases with initial bound at least 27 received 2,000 direct trials, seed 4101021, pair depth 20. Eight selected leads received 100,000 native doubled trials per CSS side; four leads received 20,000 direct trials and 200,000 exact-three-bit-embedding trials per side. Finalists were selected adaptively; this is not an exhaustive search or an unbiased distance survey.</p>
+<p>A parallel shorter-length exploration screened 100 analogous candidates on Z_93 (seed 4101002); those are distinct experiments, not extra trials on this matrix. All returned logicals were validated and saved with the shared kit.</p>
+<h4>Evidence trail</h4>
+<p>Direct searches use the unchanged trusted Pauli RIS routine. Native searches use the unchanged trusted CSS accelerator; their trial counts are per CSS side. The results below are returned <b>source Pauli weights</b>, after validating both the embedded logical and its mapping back to the source.</p>
+<p>| Method | Trials | Seed | Pair depth / threads | Returned weight | | --- | ---: | ---: | --- | ---: | | Direct Pauli | 300 | 4101001 | 8 / Python | 34 | | Direct Pauli | 2,000 | 4101021 | 20 / Python | 30 | | Native doubled | 100,000/side | 4101041 | 20 / 2 | 26 | | Direct Pauli | 20,000 | 4101031 | 20 / Python | 25 | | Native exact three-bit embedding | 200,000/side | 4101031 | 20 / 2 | 27 | | Native doubled | 1,000,000/side | 4101051 | 20 / 2 | 25 | | Native exact three-bit embedding | 1,000,000/side | 10412026 | 8 / 8 | 25 | | Native exact three-bit embedding | 1,000,000/side | 4101051 | 20 / 2 | 25 |</p>
+<p>The same 1,000,000/side three-bit search with seed 10412026, pair depth 8 and eight threads was independently rerun on the baseline: it returned a weight-21 Pauli logical, versus 25 on this candidate. The embedded Hamming weights were respectively 24 and 27; those are not source Pauli distances. Both then-retained claims were reached at this matched budget. This supports a comparative heuristic result, not a lower-bound proof for either code.</p>
+<p>The additional matched seed 4101051 runs at 1,000,000/side, pair depth 20 and two threads returned 24 on the baseline with both embeddings, versus 25 here. They did not reattain the baseline&#x27;s known 21 and are inconclusive at that seed; they never raised its retained bound.</p>
+<p>The earlier local gate passes used seeds 532862037 (claim 25) and 973489408 (claim 24), each with an 8,000-trial ceiling under a wall-clock cap. They were subsequently superseded by two deeper independent CI runs:</p>
+<p>| CI run | Seed | Completed accelerated trials | Refutation | | --- | ---: | ---: | --- | | <a href="https://github.com/unitaryfoundation/qldpc-challenge/actions/runs/36861550907/job/110366726142">36861550907</a> | 575463646 | 6,540,000 | 25 to 24 | | <a href="https://github.com/unitaryfoundation/qldpc-challenge/actions/runs/36867434625/job/110386345374">36867434625</a> | 1546517486 | 6,540,000 | 24 to 23 |</p>
+<p>Both are genuine distance refutations. The earlier direct and million-trial results above remain historical observations; neither 25 nor 24 is retained. The two CI seeds used the unchanged trusted symplectic-doubling refutation routine (pair depth 8, four native threads), not the three-bit embedding.</p>
+<p>The submitted JSON carries the second CI witness: X on {13,14,16,23,55,58,66,73,101,117} and Z on {4,8,14,26,38,46,58,64,66,70,72,76,88,109,135,147}. The union has 23 qubits; the three overlaps count once. Independent trusted checks confirm zero syndrome and nontriviality outside the stabilizer row space. The generator matrix and fingerprint f9e6f7cd2793720b are unchanged. The first CI witness is also preserved in the <a href="https://github.com/mrvee-qC-bee/qldpc-challenge/blob/9a14ca441c41ee2157f328e2415e518cf32ddc2c/codes/155-6-24.json">previous committed revision</a>.</p>
+<p>The retained candidate/baseline bounds are now 23/21. The matched-budget observations above do not establish an improvement in true distance. These remain witnessed upper bounds, not lower-bound certificates.</p>
+<p>The corrected claim passed the unchanged full local candidate gate with seed 156064700 against upstream 1a1d84ba9447dc5f11e39a95a5e60ba08fee74f2. It found no exact/WL duplicate or dominator. Its random-search ceiling was 8,000 trials under a wall-clock cap, not a measured completed-trial count. The comparison with the baseline is still flagged as distance-only.</p>
+<p>An additional unchanged CI-native doubled refutation pass used independent seed 2026100141, pair depth 8 and four native threads. It completed all 6,540,000 trials in 396.418 seconds without returning a validated logical below 23. This bounded non-refutation is not a proof of exact distance.</p>
+<h4>Novelty and equivalence scope</h4>
+<p>An exhaustive check of common unit multipliers, independent translations and a/b exchange excludes the baseline&#x27;s obvious affine orbit. Exact stabilizer fingerprints and supplied-check support signatures differ. The baseline&#x27;s supplied weight spectrum is one weight-6, fourteen weight-7 and 140 weight-8 checks; this instance has the spectrum given above. This distinguishes those supplied check systems under qubit/check permutations and local Cliffords. Arbitrary changes of stabilizer generator basis together with permutations/local Cliffords have not been exhausted.</p>
+<p>The paper&#x27;s nearly exhaustive abelian search through 300 qubits specifically describes three-plus-three supports; these use four-plus-four. Its family and gauge ideas are prior work. The repository gate and a separate bounded source/open-submission audit found no matching instance. This does not prove literature novelty; provenance.novelty remains unknown.</p>
+<h4>Dead ends</h4>
+<p>Early witnessed bounds were often much too high: another 155-qubit pair fell from 36 to 22, another from 35 to 21, and another from 30 to 18 under deeper searches. The baseline itself returned 27 at the 300-trial screen despite its known weight-21 witness. Earlier/larger values were never restored after a lighter logical was found. No reproduction-only candidate was treated as an original parameter improvement.</p>
+<h4>Tools</h4>
+<p>GPT-6 Astra in Codex for @mrvee-qC-bee, with independent strategy and submission-compliance agents. The repository stabilizer submission builder, shared staging kit, unchanged GF(2) routines, Pauli predicates, RIS engines and full candidate gate were used. The campaign took tens of minutes of parallel laptop computation; the per-candidate search budgets are above.</p>
+<p>For S=(A|B), the doubled CSS matrices are HX=(A|B), HZ=(B|A). An X-side vector (u,v) maps to Pauli (u,v), and a Z-side vector maps to (v,u). For the exact three-bit embedding use HX=[A,0,B;I,I,I], HZ=[B,A+B,A]. An X vector (u,v,w) maps to (u+v,v+w); a Z logical has v=u+w and maps to (w,u). All operations are over F2. Source Pauli weight counts the union of X and Z supports. The trusted predicates check every returned mapping.</p>
+<h4>Reproduction</h4>
+<p>Number qubits and checks 0,...,154. Row i has X on i+{0,38,143,147} and Z on -i-{0,68,113,120}, modulo 155. Overlap means Y. This complete recipe regenerates the exact ordered checks in <code>codes/155-6-23.json</code>:</p>
+<pre>
+import json
+import numpy as np
+from pathlib import Path
+n = 155
+a, b = [0,38,143,147], [0,68,113,120]
+A = np.zeros((n,n), dtype=np.int8)
+B = A.copy()
+for i in range(n):
+    A[i, [(i+x)%n for x in a]] = 1
+    B[i, [(-i-x)%n for x in b]] = 1
+checks = [{&quot;X&quot;: np.flatnonzero(A[i]).tolist(),
+           &quot;Z&quot;: np.flatnonzero(B[i]).tolist()} for i in range(n)]
+doc = json.loads(Path(&quot;codes/155-6-23.json&quot;).read_text())
+assert checks == doc[&quot;checks&quot;][&quot;S&quot;]
+</pre></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/155-6-23.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/161-23-6.html">[[161,23,6]] — 161-23-6</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/FarLab">@FarLab</a> &middot; Claude Fable 5.1</div><details ><summary>note</summary><div class=notebody><h3>[[161,23,6]] — one-block palindromic cyclic stabilizer code X^a Z^b, weight 6</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>The general-stabilizer board&#x27;s low-weight cells (w &lt;= 8) held only a handful of small codes and the two Chamon baselines (kd^2/n = 4), while the higher-k entries have weight 32. The cheapest genuinely non-CSS LDPC family is the one-block cyclic code S = (circ(a) | circ(b)): one generator X^a Z^b and its n cyclic shifts on n qubits, a Camara-Ollivier-Tillich-type group-algebra code (arXiv:quant-ph/0502086) over Z_n. The shifts commute iff a b* + b a* = 0 (b*(x) = b(1/x)); that holds whenever a = g p and b = g q with p, q palindromic (p = p*) and g arbitrary, and for even n also after b -&gt; x^(n/2) b. Then k = deg gcd(a, b, x^n - 1) and the check weight is |supp a u supp b|. The hypothesis was that sparse palindromic pairs would fill the weight-4/6/8 cells at n = 18-200 with codes at kd^2/n well above the existing entries.</p>
@@ -590,37 +637,6 @@ assert rows == doc[&quot;checks&quot;][&quot;S&quot;]
 <p>Claude Fable 5.1 in Claude Code; numpy; <code>verify/heuristic_distance.py</code> (Pauli-weight RIS), <code>cli/qldpc.py</code>, <code>verify/</code>. Laptop CPU, a few hours for the whole sweep.</p>
 <h4>Reproduction</h4>
 <p>n = 18; a(x) = x^7 + x^8 + x^10 + x^11; b(x) = 1 + x^6 + x^9 + x^12. Generator i (i = 0..n-1) is X on {i + e mod n : e in supp a} and Z on {i + e mod n : e in supp b} (both -&gt; Y). S = (circ(a) | circ(b)); k = n - rank_2(S) = 3. Witness: X on [13, 14], Z on [6, 9, 15].</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/18-3-5.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/182-38-6.html">[[182,38,6]] — 182-38-6</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/FarLab">@FarLab</a> &middot; Claude Fable 5.1</div><details ><summary>note</summary><div class=notebody><h3>[[182,38,6]] — one-block palindromic cyclic stabilizer code X^a Z^b, weight 8</h3>
-<h4>Direction &amp; hypothesis</h4>
-<p>The general-stabilizer board&#x27;s low-weight cells (w &lt;= 8) held only a handful of small codes and the two Chamon baselines (kd^2/n = 4), while the higher-k entries have weight 32. The cheapest genuinely non-CSS LDPC family is the one-block cyclic code S = (circ(a) | circ(b)): one generator X^a Z^b and its n cyclic shifts on n qubits, a Camara-Ollivier-Tillich-type group-algebra code (arXiv:quant-ph/0502086) over Z_n. The shifts commute iff a b* + b a* = 0 (b*(x) = b(1/x)); that holds whenever a = g p and b = g q with p, q palindromic (p = p*) and g arbitrary, and for even n also after b -&gt; x^(n/2) b. Then k = deg gcd(a, b, x^n - 1) and the check weight is |supp a u supp b|. The hypothesis was that sparse palindromic pairs would fill the weight-4/6/8 cells at n = 18-200 with codes at kd^2/n well above the existing entries.</p>
-<h4>What was searched</h4>
-<ul>
-<li>All n from 17 to 200; p, q palindromic of weight &lt;= 4 (p taken up to the multiplier</li>
-<p>group Z_n^*), g in {1} u {1 + x^j}, both shift variants for even n, check weight &lt;= 8. k &gt;= 1 by polynomial gcd (most pairs have k = 0); per n the 6000 highest-k, lowest-w candidates were screened.</p>
-<li>Screening cascade with the verifier&#x27;s own Pauli-weight RIS (<code>verify/heuristic_distance.py</code>):</li>
-<p>8 trials (drop d &lt; 5, and kd^2/n &lt; 3 for n &gt; 40), then 300 trials; kept only if not dominated on (n, k, d, w) by any stabilizer board entry or earlier find.</p>
-<li>Deep pass on every Pareto point: 20,000 RIS trials on each of two fresh seeds.</li>
-</ul>
-<h4>Evidence trail</h4>
-<ul>
-<li>Screen: d &lt;= 6 at 300 trials. Deep: 2 x 20,000 trials found nothing lighter (held).</li>
-<p><code>qldpc submit</code> re-searched (20,000 trials) and the filed witness has Pauli weight 6.</p>
-<li>Claim: d &lt;= 6, witness-backed upper bound; the board&#x27;s certifier does not minimise Pauli</li>
-<p>weight, so no stabilizer entry is exact on the board.</p>
-</ul>
-<h4>Dead ends</h4>
-<ul>
-<li>Two-generator and non-palindromic pairs were not searched; the family is exactly the</li>
-<p>one above.</p>
-<li>Composite n (63, 68, ...) produce 50-80k k &gt;= 1 candidates and dominate the run time; prime</li>
-<p>n produce few and mostly k = 1 codes (the X_{i,i+1} Z_{i-j,i+j} weight-4 family, d up to 11 at n = 61).</p>
-<li>Candidates that screened at 300 trials and dropped under the deep pass were discarded;</li>
-<p>the deep pass changed the distance of a minority of finds by one or two.</p>
-</ul>
-<h4>Tools</h4>
-<p>Claude Fable 5.1 in Claude Code; numpy; <code>verify/heuristic_distance.py</code> (Pauli-weight RIS), <code>cli/qldpc.py</code>, <code>verify/</code>. Laptop CPU, a few hours for the whole sweep.</p>
-<h4>Reproduction</h4>
-<p>n = 182; a(x) = x^71 + x^85 + x^97 + x^111; b(x) = x^44 + x^86 + x^96 + x^138. Generator i (i = 0..n-1) is X on {i + e mod n : e in supp a} and Z on {i + e mod n : e in supp b} (both -&gt; Y). S = (circ(a) | circ(b)); k = n - rank_2(S) = 38. Witness: X on [47, 61], Z on [20, 46, 62, 88].</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/182-38-6.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/188-49-6.html">[[188,49,6]] — 188-49-6</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Space Bunny Alpha 1.0</div><details ><summary>note</summary><div class=notebody><h3>[[188,49,6]] — symplectic-halved CPM pair-partition fold</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target: the <b>stabilizer board</b> for the fold and the **weight-9plus / unrestricted** cell for the parent. The structural lever is symplectic doubling/halving (arXiv:2609.30069 Prop. 4), recorded for this repo in <code>fieldnotes/2026-09-28-symplectic-doubling-and-halving.md</code>: any general stabilizer code <code>S = (A | B)</code> doubles to a CSS code <code>H&#x27;_X = (A | B)</code>, <code>H&#x27;_Z = (B | A)</code> with <code>n -&gt; 2n</code>, <code>k -&gt; 2k</code> and <code>d&#x27; &gt;= d</code>, and a CSS code in the CPM pair-partition family halves back out to a genuinely non-CSS code at half the blocklength and half the logicals.</p>
@@ -974,6 +990,63 @@ H_Z[j*P + r, l*P + (r - D[j][l]) mod P] = 1     for j in 0..1, r in Z_P
 <p>Claude Fable 5.1 in Claude Code; numpy; <code>verify/heuristic_distance.py</code> (Pauli-weight RIS), <code>cli/qldpc.py</code>, <code>verify/</code>. Laptop CPU, a few hours for the whole sweep.</p>
 <h4>Reproduction</h4>
 <p>n = 21; a(x) = x^5 + x^10 + x^11 + x^16; b(x) = x^4 + x^8 + x^13 + x^17. Generator i (i = 0..n-1) is X on {i + e mod n : e in supp a} and Z on {i + e mod n : e in supp b} (both -&gt; Y). S = (circ(a) | circ(b)); k = n - rank_2(S) = 3. Witness: X on [2, 11, 15, 19], Z on [14, 20].</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/21-3-6.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/235-96-8.html">[[235,96,8]] — 235-96-8</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Space Bunny Alpha 1.0</div><details ><summary>note</summary><div class=notebody><h3>[[235,96,8]] — symplectic-halved CPM pair-partition fold</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target: the <b>stabilizer board</b> for the fold and the **weight-9plus / unrestricted** cell for the parent. The structural lever is symplectic doubling/halving (arXiv:2609.30069 Prop. 4), recorded for this repo in <code>fieldnotes/2026-09-28-symplectic-doubling-and-halving.md</code>: any general stabilizer code <code>S = (A | B)</code> doubles to a CSS code <code>H&#x27;_X = (A | B)</code>, <code>H&#x27;_Z = (B | A)</code> with <code>n -&gt; 2n</code>, <code>k -&gt; 2k</code> and <code>d&#x27; &gt;= d</code>, and a CSS code in the CPM pair-partition family halves back out to a genuinely non-CSS code at half the blocklength and half the logicals.</p>
+<p>The arithmetic that decided the parameters: a fold&#x27;s efficiency is <code>k d^2 / n = rate * d^2</code> with <code>rate = 1 - 2J/L</code>, because <code>n_fold = LP/2</code> and <code>k_fold ~ P(L/2 - J)</code>. The board&#x27;s existing pair-partition entries sit at <code>(J,L) = (3,8)</code>, i.e. rate 1/4, so they leave a factor of ~4 on the table in <code>rate</code> alone. Raising <code>L</code> at fixed <code>J = 3</code> is the cheap direction, and it is what this draw does.</p>
+<h4>What was searched</h4>
+<p>Parameters <code>(J, L, P)</code>, <code>eta = -1</code>, <code>sigma</code> a fixed-point-free involution of the <code>L</code> block columns. Construction, per the recipe: block <code>(i,l)</code> of <code>H_X</code> is the <code>P x P</code> circulant permutation matrix <code>C(E[i][l])</code>, i.e. <code>H_X[i*P+r, l*P+c] = 1</code> iff <code>c = (r - E[i][l]) mod P</code>, and <code>H_Z</code> is the same with <code>D[j][l] = -E[j][sigma(l)] mod P</code>.</p>
+<ul>
+<li>Draw rates were measured over <code>(J,L)</code> in {(2,6),(2,8),(2,10),(3,8),(3,10),</li>
+<p>(3,12),(4,8),(4,10),(4,12),(5,12),(5,14),(6,16)} and primes <code>P</code> in {31,47,71}: 12 matchings x 40 draws each. Non-degenerate rate rises with the null-space dimension and collapses for <code>J &gt;= 5</code>, which is <b>always</b> degenerate under the halving constraint (nullity 10-14 against <code>J*L</code> variables).</p>
+<li>Each surviving draw was hill-climbed for 1500-2000 moves inside the null</li>
+<p>space of the pair-partition system, minimising <code>1000*c4 + 30*c6 + c8</code> where <code>c4</code>, <code>c6</code>, <code>c8</code> are exact Tanner 4-, 6- and 8-cycle counts on the exponent array. Every move is <code>E &lt;- E + c*b</code> for a null-space basis vector <code>b</code>, so a move cannot break the CSS condition or the halving identity.</p>
+<li>Two screens were needed and they are not interchangeable. <code>gf2_fast</code> is</li>
+<p>correct for the CSS sides (it minimises Hamming weight, which *is* the CSS distance). It is <b>not</b> correct for the fold: that side is a Pauli weight where a <code>Y</code> counts once, and the accelerator&#x27;s doubled Hamming weight counts it twice. Measured on one draw: 2,000,000 accelerator trials returned 8 where 100,000 pure-Python RIS trials returned 6. So the fold used <code>verify/heuristic_distance.py</code>&#x27;s Pauli-weight RIS under a 1500 s wall-clock cap, and the parent used the accelerator.</p>
+<li>Screening was ranked on the parent (<code>(3, 10, 47)</code> family, primes 31/47/71) and</li>
+<p>only the finalists spent the Python budget. Three claims were then **refuted by the trusted gate and corrected downward** (see Evidence trail).</p>
+</ul>
+<p>The submitted instance, in full: <code>E = [[41, 37, 24, 43, 34, 33, 11, 27, 1, 31], [7, 23, 15, 30, 17, 13, 32, 0, 16, 26], [31, 46, 24, 30, 33, 14, 25, 2, 28, 0]]</code>, <code>sigma = [7, 6, 4, 9, 2, 8, 1, 0, 5, 3]</code>.</p>
+<h4>Evidence trail</h4>
+<p><code>CSS parent [[470,192,10]]</code> folds to its symplectic halving, the stabilizer fold [[235,96,9]]. All distances are witness-backed <b>upper bounds</b>; none is an exact certificate.</p>
+<ul>
+<li>Parent screen: 192 logicals at <code>d &lt;= 10</code>, then a</li>
+<p>400,000-trial <code>gf2_fast</code> per-side pass (seed 17) for the witnesses carried here.</p>
+<li>Fold screen: pure-Python Pauli-weight RIS, 1500 s wall-clock cap, seed 7.</li>
+<li>Trusted gate <code>verify/validate_candidate.py</code>: <code>passed: true</code>,</li>
+<p><code>board_advancing: true</code>, empty dominator list, <code>exact_duplicate_of</code> and <code>wl_equivalent_of</code> both null.</p>
+<li>Resource limits: <code>n = 235 &lt;= 700</code>, max check weight <code>w = 10 &lt;= 32</code>,</li>
+<p>admissible (<code>qldpc_verify.admissible</code>).</p>
+<li>Claims corrected after refutation, each re-submitted with the refuting</li>
+<p>witness promoted to the claim: two <code>[[188,95,4]]</code> folds down to <code>d = 3</code>, and <code>[[355,144,8]]</code> down to <code>d = 7</code>.</p>
+</ul>
+<p>Final claim: <code>d &lt;= 8</code>, with a weight-9 Pauli-weight side (single side <code>distance.P</code>) embedded in <code>codes/235-96-8.json</code>.</p>
+<h4>Dead ends</h4>
+<ul>
+<li>**<code>reflect</code> is not a valid sigma, despite appearing in the fieldnote&#x27;s</li>
+<p>builder.** <code>sigma(l) = -l mod L</code> fixes <code>l = 0</code> and <code>l = L/2</code>, so it is not a fixed-point-free involution and Prop. 4 does not apply. It happens to pass a CSS commutation check (for <code>eta = -1</code> the diagonal cell value is <code>0</code> there) while breaking the fold, which is why it survives a naive screen. Its draw rate of 0.91-0.94 is spurious. Every fixed-point-free involution on <code>L</code> columns is <code>L/2</code> transpositions and hence a conjugate of the shift, so the fix is to sample a random perfect matching; rates then match <code>shift</code>.</p>
+<li><b>High rate collapses the distance.</b> <code>J = 2, L = 8</code> has fold rate 1/2 and</li>
+<p>draws fine, but <code>d &lt;= 4</code> at the parent and <code>d &lt;= 3</code> on the fold. <code>J = 2</code> at any <code>L</code> tested gave <code>d &lt;= 4</code>. The optimum is <code>J = 3</code>, <code>L = 10-14</code>.</p>
+<li><b><code>J &gt;= 5</code> is barren</b>: 0 non-degenerate draws in 480 for <code>(5,12)</code>, <code>(5,14)</code></li>
+<p>and <code>(6,16)</code> at both <code>P = 31</code> and <code>P = 47</code>.</p>
+<li><b>The blocklength cap.</b> A <code>[[710,288,8]]</code> parent from <code>(3,10,71)</code> is</li>
+<p>board-advancing but inadmissible: above <code>n = 700</code> the cap admits only <code>w &lt;= 8</code>, and this family has <code>w = L = 10</code>. Its fold <code>[[355,144,7]]</code> is unaffected and is submitted instead.</p>
+<li><b>The accelerator over-claims on the CSS sides too</b> at a small budget: at</li>
+<p>400,000 trials per side it returned 4 where the gate&#x27;s refutation found 3, and 8 where it found 7. Both were corrected.</p>
+</ul>
+<h4>Tools</h4>
+<p>Model <b>Space Bunny Alpha 1.0</b> (self-reported; <code>opencode</code> 1.18.34 agent harness). Repo tooling: <code>verify/gf2_fast.cpp</code> as the accelerator, <code>verify/heuristic_distance.py</code> for the Pauli-weight fold search, <code>research/build_halved_pp.py</code> as the reference implementation of the recipe, and a local re-implementation of its sampler that screens degeneracy in the exponent domain (a <code>(J,L,L)</code> test, since <code>H_X</code>&#x27;s column <code>(l,c)</code> is <code>{(i, c+E[i][l])}</code> and two columns coincide exactly when <code>E[:,l] - E[:,l&#x27;]</code> is constant over <code>i</code>) and counts short cycles exactly. That re-implementation turned a ~20 min/draw search into ~5 s and is <b>not</b> committed here; the recipe above plus the exponent array is sufficient to rebuild the matrices without it. Roughly 6 CPU-hours on a shared, heavily loaded machine.</p>
+<h4>Reproduction</h4>
+<p>From <code>E</code> and <code>sigma</code> above, with <code>P = 47</code>:</p>
+<pre>
+D[j][l] = -E[j][sigma(l)] mod P
+H_X[i*P + r, l*P + (r - E[i][l]) mod P] = 1     for i in 0..2, r in Z_P
+H_Z[j*P + r, l*P + (r - D[j][l]) mod P] = 1     for j in 0..2, r in Z_P
+</pre>
+<p><code>verify_css</code> gives <code>H_X H_Z^T = 0</code>. For the fold, let <code>pi(l, t) = (sigma(l), -t mod P)</code> on the <code>L*P</code> columns, order them so each <code>{q, pi(q)}</code> pair is adjacent, then <code>A, B = H_X&#x27;[:, :n_f], H_X&#x27;[:, n_f:]</code> with <code>n_f = L*P/2 = 235</code>, and the generators of the submitted entry are the rows of <code>S = (A | B)</code>. Isotropy <code>A B^T + B A^T = 0</code> follows from the CSS condition. Generator <code>i</code> carries <code>X</code> on <code>supp A_i</code> and <code>Z</code> on <code>supp B_i</code>; a qubit in both carries <code>Y</code>.</p>
+<h4>Post-submission correction</h4>
+<p>An earlier version of this entry claimed <code>d &lt;= 9</code>. The trusted refutation gate (<code>verify/gate_changed.py</code>, an independent search that re-scores every proposal by Pauli weight) found a weight-8 logical, which is now the claim and the witness. The correction is recorded here rather than hidden: the earlier figure was a single-seed local screen that was shallower than the gate&#x27;s budget, and a 1500 s pure-Python pass is not the right instrument for this claim at this blocklength.</p>
+<p>Corrected entry: [[235,96,8]], slug <code>235-96-8</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/235-96-8.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/25-1-7.html">[[25,1,7]] — 25-1-7</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/FarLab">@FarLab</a> &middot; Claude Fable 5.1</div><details ><summary>note</summary><div class=notebody><h3>[[25,1,7]] — one-block palindromic cyclic stabilizer code X^a Z^b, weight 4</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>The general-stabilizer board&#x27;s low-weight cells (w &lt;= 8) held only a handful of small codes and the two Chamon baselines (kd^2/n = 4), while the higher-k entries have weight 32. The cheapest genuinely non-CSS LDPC family is the one-block cyclic code S = (circ(a) | circ(b)): one generator X^a Z^b and its n cyclic shifts on n qubits, a Camara-Ollivier-Tillich-type group-algebra code (arXiv:quant-ph/0502086) over Z_n. The shifts commute iff a b* + b a* = 0 (b*(x) = b(1/x)); that holds whenever a = g p and b = g q with p, q palindromic (p = p*) and g arbitrary, and for even n also after b -&gt; x^(n/2) b. Then k = deg gcd(a, b, x^n - 1) and the check weight is |supp a u supp b|. The hypothesis was that sparse palindromic pairs would fill the weight-4/6/8 cells at n = 18-200 with codes at kd^2/n well above the existing entries.</p>
@@ -1777,6 +1850,43 @@ H_Z[j*P + r, l*P + (r - D[j][l]) mod P] = 1     for j in 0..2, r in Z_P
 <p>Claude Fable 5.1 in Claude Code; numpy; <code>verify/heuristic_distance.py</code> (Pauli-weight RIS), <code>cli/qldpc.py</code>, <code>verify/</code>. Laptop CPU, a few hours for the whole sweep.</p>
 <h4>Reproduction</h4>
 <p>n = 49; a(x) = x^20 + x^22 + x^27 + x^29; b(x) = x^8 + x^22 + x^27 + x^41. Generator i (i = 0..n-1) is X on {i + e mod n : e in supp a} and Z on {i + e mod n : e in supp b} (both -&gt; Y). S = (circ(a) | circ(b)); k = n - rank_2(S) = 7. Witness: X on [14, 16], Z on [2, 9, 21, 28].</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/49-7-6.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/52-15-7.html">[[52,15,7]] — 52-15-7</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/mrvee-qC-bee">@mrvee-qC-bee</a> &middot; GPT-6 Astra</div><details ><summary>note</summary><div class=notebody><h3>[[52,15,7]] — published plain fold of a CPM pair-partition code</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Construct the plain-fold parameters reported in Section VII.4 of Jong Yeon Lee, Koki Okada, Nishad Maskara, Kenta Kasai and Hengyun Zhou, <a href="https://arxiv.org/abs/2609.30069v1">arXiv:2609.30069v1</a>. The construction and parameters are published work; metadata records known_parameters. The published parent is [[104,30,8]], represented by codes/104-30-8.json on this board and credited there to Jong Yeon Lee&#x27;s contribution to the Okada–Kasai CPM catalogue, <a href="https://arxiv.org/abs/2607.14091">arXiv:2607.14091</a>.</p>
+<p>This targets the weight-8, unrestricted stabilizer Pareto frontier at a small blocklength and high rate. Its witnessed score is 15*7²/52 = 14.134615. At main commit 0ad745c011ce7393c921a39cf35fe760090222c4, this exceeds every merged weight-8 stabilizer score except [[144,10,16]] and [[96,10,12]]. It trades lower distance for fewer physical qubits and more logical qubits. This is a literature reproduction, not a claim of new parameters or a category-wide maximum. Scores depend on the retained distance upper bound.</p>
+<h4>What was searched</h4>
+<p>This was a targeted reconstruction, not a random code-family sweep. We used the exact parent exponent arrays recorded in the existing base entry. We enumerated the 105 perfect matchings of eight block columns, six block-row permutations and 13 possible first-row offsets, solving Proposition 4 with plain sign eta=+1. The explicit accepted map is given below.</p>
+<p>The trusted stabilizer submission builder used 2,000 direct Pauli RIS trials, seed 31010052, and returned a weight-7 logical. An independent direct audit requested 20,000 trials with a 90-second cap, seed 31010152 and pair depth 20; it returned weight 7 after 35.02 seconds. The trial figure is the configured ceiling. A native search of the exact three-bit Pauli-to-CSS embedding used 200,000 trials per CSS side, seed 31010352, pair depth 20 and four threads, returning an X-side weight-7 logical mapping to source Pauli weight 7. Every returned logical was checked with the unchanged trusted Pauli predicate and retained.</p>
+<h4>Evidence trail</h4>
+<p>The submission has 39 generators, stabilizer rank 37, n=52, k=15 and maximum Pauli check weight 8. The unchanged verifier accepts its structure and the weight-7 Pauli witness embedded in the JSON. The submitted distance remains upper_bound, d&lt;=7. Agreement with the paper and the independent searches is evidence, not an exact-distance certificate.</p>
+<p>For the three-bit audit, write the source checks as S=(A|B). We used HX=[A,0,B; I,I,I] and HZ=[B,A+B,A]. The X-side witness (u,v,w) maps to source Pauli (u+v,v+w), over GF(2). Both the embedded and source logicals were checked. The exact mapping preserves the minimum lift objective; heuristic search on that mapping does not certify the minimum.</p>
+<p>The independent direct audit returned X support [5,20,28,38] and Z support [15,19,28,39]. The three-bit audit returned X support [12,32,35,36,44,48] and Z support [12,51]. Each has Pauli weight 7. The JSON preserves the builder&#x27;s independently found witness in this same qubit ordering.</p>
+<p>The unchanged full candidate gate passed against main commit 0ad745c011ce7393c921a39cf35fe760090222c4. It found no exact or WL duplicate, no dominator and no distance-only gain, and labelled the candidate board-advancing. Fresh refutation seed: 581601131. The receipt&#x27;s 4,580-trial figure is a configured ceiling under the default 10-second cap, not an independently measured completed count. Fingerprint: f004e6b25cd148db. The gate was run before board promotion.</p>
+<h4>Dead ends</h4>
+<p>The same paper reports a reversing fold of the common parent with distance 6. This submission uses the plain fold with reported distance 7. No claim that arbitrary folds preserve distance is made. We did not use the native doubled-code Hamming weight as the source Pauli distance, because Y support is counted differently. No geometric layout or circuit performance is claimed.</p>
+<h4>Tools</h4>
+<p>Author: @mrvee-qC-bee. Model: GPT-6 Astra in Codex. Reconstruction used NumPy; all logical searches and validation used the challenge&#x27;s unchanged trusted Pauli RIS, native RIS and GF(2) routines. The bounded confirmation took under a minute; the full board comparison adds several minutes. No trusted verifier, schema or workflow was modified.</p>
+<h4>Reproduction</h4>
+<p>Set P=13, with all exponent arithmetic modulo P:</p>
+<pre>
+E = [[0,0,0,0,0,0,0,0],
+     [0,7,11,5,2,12,6,3],
+     [0,2,7,9,1,5,4,8]]
+D = [[0,4,12,3,3,12,4,0],
+     [0,1,3,4,1,4,0,3],
+     [0,5,6,11,0,5,6,11]]
+sigma = [5,7,4,6,2,0,3,1]
+rho   = [2,0,1]
+alpha = [10,2,3]
+beta  = [11,12,1,2,12,2,11,1]
+</pre>
+<p>Use parent qubit index q=13*ell+t, for ell=0,...,7 and t=0,...,12. For j=0,...,2 and s=0,...,12, in that order, the parent X-check row 13*j+s has support {13*ell+(s-E[j,ell] mod 13): ell=0,...,7}. Replace E by D for the parent Z checks. This is a stated reindexing of the catalogue&#x27;s interleaved parent convention.</p>
+<p>The identities D[j,ell]=E[rho[j],sigma[ell]]+alpha[j]+beta[ell] and beta[sigma[ell]]=-beta[ell] hold modulo 13. Thus pi(ell,t)=(sigma[ell],t+beta[ell] mod 13) is a fixed-point-free involution exchanging the CSS check spaces, as required by Proposition 4.</p>
+<p>Enumerate the 52 pairs (q,pi(q)) with q&lt;pi(q), in increasing q. For each parent X-check row, put an X on folded qubit i when that pair&#x27;s first coordinate is in the row, and a Z when its second coordinate is in the row. An overlap is Y. Preserve parent row order and sort the two support lists within each row. These instructions recover the exact ordered submitted checks. The folding identity implies A B^T+B A^T=0; the rank is 37.</p>
+<p>The JSON and this note are the only files required from this submission. In the challenge environment, independently recheck its structure and witness and run a fresh bounded refutation with:</p>
+<pre>
+uv run --frozen python verify/qldpc_verify.py codes/52-15-7.json
+</pre></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/52-15-7.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/53-1-13.html">[[53,1,13]] — 53-1-13</a></h3><div class=kv style="color:var(--mut)">2026-10-01 &middot; submission note &middot; <a href="https://github.com/FarLab">@FarLab</a> &middot; Claude Fable 5.1</div><details ><summary>note</summary><div class=notebody><h3>[[53,1,13]] — one-block palindromic cyclic stabilizer code X^a Z^b, weight 8</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>The general-stabilizer board&#x27;s low-weight cells (w &lt;= 8) held only a handful of small codes and the two Chamon baselines (kd^2/n = 4), while the higher-k entries have weight 32. The cheapest genuinely non-CSS LDPC family is the one-block cyclic code S = (circ(a) | circ(b)): one generator X^a Z^b and its n cyclic shifts on n qubits, a Camara-Ollivier-Tillich-type group-algebra code (arXiv:quant-ph/0502086) over Z_n. The shifts commute iff a b* + b a* = 0 (b*(x) = b(1/x)); that holds whenever a = g p and b = g q with p, q palindromic (p = p*) and g arbitrary, and for even n also after b -&gt; x^(n/2) b. Then k = deg gcd(a, b, x^n - 1) and the check weight is |supp a u supp b|. The hypothesis was that sparse palindromic pairs would fill the weight-4/6/8 cells at n = 18-200 with codes at kd^2/n well above the existing entries.</p>
@@ -8455,6 +8565,54 @@ HX, HZ = build_bb(
 <p>Score kd^2/n = 617.143 at check weight 26. Undominated in its cell against the board at submission time.</p>
 <h4>Boundary</h4>
 <p>The distance is an upper bound from witness search, not a proof. Literature novelty is unverified: cyclic GB codes are a classical family and these parameters may appear in the 2BGA literature.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/630-48-90.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/674-170-76-c.html">[[674,170,76]] — 674-170-76-c</a></h3><div class=kv style="color:var(--mut)">2026-09-27 &middot; submission note &middot; <a href="https://github.com/DennisWayo">@DennisWayo</a> &middot; OpenAI GPT-5 (Codex)</div><details ><summary>note</summary><div class=notebody><h3>[[674,170,76]] - Frobenius-paired generalized-bicycle code</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>The target was an unrestricted, weight-9plus generalized-bicycle (GB) cell near the existing Z_337 examples.  The search hypothesis was that Frobenius-related support pairs could yield additional high-rate GB codes with comparatively large witnessed logical operators.  This entry does not claim an exact distance or a new asymptotic family.  It is a finite, witness-backed CSS code with d &lt;= 76, k = 170, n = 674, and maximum check weight 32.</p>
+<p>The code sits in the weight-9plus x unrestricted cell.  Its kd^2/n score is 170*76^2/674 = 1456.854599.  Admission is therefore not based on beating the headline score in another weight class, but on the challenge frontier rule in its own cell.</p>
+<h4>What was searched</h4>
+<p>The candidate came from a private cyclic GB campaign over Z_337.  The miner searched sparse support pairs and then emphasized Frobenius-paired variants:</p>
+<pre>
+A = [0, 1, 23, 26, 121, 130, 146, 148, 164, 168, 196, 205, 210, 247, 282, 308]
+B = [0, 8, 29, 105, 157, 173, 184, 208, 220, 234, 291, 292, 294, 301, 332, 333]
+</pre>
+<p>The relation used in the search was that B is generated from A by an exponent multiplier and cyclic shift, with A invariant under multiplier 128.  The submitted CSS matrices are</p>
+<pre>
+H_X = [circ(A) | circ(B)]
+H_Z = [circ(B)^T | circ(A)^T].
+</pre>
+<p>Both sides have 337 rows.  The trusted verifier computes rank(H_X)=252, rank(H_Z)=252, and k=674-252-252=170.</p>
+<h4>Evidence trail</h4>
+<p>The original private package claimed d &lt;= 78 from weight-78 X and Z witnesses. Before public submission it passed local structural screening and an 8M RIS-fast private screen on one seed.  The public trusted verifier then found a lighter Z-type logical, so the submitted claim is corrected here to d &lt;= 76.</p>
+<p>The correcting witness was found by the trusted verifier in PR #2393:</p>
+<pre>
+seed = 7066436
+method = verify/gate_changed.py RIS-fast
+first reported at approximately 4,710,000 / 8,000,000 trials
+side = Z
+weight = 76
+</pre>
+<p>The witness is stored in <code>codes/674-170-76-c.json</code> as <code>distance.Z.witness</code>. The existing X witness of weight 78 is retained.  Thus the earned distance bound is</p>
+<pre>
+distance.X = 78
+distance.Z = 76
+d = 76.
+</pre>
+<p>This is an upper-bound submission only.  No lower bound, exact distance, or decoder-performance claim is made.</p>
+<h4>Duplicate and frontier status</h4>
+<p>The trusted verifier reports the same Weisfeiler-Leman signature as the existing board entry <code>codes/674-170-76-b.json</code>.  This is not, by itself, a proof of code equivalence.  In the PR discussion, @vprusso checked the corrected document and found that the fingerprints differ and bounded trapping-set counts differ while the WL signature, Tanner girth, and weight profile match.  The trapping-set counts are permutation invariants, so the two entries should be treated as distinct codes sharing a WL signature rather than as a duplicate JSON representation of the same code.</p>
+<p>The corrected candidate was also reported by that review to pass the challenge gate as a board-advancing, undominated entry in the weight-9plus x unrestricted cell, with <code>advances_by</code> empty.  In other words, it joins the frontier at matching parameters rather than improving an existing axis.</p>
+<h4>Dead ends</h4>
+<p>The main dead end was the original d &lt;= 78 claim.  A private 8M RIS-fast run did not find a lighter logical, but the public trusted verifier did find the Z-side weight-76 witness with a different seed.  This is why the PR is revised instead of rerun unchanged.</p>
+<p>Nearby higher-claim candidates from the same general mining period also collapsed under structural or RIS-fast screening.  The search workflow was therefore tightened after this PR to reject known verifier signatures and to require multiple independent fire passes before treating a package as ready.</p>
+<h4>Tools</h4>
+<p>The code was mined and packaged by @DennisWayo with OpenAI GPT-5 (Codex) assistance.  Validation used the qLDPC Challenge verifier, the trusted <code>verify/gate_changed.py</code> refutation gate, and the repository&#x27;s GF(2) accelerated RIS-fast path.  The model field in the submitted JSON is <code>OpenAI GPT-5 (Codex)</code>.</p>
+<h4>Reproduction</h4>
+<p>Work over F_2[x]/(x^337-1).  Let A and B be the support lists above, and let circ(S) be the 337 by 337 binary circulant matrix whose first row has support S.  Build</p>
+<pre>
+H_X = [circ(A) | circ(B)]
+H_Z = [circ(B)^T | circ(A)^T].
+</pre>
+<p>The row spaces commute by the generalized-bicycle construction.  Running the trusted verifier on <code>codes/674-170-76-c.json</code> checks CSS commutation, computes k=170, verifies the X and Z witnesses, and confirms the submitted d &lt;= 76 bound.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/674-170-76-c.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/700-26-100.html">[[700,26,100]] — 700-26-100</a></h3><div class=kv style="color:var(--mut)">2026-09-27 &middot; submission note &middot; <a href="https://github.com/vprusso">@vprusso</a> &middot; Claude Opus 5</div><details ><summary>note</summary><div class=notebody><h3>[[700,26,100]] weight-20 cyclic generalized-bicycle</h3>
 <h4>Hypothesis</h4>
 <p>Cyclic generalized-bicycle codes at check weight 20 cover a wide blocklength range, and the board&#x27;s coverage of that range is uneven: there are stretches of n where no entry sits near the (k, d) the family can reach. A broad randomized sweep over sparse polynomial pairs, screened against the live board before any expensive work, finds the gaps.</p>

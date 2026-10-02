@@ -14,17 +14,17 @@ of a campaign is to re-measure the bar on fresh seeds.
 uv run --frozen python research/audits/leader_audit.py ladder \
     codes/360-12-24.json \
     --ladder 1000000:101,102,103,104 5000000:201,202,203 20000000:301,302,303 \
-    --witness-out /tmp/360-12-24.witness.json
+    --witness-out <witness-file>
 
 # triage a whole cell's leaders at one budget
 uv run --frozen python research/audits/leader_audit.py screen \
-    --trials 2000000 --seeds 51 --witness-dir /tmp/screen-witnesses \
+    --trials 2000000 --seeds 51 --witness-dir <dir-for-witnesses> \
     codes/672-20-32.json codes/922-18-31.json
 
 # a candidate against the board entry it would beat only on d, same budget
 uv run --frozen python research/audits/leader_audit.py pair \
     research/candidates/<n>-<k>-<d>.json --trials 2000000 --seeds 51 \
-    --pair-depth 64 --witness-dir /tmp/pair
+    --pair-depth 64 --witness-dir <dir-for-witnesses>
 ```
 
 It exits 2 if any claim is refuted, so it can gate a script. The other codes are
@@ -78,7 +78,7 @@ overwrite each other.
 
 | verdict | meaning |
 |---|---|
-| `refuted` | a logical lighter than the claim was exhibited. The claim is over-stated and `d <= ` the reading. A distance revision is a valid submission on its own. |
+| `refuted` | a logical lighter than the claim was exhibited. The claim is over-stated and `d <= ` the reading. File the distance revision as a correction to that entry, not as a new submission (see "Filing a distance revision"). |
 | `holds` | the search reached exactly the claimed weight and found nothing lighter. Evidence, not proof. |
 | `inconclusive` | the search did not even reach the claim (or found nothing above it in one direction). Says nothing about the code. |
 
@@ -122,7 +122,7 @@ on `d` alone at one identical budget:
 ```
 uv run --frozen python research/audits/leader_audit.py pair \
     research/candidates/<n>-<k>-<d>.json --trials 2000000 --seeds 51 52 \
-    --pair-depth 64 --witness-dir /tmp/pair
+    --pair-depth 64 --witness-dir <dir-for-witnesses>
 ```
 
 The peers default to every `codes/` entry with the same n, k and max check
@@ -135,7 +135,7 @@ not a distance difference. One of four decisions comes out:
 | decision | meaning |
 |---|---|
 | `drop: ...` | the candidate's own claim came down at its own budget; do not package it |
-| `redirect: ...` | the board entry's claim came down; the submission is its distance revision |
+| `redirect: ...` | the board entry's claim came down; file its distance revision as a correction to that entry |
 | `credible: ...` | both claims held at matched depth; the gain survives the audit |
 | `inconclusive: ...` | neither claim was reached; no information, and never corroboration |
 
@@ -202,3 +202,38 @@ These are upper-bound searches. `holds` never upgrades a claim to the exact
 a genuinely different mechanism but is dominated by RIS at these budgets
 (issue #1148); it is corroboration when it agrees, and not evidence when it is
 weaker.
+
+## Filing a distance revision
+
+A revision is a **correction to the existing entry**, not a new submission.
+The matrices do not change, so the candidate pipeline is the wrong door: a
+code whose `H_X` and `H_Z` match a board entry fingerprints as a duplicate,
+and `verify/validate_candidate.py` is for new codes. It will tell you so, and
+name the entry you are revising.
+
+File it the way every merged correction has been filed:
+
+1. `git mv codes/<n>-<k>-<old-d>.json codes/<n>-<k>-<new-d>.json`, and the
+   note beside it.
+2. Lower the side that came down and store the witness that lowered it, with
+   `witness_provenance` recording who found it, at what budget, and with
+   which tool. `d` is the minimum over the sides. The `found_by` handle has
+   to be yours: `verify/check_authorship.py` refuses a `witness_provenance`
+   the PR adds that does not name the PR author. Leave `survived_samples`
+   out unless you mean it, because a survival stamp makes
+   `verify/gate_changed.py` price the edit as a `stamp` rather than a
+   `tightening` and run the deep battery on it.
+3. Update the `name` field and the note's first `[[n,k,d]]`, which has to
+   match the filename.
+4. Leave everything else alone. `verify/check_authorship.py` binds a
+   non-author to exactly this: the distance claim and an appended
+   `provenance.notes` sentence. Any other change to `provenance.*` is the
+   constructor's and will be refused.
+
+`verify/gate_changed.py` classifies a revision with no survival stamp as a
+`tightening` diff and gives it the standard pass, because the entry already
+faced the deep battery when it merged and the claim only came down. Add a
+stamp and it goes deep instead, which is correct but slower.
+
+Worked examples in the history: `[[684,14,72]]` to `[[684,14,54]]`,
+`[[540,12,44]]` to `[[540,12,41]]`, `[[682,140,83]]` to 66.

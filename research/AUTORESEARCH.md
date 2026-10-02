@@ -271,19 +271,23 @@ Run `validate_candidate` on the packaged doc (see **The one rule** above). Keep 
 `passed: true`. The verdict's `gates` are your evidence; its `labels` are what you show the
 human. This — not the surrogate, not your own judgment — is what decides whether you have a find.
 
-Deep confirmation is the most expensive step in the loop, so do not pay twice for the same answer:
+The random distance search inside the gate is the expensive part, so do not pay twice for the
+same answer:
 
 ```python
 from coordination import validate_cached
-verdict, reused = validate_cached(doc)         # the gate, or its own last word
+verdict, reused = validate_cached(doc)         # gate now, refutation reused
 ```
 
-`validate_cached` calls `verify/validate_candidate.py` exactly as you would and caches what it
-returned under the candidate's content hash, in the gitignored `research/candidates/.verdicts/`.
-An entry is served only while the validator source and the board it was judged against are both
-unchanged, since `dedup` and `novelty` are claims about `codes/` at a point in time and not about
-the candidate alone. Nothing in the cache is evidence, and deleting it costs compute rather than
-correctness.
+`validate_cached` calls `verify/validate_candidate.py` exactly as you would, every time. What it
+reuses is `gates.refute`, which reads the candidate and nothing else and costs 8.3 s of the 8.4 s
+a warm validation takes. `dedup` and `novelty` are claims about `codes/` at a point in time, so
+they are recomputed on every call and `reused: True` does not mean `board_advancing` is old. An
+entry is served only while the validator source is unchanged, a refutation once found is never
+downgraded by a later run that missed it, and the reuse is subtractive: it can turn a pass into a
+failure and never the other way around. The cache lives in the gitignored
+`research/candidates/.verdicts/`. Nothing in it is evidence, and deleting it costs compute rather
+than correctness.
 
 ## 5b. A win only on d: audit the peer before you package
 
@@ -311,7 +315,7 @@ So measure both numbers at one budget before spending anything on packaging:
 ```bash
 uv run --frozen python research/audits/leader_audit.py pair \
     research/candidates/<n>-<k>-<d>.json --trials 2000000 --seeds 51 52 \
-    --pair-depth 64 --witness-dir /tmp/pair
+    --pair-depth 64 --witness-dir <dir-for-witnesses>
 ```
 
 The peers are chosen automatically — every board entry with the same n, k and max check
@@ -322,7 +326,7 @@ is an instrument artifact, not a distance difference. One of four decisions come
 | decision | meaning | do this next |
 |---|---|---|
 | `drop: ...` | your own claim came down at its own budget | drop the candidate; the ladder was right, the packaging would have been wrong |
-| `redirect: ...` | the board peer came down | the submission is the peer's **distance revision** — a valid contribution on its own (`../CONTRIBUTING.md`) |
+| `redirect: ...` | the board peer came down | persist the witness first (it is the most expensive object in the loop and the ledger will not take a verdict without `passed: true`), then file the peer's **distance revision**: a correction to that entry, not a new submission, per [Filing a distance revision](audits/README.md#filing-a-distance-revision) |
 | `credible: ...` | both claims held at matched depth | the gain survives; package it (step 4) |
 | `inconclusive: ...` | neither claim was reached | no information at all; go deeper or stop, and never report it as corroboration |
 
@@ -430,7 +434,7 @@ should not have to re-learn.
 | `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` |
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
-| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and verdict reuse when several sessions run at once |
+| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once |
 | `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap; exact distance uses the trusted SAT certifier and needs the `research` extra |

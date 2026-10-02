@@ -34,9 +34,18 @@ CRITICAL_FILES = {
 
 
 def changed_files(base, root):
+    """Every code path the PR touches, deletions included.
+
+    `D` is in the filter because removing an entry is a change to the board
+    that a PR touching the verifier should not be able to make unreviewed.
+    Without it, the rule had a shape-specific hole: tighten a rule in
+    `verify/` and delete the entries the new rule would reject, in one diff,
+    and neither this check nor the workflow step that decides to run it saw
+    any code data at all (issue #2638).
+    """
     try:
         out = subprocess.check_output(
-            ["git", "diff", "--name-only", "--diff-filter=AMR",
+            ["git", "diff", "--name-only", "--diff-filter=AMRD",
              f"{base}...HEAD"],
             cwd=root, text=True)
     except Exception as e:
@@ -46,6 +55,11 @@ def changed_files(base, root):
 
 
 def added_files(base, root):
+    """Only genuinely new codes, for the one-new-code-per-PR cap.
+
+    Deliberately still `A` alone: the cap exists to keep each new submission
+    inside the deep refutation budget, and a deletion consumes none of it.
+    """
     try:
         out = subprocess.check_output(
             ["git", "diff", "--name-only", "--diff-filter=A",
