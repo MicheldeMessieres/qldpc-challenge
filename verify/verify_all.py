@@ -9,6 +9,18 @@ deterministic and cheap) on entries declaring one. Distance refutation is NOT
 run here -- it is the per-submission job of gate_changed.py (changed files) and
 the weekly job of refute_board.py (whole board, random seed).
 
+The structural reports come from qldpc_verify.board_reports, the same pass
+validate_candidate, site/build.py, and board_frontier_audit read (issue
+#2613). There used to be a second copy of that pass here, a bare verify() per
+entry, so the research gate's notion of a duplicate and CI's notion of a pass
+could drift without any test noticing. Now one implementation produces the
+report and this file only layers the circuit and measured-rate tiers on top
+and accumulates the fingerprint and signature collisions. The pass is still
+paid in full in CI: board_reports's disk memo is off there, and the
+collision detection below is inherently a scan of the submitted tree, which
+is the untrusted input. The memo only spares a developer who has already
+verified these bytes in another process.
+
 The one expensive thing here is the measured-rate tier: a circuit.ler claim is
 re-measured by a sampled replica (ler_verify), ~2 x 120 s per entry at the wall
 budget, and on a hosted runner the handful of entries carrying one took ~13 of
@@ -29,13 +41,11 @@ push run, and a failing push run reverts nothing on its own; it is a signal
 to a maintainer, not a gate."""
 
 import argparse
-import glob
-import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from qldpc_verify import file_size_error, verify
+from qldpc_verify import board_reports
 from circuit_verify import verify_circuit
 from gate_changed import changed_codes as changed_code_paths
 from ler_verify import verify_ler
@@ -67,30 +77,35 @@ def main(argv=None):
     code_root = os.path.abspath(args.root)
     ler_slugs = (ler_slugs_to_measure(args.ler_base, code_root)
                  if args.ler_base else None)
-    code_paths = sorted(glob.glob(os.path.join(code_root, "codes", "*.json")))
-    fixture_paths = sorted(glob.glob(os.path.join(ROOT, "verify", "fixtures", "*.json")))
-    paths = code_paths + fixture_paths
-    if not paths:
+    # One structural pass per tree, shared with every other consumer. The
+    # reports are the memoized objects other callers in this process read, so
+    # each is copied before the circuit tier writes a verdict into it.
+    entries = [(e, True) for e in board_reports(os.path.join(code_root, "codes"))]
+    entries += [(e, False) for e in
+                board_reports(os.path.join(ROOT, "verify", "fixtures"))]
+    if not entries:
         print("no submissions found")
         return 0
     failed = []
     sigs = {}
     fps = {}
-    for p in paths:
-        is_code = os.path.abspath(p).startswith(
-            os.path.join(code_root, "codes") + os.sep)
+    for e, is_code in entries:
+        p = e["path"]
         rel = os.path.relpath(p, code_root if is_code else ROOT)
-        ferr = file_size_error(p)
-        if ferr:
+        if e["size_error"]:
             failed.append(rel)
-            print(f"FAIL  {rel}  -> file_size_within_limit: {ferr}")
+            print(f"FAIL  {rel}  -> file_size_within_limit: {e['size_error']}")
             continue
-        with open(p) as f:
-            doc = json.load(f)
-        rep = verify(doc)   # structural checks; refutation lives in gate_changed / refute_board
+        if e["load_error"]:
+            failed.append(rel)
+            print(f"FAIL  {rel}  -> {e['load_error']}")
+            continue
+        doc = e["doc"]
+        rep = dict(e["report"])
+        rep["checks"] = list(rep["checks"])
         circ = ""
         if rep["ok"] and is_code and doc.get("circuit"):
-            slug = os.path.splitext(os.path.basename(p))[0]
+            slug = e["slug"]
             circuits_dir = os.path.join(code_root, "circuits", slug)
             crep = verify_circuit(doc, circuits_dir)
             if crep["ok"]:
@@ -163,7 +178,7 @@ def main(argv=None):
         for h, v in soft.items():
             print(f"  {h}: {', '.join(v)}")
 
-    print(f"\n{len(paths)-len(failed)}/{len(paths)} passed")
+    print(f"\n{len(entries)-len(failed)}/{len(entries)} passed")
     return 1 if (failed or identical) else 0
 
 
