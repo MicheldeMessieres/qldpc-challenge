@@ -101,10 +101,10 @@ def test_dry_run_json_flag_prints_full_document(monkeypatch, capsys, tmp_path):
     qldpc.main(["submit", "x.npz", "--authors", "@me", "--dry-run", "--json", "--out", out])
 
     text = capsys.readouterr().out
-    # the full document, parseable and complete (the old prefix cut mid-key)
-    start = text.index("{")
-    doc = json.loads(text[start:])
-    assert doc["distance"]["Z"]["witness"] == [0, 3, 4]
+    # stdout is exactly one JSON record; the full document sits under "doc"
+    record = json.loads(text)
+    assert record["ok"] and record["dry_run"] and record["slug"] == "7-1-3"
+    assert record["doc"]["distance"]["Z"]["witness"] == [0, 3, 4]
 
 
 def test_summary_is_screen_sized_for_a_board_scale_code():

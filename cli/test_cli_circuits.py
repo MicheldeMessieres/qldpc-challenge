@@ -37,6 +37,8 @@ def npz(tmp_path_factory):
 @pytest.fixture(autouse=True)
 def _no_board(monkeypatch):
     monkeypatch.setattr(qldpc, "_load_board_entries", lambda: [])
+    monkeypatch.setattr(qldpc, "_board_identities",
+                        lambda: ([], lambda rep: (set(), set())))
 
 
 def test_dry_run_generates_and_verifies_circuits(npz, capsys, tmp_path):

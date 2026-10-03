@@ -40,7 +40,7 @@ def _report():
 def _submit(monkeypatch, capsys, tmp_path, *extra):
     """Run a dry-run submit on the Steane code.
 
-    Returns the document it would write (the --json preview). The circuit
+    Returns the document it would write (`doc` in the --json record). The circuit
     tier is switched off: it is not what these tests are about, and with it
     on the document would carry a circuit block and schema 0.2.
     """
@@ -67,7 +67,9 @@ def _submit(monkeypatch, capsys, tmp_path, *extra):
     )
     assert rc == 0
     text = capsys.readouterr().out
-    return json.loads(text[text.index("{") :])
+    record = json.loads(text)
+    assert record["ok"] and record["dry_run"]
+    return record["doc"]
 
 
 def _schema():
