@@ -222,6 +222,34 @@ you are revising.
 `research/audits/README.md`, "Filing a distance revision", has the step list
 and worked examples.
 
+## One code, one entry
+
+Two files whose check matrices generate the same stabilizer group up to a
+relabeling of the qubits are one code, and the board lists a code once. The
+`-b` suffix on a slug is for a different code that happens to share
+`[[n,k,d]]` with an earlier entry; it is not a route for filing a second
+presentation of a code that is already on the board.
+
+The gate's WL-signature collision is a flag, not a verdict. The question is
+settled when someone exhibits the permutation, as issue #2643 did for four
+pairs, and from then on the pair is a duplicate and this applies:
+
+- The entry that stays is the one that earns more: a layout that reaches a
+  locality class the other cannot, an exact certificate, a circuit. When
+  neither earns more, the earlier filing stays.
+- Whatever the removed entry carried that the survivor lacks moves onto the
+  survivor: a layout as `locality` with `locality.contributed_by`, a lighter
+  witness as a distance revision (the section above). The finder of the
+  equivalence and the author of the removed entry are named in the
+  survivor's note or in a fieldnote. A removal is a transfer of credit, not
+  an erasure; the removed file stays in history under its blob hash.
+- Anyone may open the removal PR. It touches `codes/` and `notes/` only, and
+  `verify/check_authorship.py` lets a deletion through because a removed
+  file carries no claim to bind. The permutation goes into
+  `research/audits/permutation_equivalences.json`, where
+  `research/audits/permutation_equivalence.py` re-checks it from the cited
+  blobs, so the claim stays verifiable after the file is gone.
+
 ## Contribute with an LLM
 
 If you have an LLM or coding agent, it can do the whole loop: pick a target,
