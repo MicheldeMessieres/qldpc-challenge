@@ -88,6 +88,9 @@ whether your k lands where nothing else does.
   at n=16/25 is UNSAT; 7x7 (n=49) w6/t2 budget-walled.
 - **Weight-8 2D-local** is structurally sparse: weight-8 checks are too heavy
   to be local at radius <= 4; only [[16,6,4]] (Reed-Muller) sits in that cell.
+  Correction (2026-10-03): thin, not empty. Weight-8 t=3 is SAT at n=25
+  (G=9) and n=36 (G=12) at interaction radius 4.0; see
+  `fieldnotes/2026-10-03-sat-weight8-t3-at-n25-n36-is-sat.md`.
 - **One-row lifted products with any weight-2 entry** over metacyclic ZSZ
   groups |G| <= 140: capped by Cayley-graph girth (d <= 6 below |G| = 105,
   at most d = 8 to |G| = 140) — see `2026-09-16-lifted-product-girth-cap.md`.

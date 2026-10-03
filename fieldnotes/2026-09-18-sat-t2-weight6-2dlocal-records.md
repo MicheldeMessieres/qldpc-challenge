@@ -69,6 +69,9 @@ highest-k code per config.
   radius) is empty (UNSAT); radius 4.0 is budget-walled. The weight-8
   2D-local single cell is structurally sparse because weight-8 checks are
   too heavy to be local — only `[[16,6,4]]` (Reed-Muller) sits there.
+  Correction (2026-10-03): wrong at the G that matters. 5x5 G=9 w8 t=3 is
+  SAT in 134 s and 6x6 G=12 w8 t=3 in 22 min at interaction radius 4.0; see
+  `fieldnotes/2026-10-03-sat-weight8-t3-at-n25-n36-is-sat.md`.
 - **Weight-4 t=2** at n=16/25 is UNSAT (the k=2 frontier `[[16,2,4]]` is
   effectively optimal for t=2).
 - **n=49 (7×7) w6/t2** is budget-walled at every G tried (13–17).

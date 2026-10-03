@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[42,6,6]]",
  "code_type": "CSS",
  "n": 42,
@@ -383,5 +383,186 @@
   "model": "Claude Sonnet 5",
   "notes": "Shares [[42,6,6]] parameters with codes/42-6-6.json (@mathysrennela, 2D-local bilayer via simulated annealing over an integer grid). Confirmed NOT equivalent: this code has uniform check weight 6 and uniform qubit degree 6 throughout (expected for its algebraic circulant construction), while the existing entry has a mixed weight-3/4/5/6 and degree-3/4/5/6 distribution (expected for a geometrically-annealed layout). Row-weight and degree histograms are permutation invariants, so this rules out equivalence under any qubit/check relabeling."
  },
- "family": "generalized-bicycle"
+ "family": "generalized-bicycle",
+ "locality": {
+  "coordinates": [
+   [
+    2.0,
+    2.0
+   ],
+   [
+    0.0,
+    1.0
+   ],
+   [
+    1.0,
+    0.0
+   ],
+   [
+    0.0,
+    1.0
+   ],
+   [
+    1.0,
+    2.0
+   ],
+   [
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    5.0
+   ],
+   [
+    2.0,
+    6.0
+   ],
+   [
+    2.0,
+    5.0
+   ],
+   [
+    1.0,
+    3.0
+   ],
+   [
+    2.0,
+    3.0
+   ],
+   [
+    1.0,
+    1.0
+   ],
+   [
+    0.0,
+    0.0
+   ],
+   [
+    2.0,
+    0.0
+   ],
+   [
+    0.0,
+    2.0
+   ],
+   [
+    1.0,
+    4.0
+   ],
+   [
+    0.0,
+    3.0
+   ],
+   [
+    0.0,
+    6.0
+   ],
+   [
+    1.0,
+    6.0
+   ],
+   [
+    0.0,
+    5.0
+   ],
+   [
+    0.0,
+    4.0
+   ],
+   [
+    2.0,
+    2.0
+   ],
+   [
+    2.0,
+    1.0
+   ],
+   [
+    1.0,
+    0.0
+   ],
+   [
+    2.0,
+    1.0
+   ],
+   [
+    1.0,
+    4.0
+   ],
+   [
+    2.0,
+    4.0
+   ],
+   [
+    2.0,
+    5.0
+   ],
+   [
+    1.0,
+    6.0
+   ],
+   [
+    0.0,
+    5.0
+   ],
+   [
+    0.0,
+    4.0
+   ],
+   [
+    1.0,
+    2.0
+   ],
+   [
+    1.0,
+    1.0
+   ],
+   [
+    0.0,
+    0.0
+   ],
+   [
+    2.0,
+    0.0
+   ],
+   [
+    0.0,
+    2.0
+   ],
+   [
+    0.0,
+    3.0
+   ],
+   [
+    2.0,
+    4.0
+   ],
+   [
+    0.0,
+    6.0
+   ],
+   [
+    2.0,
+    6.0
+   ],
+   [
+    1.0,
+    5.0
+   ],
+   [
+    1.0,
+    3.0
+   ]
+  ],
+  "layers": 2,
+  "interaction_radius": 4.1232,
+  "contributed_by": {
+   "by": [
+    "@dorakingx"
+   ],
+   "date": "2026-10-02",
+   "method": "Simulated annealing over site assignments on an integer grid with the repo's own research/local2d/fold_layout.search_layout (max-diameter objective, several bounding boxes and seeds); single layer at radius 4 tried first, then two layers at 7. Radius and per-site occupancy re-measured with the verifier's rule."
+  }
+ }
 }
