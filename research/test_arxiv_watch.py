@@ -44,6 +44,22 @@ def no_network(monkeypatch):
     monkeypatch.setattr(subprocess, "run", boom)
 
 
+class _FrozenDatetime(datetime):
+    """datetime with now() pinned to NOW, so a test that drives main() does not
+    read the wall clock. The fixtures are dated 2026-09-25; against the real
+    date they fall out of every --days window once a week has passed, which
+    is how these tests began failing on 2026-10-03.
+    """
+
+    @classmethod
+    def now(cls, tz=None):
+        return NOW if tz is None else NOW.astimezone(tz)
+
+
+def freeze_clock(monkeypatch):
+    monkeypatch.setattr(W, "datetime", _FrozenDatetime)
+
+
 def entry(arxiv_id, version=1, submitted="2026-09-25", updated=None,
           title="A code", summary="An abstract.", comment="",
           authors=("A. Author",), dates=True):
@@ -326,6 +342,7 @@ def test_a_claim_is_rendered_as_a_claim(capsys):
 
 def test_the_json_payload_carries_the_disclaimer(capsys, tmp_path, monkeypatch):
     """A machine consumer must not read `params` and `flag` with no caveat."""
+    freeze_clock(monkeypatch)
     path = str(tmp_path / "ledger.jsonl")
     monkeypatch.setattr(W, "fetch", one_page([entry(
         "2609.00001", summary="A [[144,12,12]] bivariate bicycle code.")]))
@@ -534,6 +551,7 @@ def test_reaching_the_end_of_results_is_a_complete_scan():
 
 def test_a_truncated_window_warns_on_stderr(capsys, tmp_path, monkeypatch):
     """The operator has to be told the window was not covered."""
+    freeze_clock(monkeypatch)
     page = feed([entry(f"2609.{i:05d}") for i in range(4)], total=99)
     monkeypatch.setattr(W, "fetch", pager([page, page, page, page]))
     assert W.main(["--days", "7", "--batch", "4", "--pages", "2",
