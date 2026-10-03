@@ -103,7 +103,11 @@ opens a PR: unattended runs stage for review, and publication follows
 A campaign owes its ledger and its negative results whether or not it found
 anything. Zero submissions is a complete, reportable outcome, and the closed
 family is the finding. `summary.json` is the machine-readable half;
-`TEMPLATE_report.md` is the human half.
+`TEMPLATE_report.md` is the human half. A committed `summary.json` is what
+`./qldpc recent` lists under campaign summaries (status, experiments,
+survivors, frontier advances, negative results, families), and
+`./qldpc recent --json` hands the same fields to the next session as data,
+so a closed family is learned from the summary rather than from the report.
 
 `abandoned` keeps everything a run produced. Stopping early throws nothing
 away.

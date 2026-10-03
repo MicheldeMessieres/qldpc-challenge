@@ -153,7 +153,8 @@ instead).
 heuristic that fails outside its regime, a calibration finding — PR it as a
 stand-alone [fieldnote](fieldnotes/README.md), no code required. Before
 starting a search, `./qldpc recent` summarizes what landed lately (codes,
-notes, fieldnotes) so you begin from the community's current frontier of
+notes, fieldnotes, and committed campaign summaries) so you begin from the
+community's current frontier of
 knowledge.
 
 Then open a pull request adding only your file under `codes/` (plus its

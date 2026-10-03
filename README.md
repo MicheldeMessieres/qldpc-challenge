@@ -48,8 +48,9 @@ See [`AGENTS.md`](AGENTS.md) for the precedence rule.
 | Point a coding agent at this repo | [`AGENTS.md`](AGENTS.md) |
 
 Before starting a search, `./qldpc recent` summarizes what landed lately
-(codes, research notes, fieldnotes), so you begin from the community's current
-frontier of knowledge rather than rediscovering it.
+(codes, research notes, fieldnotes, and committed campaign summaries), so you
+begin from the community's current frontier of knowledge rather than
+rediscovering it; `--json` returns the same as one record.
 
 ## Installation
 
