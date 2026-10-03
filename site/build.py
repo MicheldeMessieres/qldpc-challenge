@@ -474,9 +474,26 @@ font-family:'Space Mono',ui-monospace,monospace}}
 .census span{{font-size:12px;color:var(--mut)}}
 .lb{{margin:18px 0 8px;border:1px solid var(--ln);border-radius:14px;
 background:#fff;overflow:hidden}}
-.lbhead{{display:flex;justify-content:space-between;align-items:center;gap:16px;
-flex-wrap:wrap;
+/* A grid, not a wrapping flex row (issue #2723). The hero card's width is
+   data: it is as wide as "[[n,k,d]] . d . w . @handle" for whichever code is
+   best at the selected weight cap, and flex line-breaking decides on each
+   item's max-content size, so moving the weight slider flipped the header
+   between one line and two and parked the card under the title. Fixed
+   columns for the slider, the toggle, and the card; the title column takes
+   the slack and wraps its own text, so the row structure never depends on
+   the data. */
+.lbhead{{display:grid;grid-template-columns:minmax(0,1fr) auto auto 230px;
+grid-template-areas:"title slider toggle hero";align-items:center;
+column-gap:16px;row-gap:10px;
 padding:16px 20px;background:var(--soft);border-bottom:1px solid var(--ln)}}
+.lbhead>.lbwf{{grid-area:slider;justify-self:start}}
+.lbhead>.rcgroup{{grid-area:toggle;justify-self:start}}
+.lbheroes>.lbscore{{grid-area:hero;justify-self:end;margin-right:0}}
+/* below this the four columns leave the title no readable width: two
+   deliberate rows instead, title and card, then slider and toggle */
+@media(max-width:940px){{
+.lbhead{{grid-template-columns:minmax(0,1fr) auto auto;
+grid-template-areas:"title title hero" "slider toggle toggle"}}}}
 .lbh{{font-size:16px;margin:0;font-family:'Space Mono',ui-monospace,monospace;
 text-transform:uppercase;letter-spacing:.03em}}
 .lbsub{{margin:4px 0 0;font-size:13px;color:var(--mut);
@@ -487,9 +504,9 @@ text-transform:uppercase;letter-spacing:.03em}}
    which is exactly the bug. 38ch + the .lbscore cap clear the row at 1024px;
    below 38ch of viewport the block just fills the container. */
 max-width:38ch}}
-/* the title wrapper is the actual flex item; without min-width:0 its
-   min-content locks the row even when .lbsub wraps */
-.lbhead>div{{min-width:0}}
+/* the title wrapper is the grid item; min-width:0 lets the 1fr column
+   shrink below the subtitle's min-content and wrap it */
+.lbhead>div{{grid-area:title;min-width:0}}
 .lbcta{{flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;
 font-family:'Space Mono',ui-monospace,monospace;
 background:var(--ac);border:none;border-radius:8px;padding:8px 14px;
@@ -538,8 +555,8 @@ a.lbm[href]:hover b{{text-decoration:underline;color:var(--ac)}}
 /* a metric with no target (e.g. no eligible g at the active weight cap) is an
    anchor without an href, so it must not read as a link */
 a.lbm:not([href]){{cursor:default}}
-/* the heroes wrapper exists only so the weight slider can swap both cards at
-   once; it must not become a flex item of its own inside .lbhead */
+/* the heroes wrapper exists only so the weight slider can swap all cards at
+   once; it must not become a grid item of its own inside .lbhead */
 .lbheroes{{display:contents}}
 /* One stop per integer weight. 120px is the widest track that still leaves the
    header on one row in BOTH metric modes (the "best g" card is the wider of
