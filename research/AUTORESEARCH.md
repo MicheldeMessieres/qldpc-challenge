@@ -437,7 +437,7 @@ should not have to re-learn.
 | `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once |
 | `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
-| `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap; exact distance uses the trusted SAT certifier and needs the `research` extra |
+| `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap, through n = 8 with the nauty canonicalizer (pynauty, in the `research` extra; n <= 6 without it); exact distance uses the trusted SAT certifier |
 | `local2d/planar.py` | fast greedy open-boundary builder, exact planar distance (scipy MILP), `grid_coordinates` for the bilayer layout |
 | `local2d/boundary_engine.py` | the general open-boundary construction (`build_planar`), `reduce_weights`, `graft_r1`/`graft_r1_safe` (qubit removal) |
 | `local2d/transfer.py` | `distance_slope`: predict d(L) scaling from (f, g) before building large lattices |

@@ -97,6 +97,79 @@ def test_cli_rejects_inconsistent_bounds_and_unsupported_n():
     with pytest.raises(SystemExit):
         census_css._parse_args(["--n-min", "7", "--n-max", "6"])
     with pytest.raises(SystemExit):
-        census_css._parse_args(["--n-max", "7"])
-    with pytest.raises(ValueError, match="between 1 and 6"):
-        list(census_css.iter_css_classes(7))
+        census_css._parse_args(["--n-max", str(census_css.MAX_N + 1)])
+    with pytest.raises(SystemExit):
+        census_css._parse_args(["--n-max", "7", "--canonicalizer", "permutation"])
+    with pytest.raises(ValueError, match="between 1 and"):
+        list(census_css.iter_css_classes(census_css.MAX_N + 1))
+    with pytest.raises(ValueError, match="stops at n = 6"):
+        list(census_css.iter_css_classes(7, canonicalizer="permutation"))
+
+
+def _permute(mask, image):
+    out = 0
+    for q, target in enumerate(image):
+        if (mask >> q) & 1:
+            out |= 1 << target
+    return out
+
+
+def test_nauty_and_permutation_canonicalizers_agree_through_five_qubits():
+    pytest.importorskip("pynauty")
+    expected = [1, 3, 11, 37, 126]
+    for n, count in enumerate(expected, start=1):
+        nauty = list(census_css.iter_css_classes(n, canonicalizer="nauty"))
+        permutation = list(census_css.iter_css_classes(n, canonicalizer="permutation"))
+        assert len(nauty) == len(permutation) == count
+        # the two canonicalizers pick different representatives, so compare
+        # the classes through the nauty key of each permutation representative
+        keys = {census_css._nauty_pair_key(x, z, n) for x, z, _ in nauty}
+        assert keys == {census_css._nauty_pair_key(x, z, n) for x, z, _ in permutation}
+        assert all(census_css._orthogonal(x, z) and k == n - len(x) - len(z) for x, z, k in nauty)
+
+
+def test_nauty_pair_key_is_invariant_under_permutation_and_duality_and_separates_classes():
+    pytest.importorskip("pynauty")
+    import itertools
+
+    n = 5
+    classes = list(census_css.iter_css_classes(n, canonicalizer="nauty"))
+    keys = [census_css._nauty_pair_key(x, z, n) for x, z, _ in classes]
+    assert len(set(keys)) == len(classes)
+    rng = np.random.default_rng(2040)
+    for (x, z, _), key in zip(classes, keys):
+        for _ in range(3):
+            image = tuple(int(i) for i in rng.permutation(n))
+            px = tuple(_permute(row, image) for row in x)
+            pz = tuple(_permute(row, image) for row in z)
+            assert census_css._nauty_pair_key(px, pz, n) == key
+            assert census_css._nauty_pair_key(pz, px, n) == key
+    # every permutation of one asymmetric pair, not just a sample
+    x, z = (0b00111,), (0b11100,)
+    key = census_css._nauty_pair_key(x, z, n)
+    for image in itertools.permutations(range(n)):
+        px = tuple(_permute(row, image) for row in x)
+        pz = tuple(_permute(row, image) for row in z)
+        assert census_css._nauty_pair_key(px, pz, n) == key
+
+
+def test_perp_basis_and_subspaces_cover_the_orthogonal_complement():
+    n = 6
+    for rows in census_css._rref_subspaces(n, 2):
+        basis = census_css._perp_basis(rows, n)
+        assert len(basis) == n - 2
+        assert all((b & r).bit_count() % 2 == 0 for b in basis for r in rows)
+        subspaces = list(census_css._subspaces_of(basis))
+        assert len(subspaces) == 1 + 15 + 35 + 15 + 1  # Gaussian binomials of GF(2)^4
+        assert all(census_css._orthogonal(rows, sub) for sub in subspaces)
+
+
+def test_seven_qubit_census_contains_the_steane_code():
+    pytest.importorskip("pynauty")
+    n = 7
+    classes = list(census_css.iter_css_classes(n, k_min=1, canonicalizer="nauty"))
+    assert len(classes) == 1916
+    hamming = (0b1010101, 0b0110011, 0b0001111)
+    steane = census_css._nauty_pair_key(hamming, hamming, n)
+    keys = {census_css._nauty_pair_key(x, z, n): k for x, z, k in classes}
+    assert keys[steane] == 1

@@ -21,7 +21,7 @@ certify = ["scipy>=1.11"]
 # research/ distance confirmation: exact_distance needs scipy (MILP), and
 # decoder_distance needs ldpc (BP+OSD). The constructors/surrogate/search and
 # submission packaging in research/ are numpy-only and need none of this.
-research = ["scipy>=1.11", "ldpc>=2.0", "pycryptosat>=5.11", "python-sat>=1.8"]
+research = ["scipy>=1.11", "ldpc>=2.0", "pycryptosat>=5.11", "python-sat>=1.8", "pynauty>=2.8"]
 
 [tool.uv]
 # scripts-only repo: manage the environment, do not try to build/install it
