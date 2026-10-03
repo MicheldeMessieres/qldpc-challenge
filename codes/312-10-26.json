@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "name": "[[312,10,26]]",
   "code_type": "CSS",
   "n": 312,
@@ -8781,54 +8781,48 @@
       ]
     },
     "Z": {
-      "value": 44,
+      "value": 26,
       "confidence": "upper_bound",
       "witness": [
-        0,
-        4,
-        20,
-        25,
-        28,
-        42,
-        48,
+        52,
+        53,
+        54,
+        55,
+        56,
         57,
+        58,
+        59,
+        60,
         61,
+        62,
         63,
-        73,
-        87,
-        89,
-        102,
-        107,
-        109,
-        112,
-        115,
-        125,
+        64,
         130,
+        131,
+        132,
+        133,
+        134,
         135,
-        142,
-        163,
-        169,
-        181,
-        185,
-        190,
-        203,
-        204,
-        209,
-        223,
-        233,
-        238,
-        241,
-        243,
-        246,
-        256,
-        257,
-        258,
-        260,
-        272,
-        278,
-        281,
-        300
-      ]
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142
+      ],
+      "witness_provenance": {
+        "found_by": [
+          "@vprusso"
+        ],
+        "date": "2026-10-03",
+        "tool": "single-block annihilator + ISD in the subspace",
+        "found_at_samples": 1,
+        "survived_samples": 40000,
+        "seeds": [
+          20261003
+        ]
+      }
     }
   },
   "provenance": {
@@ -8838,7 +8832,8 @@
     "construction": "Bivariate bicycle on Z_12 x Z_13; A has 10 terms and B has 16 terms; exact supports are in the submitted JSON.",
     "origin": "submission",
     "date": "2026-08-18",
-    "model": "GPT-5.6 Luna"
+    "model": "GPT-5.6 Luna",
+    "notes": "Revision 2026-10-03 (@vprusso): single-block annihilator with information-set decoding inside the subspace, Z side 44 to 26 (left block, annihilator subspace of dimension 8, found at information set 1, nothing lighter in 40,000); d unchanged at the minimum over the sides. Still a witness-backed upper bound."
   },
   "family": "bivariate-bicycle"
 }
