@@ -27,18 +27,21 @@ budget, and on a hosted runner the handful of entries carrying one took ~13 of
 the PR job's minutes -- for claims nothing in the PR had touched. With
 --ler-base REF the replica runs only for entries whose codes/<slug>.json or
 circuits/<slug>/ changed since REF (the same diff principle gate_changed prices
-by); every other claim was admitted when it merged and is re-measured in full
-on every push to main, which runs without the flag. A diff that cannot be
-computed falls back to re-measuring everything.
+by). PR runs pass the base branch; a push to main passes the previous head of
+main, so a merge re-measures what it changed and nothing else (issue #2614:
+before that it re-measured every claim on the board, about 21 CPU-hours per
+merge). A diff that cannot be computed falls back to re-measuring everything.
 
 Two things make the skip safe, and one is a cost. Safe: an unchanged claim
 can only go stale through the verifier stack (a stim bump in uv.lock, a
-ler_tools edit), and check_submission_scope.py rejects any PR that mixes those
-critical files with codes/ -- so such a change arrives without code data and
-CI routes it to the unflagged, full re-measure. Cost: for entries a PR does
-not touch, LER regression detection moves from pre-merge to the post-merge
-push run, and a failing push run reverts nothing on its own; it is a signal
-to a maintainer, not a gate."""
+ler_tools edit), and verify.yml routes any run whose diff touches that stack,
+PR or push, to the unflagged full re-measure; check_submission_scope.py keeps
+such a change out of a PR that also carries code data. The full re-measure of
+every claim also runs weekly on a schedule, so no measured rate on the board
+goes more than a week without being re-derived from scratch. Cost: an entry
+nobody touches is re-measured weekly rather than on every merge, and a
+failing scheduled run reverts nothing on its own; it is a signal to a
+maintainer, not a gate."""
 
 import argparse
 import os
