@@ -41,6 +41,26 @@ def repo(tmp_path_factory):
         (r / "codes" / f"{100 + i}-4-6.json").write_text(json.dumps(
             {"n": 100 + i, "k": 4, "family": fam, "name": f"test code {i}"}))
     (r / "notes" / "100-4-6.md").write_text("# note\n")
+    # two committed campaign summaries (item 4 of issue #2314): one closed
+    # lifted-product family with nothing surviving, one bicycle sweep with a
+    # survivor; a third directory without a summary must not appear
+    camp = r / "research" / "campaigns"
+    for cid, fam, surv, neg in (("lp-sweep", "lifted-product", 0, 2),
+                                ("bb-sweep", "bivariate-bicycle", 1, 0)):
+        (camp / cid).mkdir(parents=True)
+        (camp / cid / "summary.json").write_text(json.dumps({
+            "summary_version": 1, "campaign_id": cid,
+            "campaign_name": f"{fam} sweep", "status": "completed",
+            "stopped_by": {"type": "budget_exhausted", "detail": "done"},
+            "budget": {"consumed": {"candidates_screened": 40}},
+            "experiments": [{"family": fam, "seed": s, "survivors": surv}
+                            for s in range(3)],
+            "survivors": [{"slug": "200-8-10"}] * surv,
+            "frontier_advances": surv,
+            "negative_results": [{"what": "gate rejected"}] * neg,
+            "report": f"research/campaigns/{cid}/REPORT.md"}))
+    (camp / "no-summary").mkdir()
+    (camp / "no-summary" / "campaign.json").write_text("{}")
     for name, topics in (("a", "[bivariate-bicycle, calibration]"),
                          ("b", "[lifted-product]"),
                          ("c", "[budgeting]")):
@@ -86,12 +106,50 @@ def test_full_prints_every_row():
     assert "more (--limit" not in out
 
 
-def test_family_filter_narrows_both_sections():
+def test_family_filter_narrows_every_section():
     out = _run("--family", "lifted-product", "--full")
     assert out.count("[[") == 13
     assert "fieldnote b" in out
     assert "fieldnote a" not in out
-    assert "(of 25 codes and 3 fieldnotes in the window)" in out
+    assert "lp-sweep: completed, 3 experiments, 0 survivors" in out
+    assert "bb-sweep" not in out
+    assert ("(of 25 codes, 3 fieldnotes, and 2 campaign summaries in the "
+            "window)") in out
+
+
+def test_committed_campaign_summaries_are_listed_as_data():
+    out = _run("--full")
+    assert "3 fieldnotes, 2 campaign summaries" in out
+    assert "campaign summaries (committed research/campaigns/*/summary.json):" in out
+    assert "research/campaigns/bb-sweep/summary.json" in out
+    assert ("bb-sweep: completed, 3 experiments, 1 survivor, "
+            "1 frontier advance, 0 negative results  [bivariate-bicycle]") in out
+    assert ("lp-sweep: completed, 3 experiments, 0 survivors, "
+            "0 frontier advances, 2 negative results  [lifted-product]") in out
+    assert "no-summary" not in out            # a directory without a summary
+
+
+def test_limit_bounds_the_campaign_section_too():
+    out = _run("--limit", "1")
+    assert out.count("-sweep/summary.json") == 1
+    assert "... 1 more (--limit N, --full)" in out
+
+
+def test_json_record_carries_all_three_sections():
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        assert qldpc.main(["recent", "--json", "--family", "lifted-product"]) == 0
+    rec = json.loads(buf.getvalue())
+    assert rec["ok"] and rec["days"] == 14 and rec["filters"] == ["lifted-product"]
+    assert rec["counts"] == {"codes": 25, "fieldnotes": 3, "campaigns": 2,
+                             "codes_with_note": 1}
+    assert len(rec["codes"]) == 13 and all("hay" not in c for c in rec["codes"])
+    assert [f["title"] for f in rec["fieldnotes"]] == ["fieldnote b"]
+    (c,) = rec["campaigns"]
+    assert c["campaign_id"] == "lp-sweep" and c["negative_results"] == 2
+    assert c["families"] == ["lifted-product"] and c["survivors"] == 0
+    assert c["budget_consumed"] == {"candidates_screened": 40}
+    assert c["path"] == "research/campaigns/lp-sweep/summary.json"
 
 
 def test_topic_filter_matches_fieldnote_topics():

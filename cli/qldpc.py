@@ -1190,8 +1190,8 @@ def cmd_targets(args):
     return 0
 
 
-def _plural(n, word):
-    return f"{n} {word}" + ("" if n == 1 else "s")
+def _plural(n, word, plural=None):
+    return f"{n} {word}" if n == 1 else f"{n} {plural or word + 's'}"
 
 
 def _fieldnote_meta(path):
@@ -1275,6 +1275,7 @@ def cmd_recent(args):
 
     codes = [code_row(d, f) for d, f in added("codes/")
              if f.endswith(".json")]
+    camps = campaign_rows(since)
     fnotes = []
     for d, f in added("fieldnotes/"):
         if not f.endswith(".md") or f.endswith("README.md"):
@@ -1283,20 +1284,34 @@ def cmd_recent(args):
         fnotes.append({"date": d, "path": f, "title": title, "topics": topics,
                        "hay": f"{f} {title} {' '.join(topics)}".lower()})
 
-    n_codes, n_fnotes = len(codes), len(fnotes)
+    n_codes, n_fnotes, n_camps = len(codes), len(fnotes), len(camps)
     if want:
         codes = [c for c in codes if any(w in c["hay"] for w in want)]
         fnotes = [f for f in fnotes if any(w in f["hay"] for w in want)]
+        camps = [c for c in camps if any(w in c["hay"] for w in want)]
     n_note = sum(1 for c in codes if c["note"])
+
+    def public(rows):
+        return [{k: v for k, v in r.items() if k != "hay"} for r in rows]
+
+    _result(args).update(
+        days=args.days, filters=want,
+        counts={"codes": n_codes, "fieldnotes": n_fnotes,
+                "campaigns": n_camps, "codes_with_note": n_note},
+        codes=public(codes), fieldnotes=public(fnotes),
+        campaigns=public(camps))
 
     lim = None if args.full else max(1, args.limit)
     filt = f" matching {' + '.join(want)}" if want else ""
     print(f"board activity, last {args.days} days{filt}: "
           f"{_plural(len(codes), 'code')} ({n_note} with a research note), "
-          f"{_plural(len(fnotes), 'fieldnote')}")
+          f"{_plural(len(fnotes), 'fieldnote')}, "
+          f"{_plural(len(camps), 'campaign summary', 'campaign summaries')}")
     if want:
-        print(f"  (of {_plural(n_codes, 'code')} and "
-              f"{_plural(n_fnotes, 'fieldnote')} in the window)")
+        print(f"  (of {_plural(n_codes, 'code')}, "
+              f"{_plural(n_fnotes, 'fieldnote')}, and "
+              f"{_plural(n_camps, 'campaign summary', 'campaign summaries')} "
+              f"in the window)")
 
     shown = codes if lim is None else codes[:lim]
     if shown:
@@ -1319,8 +1334,78 @@ def cmd_recent(args):
     if lim is not None and len(fnotes) > lim:
         print(f"  ... {len(fnotes) - lim} more (--limit N, --full)")
 
-    print("full log: docs research-log page, or ls notes/ fieldnotes/")
+    shown = camps if lim is None else camps[:lim]
+    if shown:
+        print("campaign summaries (committed research/campaigns/*/summary.json):")
+    for c in shown:
+        fams = f"  [{', '.join(c['families'])}]" if c["families"] else ""
+        print(f"  {c['date']}  {c['path']}")
+        print(f"      {c['campaign_id']}: {c['status']}, "
+              f"{_plural(c['experiments'], 'experiment')}, "
+              f"{_plural(c['survivors'], 'survivor')}, "
+              f"{_plural(c['frontier_advances'], 'frontier advance')}, "
+              f"{_plural(c['negative_results'], 'negative result')}{fams}")
+    if lim is not None and len(camps) > lim:
+        print(f"  ... {len(camps) - lim} more (--limit N, --full)")
+
+    print("full log: docs research-log page, or ls notes/ fieldnotes/ "
+          "research/campaigns/")
     return 0
+
+
+def campaign_rows(since):
+    """Return the committed campaign summaries touched in the window, as data.
+
+    Item 4 of issue #2314: a campaign that commits
+    research/campaigns/<id>/summary.json (schema/campaign.schema.json, written
+    by research/kit/campaign.py) is consumable here without reading its
+    report, so the next session learns what was screened, what survived, and
+    what did not, from the summary rather than from prose. Summaries are
+    rewritten in place as a campaign runs, so the date is the file's last
+    commit in the window, not its first.
+    """
+    root = os.path.join(_ROOT, "research", "campaigns")
+    rows = []
+    if not os.path.isdir(root):
+        return rows
+    for cid in sorted(os.listdir(root)):
+        path = os.path.join(root, cid, "summary.json")
+        if not os.path.exists(path):
+            continue
+        rel = os.path.relpath(path, _ROOT)
+        r = subprocess.run(
+            ["git", "log", "-1", since, "--pretty=format:%as", "--", rel],
+            cwd=_ROOT, capture_output=True, text=True, check=False)
+        date = r.stdout.strip()
+        if not date:
+            continue                     # not committed, or not in the window
+        try:
+            with open(path, encoding="utf-8") as fh:
+                summ = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        exps = summ.get("experiments") or []
+        fams = sorted({e.get("family") for e in exps if e.get("family")})
+        stopped = summ.get("stopped_by") or {}
+        row = {
+            "date": date, "path": rel,
+            "campaign_id": summ.get("campaign_id") or cid,
+            "campaign_name": summ.get("campaign_name") or "",
+            "status": summ.get("status") or "",
+            "stopped_by": stopped.get("type"),
+            "families": fams,
+            "experiments": len(exps),
+            "survivors": len(summ.get("survivors") or []),
+            "frontier_advances": summ.get("frontier_advances") or 0,
+            "negative_results": len(summ.get("negative_results") or []),
+            "budget_consumed": (summ.get("budget") or {}).get("consumed") or {},
+            "report": summ.get("report") or "",
+        }
+        row["hay"] = (f"{row['campaign_id']} {row['campaign_name']} "
+                      f"{' '.join(fams)} {row['report']}").lower()
+        rows.append(row)
+    rows.sort(key=lambda r: r["date"], reverse=True)
+    return rows
 
 
 
@@ -1795,6 +1880,10 @@ def main(argv=None):
     r.add_argument("--topic", default="",
                    help="only rows mentioning this topic, matched against "
                         "fieldnote topics and titles and against code names")
+    r.add_argument("--json", action="store_true",
+                   help="print one JSON record on stdout (codes, fieldnotes, "
+                        "and campaign summaries in the window, with counts) "
+                        "instead of the listing")
     r.set_defaults(func=cmd_recent)
 
     rp = sub.add_parser("reproduce",
