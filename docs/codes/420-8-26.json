@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[420,8,26]] periodic bivariate-bicycle on Z_30 x Z_7",
  "code_type": "CSS",
  "n": 420,
@@ -3405,38 +3405,48 @@
    ]
   },
   "Z": {
-   "value": 28,
+   "value": 26,
    "confidence": "upper_bound",
    "witness": [
+    22,
+    23,
     39,
-    82,
-    92,
+    52,
+    58,
+    69,
     97,
-    99,
-    118,
-    123,
-    128,
-    169,
-    181,
-    191,
-    208,
+    110,
+    121,
+    138,
+    161,
+    179,
     210,
+    211,
     219,
+    220,
+    231,
     242,
-    267,
-    270,
-    276,
-    279,
-    281,
-    285,
-    290,
-    297,
-    301,
-    311,
-    313,
-    320,
-    406
-   ]
+    243,
+    244,
+    295,
+    309,
+    318,
+    341,
+    407,
+    416
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-09-25",
+    "found_at_samples": 300000000,
+    "survived_samples": 300000000,
+    "tool": "verify/ris_gpu.py recover mode, pair depth 0 (GPU RIS, CPU re-verified)",
+    "seeds": [
+     4101
+    ]
+   }
   }
  },
  "family": "bivariate-bicycle",

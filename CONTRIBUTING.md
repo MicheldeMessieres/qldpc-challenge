@@ -154,8 +154,9 @@ heuristic that fails outside its regime, a calibration finding — PR it as a
 stand-alone [fieldnote](fieldnotes/README.md), no code required. Before
 starting a search, `./qldpc recent` summarizes what landed lately (codes,
 notes, fieldnotes, and committed campaign summaries) so you begin from the
-community's current frontier of
-knowledge.
+community's current frontier of knowledge, and `./qldpc screened --family
+<family>` says which members of a family were already screened and how they
+went.
 
 Then open a pull request adding only your file under `codes/` (plus its
 `notes/` file) — **one new code
@@ -262,6 +263,24 @@ pairs, and from then on the pair is a duplicate and this applies:
   `research/audits/permutation_equivalence.py` re-checks it from the cited
   blobs, so the claim stays verifiable after the file is gone.
 
+## Recording that a code is published
+
+An entry that turns out to be isomorphic to a published code, or whose
+`[[n,k,d]]` is listed in a published table, carries `novelty:
+known_parameters` and names the source in `provenance.references`. That is
+the schema's own definition of `known_parameters` ("the parameter set exists
+in the literature even if this entry improves weight, layout, or
+construction details"), so no new label is needed. `origin` is unaffected:
+a code whose matrices were reconstructed here from a parameters-only table
+stays `origin: submission` with the table in its references, because origin
+records how the entry arrived and novelty records what the literature holds.
+
+Recording a match withdraws a claim rather than making one, so anyone may
+file it: `verify/check_authorship.py` lets a non-author set `novelty` to
+`known_parameters` and append to `provenance.references`, and nothing else.
+The computed source for these matches is `research/provenance/derived.json`
+(issue #1204).
+
 ## Contribute with an LLM
 
 If you have an LLM or coding agent, it can do the whole loop: pick a target,
@@ -304,8 +323,13 @@ codes. Goal: find a CSS qLDPC code that advances a frontier, and submit it.
 
 3. Screen each candidate fast: k = n - rank(H_X) - rank(H_Z), CSS commutation
    (H_X H_Z^T = 0 over GF(2)), max check weight, and an RIS distance UPPER
-   bound from research/. Keep only codes that beat the board's frontier for
-   their track on (n, k, d) and kd^2/n.
+   bound from research/. Keep only codes that are **non-dominated in their own
+   cell**: no entry in that cell beats them on all of (n lower, k higher,
+   d higher, w lower) with at least one strict. That is the whole novelty
+   rule -- `TRACKS.md` defines the cell grid, and the gate reports it as
+   `gates.novelty.board_advancing`. Do not screen on `kd^2/n`: it is a
+   sortable headline figure per cell and is not part of the frontier, so a
+   candidate can clear the frontier at a `kd^2/n` well below the cell's best.
 
 4. Before trusting a candidate, RE-VERIFY its distance with far more RIS trials
    (100k+). Low-trial surrogates return inflated upper bounds that collapse

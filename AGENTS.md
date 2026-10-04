@@ -101,6 +101,13 @@ It re-runs the check inside a clean worktree of HEAD (committed content only), w
 exactly when CI would. It must exit 0 before the push. Treat this as part of pushing, not
 as an optional review step — the working-tree check proves nothing about what CI sees.
 
+In a fork, `origin` is the fork, and its `origin/main` is whatever the fork last synced,
+which is not what CI diffs against. The script uses `upstream/main` when an `upstream`
+remote exists and refuses to default to a fork's `origin/main` otherwise, so add the
+canonical repository as `upstream` (`git remote add upstream
+https://github.com/unitaryfoundation/qldpc-challenge.git && git fetch upstream`) or pass
+`BASE=<remote>/main`.
+
 A note named `<n>-<k>-<d>.md` must state its own `[[n,k,d]]` first. Follow
 `notes/TEMPLATE.md`; its sections are what a later searcher reads.
 
