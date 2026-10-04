@@ -29,6 +29,7 @@
       "screened": {
         "backend": "numpy",
         "d": 6,
+        "kd2_over_n": 6.0,
         "trials": 200
       },
       "seed": 0,
@@ -36,7 +37,7 @@
         "candidates_screened": 1,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 0.0020998404513885463
+        "walltime_hours": 0.003470279999999851
       },
       "survivors": 0,
       "verdict": "duplicate"
@@ -66,9 +67,9 @@
   "screen_quality": [],
   "snapshot": {
     "branch": "research/screening-registry",
-    "diff_sha256": null,
-    "dirty": false,
-    "head": "47b4633adcaf9d1d05921eef256c9e942e2f6e78",
+    "diff_sha256": "5e9404e8d15fc9ed0037311eb2db5ac5c1d9b99535351017a6a1388d88a85689",
+    "dirty": true,
+    "head": "71cfed36dc087f8403ae00237beffcf719103617",
     "untracked_count": 0
   },
   "status": "completed",

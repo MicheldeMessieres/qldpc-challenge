@@ -286,3 +286,38 @@ its source stated and nothing more: where a seed or a screening depth was
 never written down, the field is absent rather than guessed. The September
 2026 campaigns are backfilled this way, three of them generated from their
 own committed audit JSON rather than typed from the prose around it.
+
+### The curve
+
+`qldpc curve <id>` plots best-so-far verified efficiency against cumulative
+trials, per family, from the rows the summary already commits (issue #2735).
+It measures nothing and runs nothing.
+
+```
+qldpc curve sat-2dlocal-t2plus --cell local-2d-single/weight-6
+qldpc curve <id> --bar 30.48 --write     # also writes curve.json
+```
+
+Two series, because the disagreement between them is the point. The verified
+series is best-so-far over the rows the gate passed, so it is monotone. The
+screened series is each row's own reading at the depth it was taken, not a
+running maximum, so a ladder that settles downward shows as a descent rather
+than a flat line. The bar is the campaign's `objective.target` when it has
+one, the board's best in a named cell with `--cell`, or an explicit `--bar`.
+
+That is what separates the two failures the fieldnotes describe. A campaign
+whose screen cleared the bar while the gate admitted nothing there reports
+
+```
+never reached it, and the screen did: the ladder read above the bar and the
+gate admitted nothing there
+```
+
+and one whose screen never cleared it says so instead. The first is a
+screening trap and the second is an empty region, and they call for opposite
+responses: deepen the screen, or go somewhere else.
+
+`trials_to_bar` is reported beside the best score because on a Pareto board
+the two disagree, and the disagreement is the result: a family reaching the
+bar in 2M trials and a family reaching a better score in 30M are not the same
+outcome, and a manifest that reports only the best score reads them the same.
