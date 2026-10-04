@@ -10,11 +10,33 @@ Select a parameter range and save JSONL with:
         --n-min 4 --n-max 6 --k-min 1 --k-max 2 --d-min 3 --d-max 5 \
         --output census.jsonl
 
-The enumerator currently caps n at 6 because the full-code permutation
-canonicalization grows factorially. The enumeration works on check row spaces,
-so generator-basis changes are already quotiented out. Exact minimum distance is established through the
-repository's SAT certifier; timed-out cases are emitted as unresolved and make
-the run's summary incomplete.
+The enumeration works on check row spaces, so generator-basis changes are
+already quotiented out. Two canonicalizers implement the remaining quotient by
+qubit permutation and global X/Z exchange (issue #2040):
+
+  nauty        A row space is represented by the bipartite graph of its
+               nonzero codewords against the qubits; a pair (U, V) by the
+               three-colored graph qubits / codewords of U / codewords of V.
+               Qubit permutations are exactly the color-preserving graph
+               isomorphisms, so nauty's canonical form of that graph, together
+               with the two color-class sizes, is a complete invariant of the
+               pair, and the smaller of the key and the key with the colors of
+               U and V exchanged is invariant under the X/Z swap. Subspaces U
+               are first reduced to orbit representatives, then every V inside
+               each representative's orthogonal complement is keyed; the whole
+               orbit of U need never be visited. Needs pynauty (research
+               extra). Measured: n = 7 in about 2 s and 40 MB, n = 8 in about
+               40 s and 75 MB, before distance certification.
+  permutation  The original canonicalizer: the RREF of every row space under
+               all n! qubit permutations, precomputed for every subspace. Its
+               memory is factorial in n and it stops at n = 6. Kept as the
+               independent cross-check of the nauty keys.
+
+The supported maximum is MAX_N = 8, the largest stage measured so far; raising
+it is a go/no-go decision recorded with the stage's measurements, not a
+constant edit. Exact minimum distance is established through the repository's
+SAT certifier; timed-out cases are emitted as unresolved and make the run's
+summary incomplete.
 """
 
 from __future__ import annotations
@@ -37,7 +59,9 @@ sys.path.insert(0, os.path.join(_HERE, "..", "..", "verify"))
 from css import compute_k, verify_css  # noqa: E402
 from submit import make_submission  # noqa: E402
 
-MAX_N = 6
+MAX_N = 8
+MAX_N_PERMUTATION = 6
+CANONICALIZERS = ("auto", "nauty", "permutation")
 
 
 def _rref_subspaces(n: int, rank: int | None = None):
@@ -135,11 +159,131 @@ def _orthogonal(x_rows: tuple[int, ...], z_rows: tuple[int, ...]) -> bool:
     return all((x & z).bit_count() % 2 == 0 for x in x_rows for z in z_rows)
 
 
+def _span(rows: tuple[int, ...]) -> list[int]:
+    """Every nonzero vector of the row space, as masks (basis independent)."""
+    vectors = [0]
+    for row in rows:
+        vectors += [vector ^ row for vector in vectors]
+    return vectors[1:]
+
+
+def _perp_basis(rows: tuple[int, ...], n: int) -> list[int]:
+    """Return a basis (masks) of the orthogonal complement of the row space in GF(2)^n."""
+    reduced = list(_rref_masks(rows, n))
+    pivots = []
+    for row in reduced:
+        pivots.append(next(col for col in range(n) if (row >> col) & 1))
+    pivot_set = set(pivots)
+    basis = []
+    for free in (col for col in range(n) if col not in pivot_set):
+        vector = 1 << free
+        for row, pivot in zip(reduced, pivots):
+            if (row >> free) & 1:
+                vector |= 1 << pivot
+        basis.append(vector)
+    return basis
+
+
+def _subspaces_of(basis: list[int]):
+    """Every subspace of the span of ``basis`` (as tuples of masks), each once."""
+    m = len(basis)
+    for coords in _rref_subspaces(m):
+        rows = []
+        for coord in coords:
+            vector = 0
+            for j in range(m):
+                if (coord >> j) & 1:
+                    vector ^= basis[j]
+            rows.append(vector)
+        yield tuple(rows)
+
+
+def _nauty_certificate(x_rows: tuple[int, ...], z_rows: tuple[int, ...], n: int) -> bytes:
+    """Canonical form (nauty) of the typed codeword graph of the pair.
+
+    Vertices are the n qubits (color 0), the nonzero codewords of the X row
+    space (color 1), and the nonzero codewords of the Z row space (color 2),
+    with an edge from each codeword to the qubits in its support. A qubit
+    permutation is a color-preserving isomorphism of this graph and every such
+    isomorphism is induced by one, so equal certificates between pairs with
+    equal color-class sizes mean equal pairs up to permutation.
+    """
+    import pynauty  # research extra; only the nauty canonicalizer needs it
+
+    x_words, z_words = _span(x_rows), _span(z_rows)
+    adjacency = {}
+    for index, word in enumerate(x_words + z_words):
+        adjacency[n + index] = [q for q in range(n) if (word >> q) & 1]
+    nv = n + len(x_words) + len(z_words)
+    graph = pynauty.Graph(
+        nv,
+        directed=False,
+        adjacency_dict=adjacency,
+        vertex_coloring=[
+            set(range(n)),
+            set(range(n, n + len(x_words))),
+            set(range(n + len(x_words), nv)),
+        ],
+    )
+    return pynauty.certificate(graph)
+
+
+def _nauty_space_key(rows: tuple[int, ...], n: int) -> tuple:
+    return (len(rows), _nauty_certificate(rows, (), n))
+
+
+def _nauty_pair_key(x_rows: tuple[int, ...], z_rows: tuple[int, ...], n: int) -> tuple:
+    """Complete invariant of the pair under qubit permutation and X/Z exchange."""
+    forward = (len(x_rows), len(z_rows), _nauty_certificate(x_rows, z_rows, n))
+    swapped = (len(z_rows), len(x_rows), _nauty_certificate(z_rows, x_rows, n))
+    return min(forward, swapped)
+
+
+def _iter_classes_nauty(n: int, k_min: int, max_k: int):
+    """Sweep orbit representatives of U, then every V orthogonal to each.
+
+    Every pair (U, V) is equivalent to (rep(U), pi(V)) for the permutation pi
+    that carries U onto its representative, and pi(V) lies in rep(U)'s
+    complement, so the sweep is complete without visiting the orbit of U.
+    """
+    representatives = {}
+    for x_rank in range(0, n - k_min + 1):
+        for x_rows in _rref_subspaces(n, x_rank):
+            representatives.setdefault(_nauty_space_key(x_rows, n), x_rows)
+    seen = set()
+    for x_rows in representatives.values():
+        complement = _perp_basis(x_rows, n)
+        for z_rows in _subspaces_of(complement):
+            k = n - len(x_rows) - len(z_rows)
+            if k < k_min or k > max_k:
+                continue
+            key = _nauty_pair_key(x_rows, z_rows, n)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield _rref_masks(x_rows, n), _rref_masks(z_rows, n), k
+
+
+def resolve_canonicalizer(name: str, n: int) -> str:
+    """Pick the canonicalizer for one n: nauty when installed, else permutation."""
+    if name not in CANONICALIZERS:
+        raise ValueError(f"canonicalizer must be one of {CANONICALIZERS}")
+    if name == "auto":
+        name = "nauty" if importlib.util.find_spec("pynauty") is not None else "permutation"
+    if name == "permutation" and n > MAX_N_PERMUTATION:
+        raise ValueError(
+            f"the permutation canonicalizer stops at n = {MAX_N_PERMUTATION}; "
+            f"n = {n} needs the nauty canonicalizer (install pynauty)"
+        )
+    return name
+
+
 def iter_css_classes(
     n: int,
     *,
     k_min: int = 1,
     k_max: int | None = None,
+    canonicalizer: str = "auto",
 ):
     """Yield distinct CSS code classes ``(HX_rows, HZ_rows, k)`` for one n.
 
@@ -155,6 +299,9 @@ def iter_css_classes(
         raise ValueError("k_max must be greater than or equal to k_min")
 
     max_k = n if k_max is None else min(n, k_max)
+    if resolve_canonicalizer(canonicalizer, n) == "nauty":
+        yield from _iter_classes_nauty(n, k_min, max_k)
+        return
     by_rank = [list(_rref_subspaces(n, r)) for r in range(n + 1)]
     spaces = [space for rank_spaces in by_rank for space in rank_spaces]
     actions = _permutation_actions(spaces, n)
@@ -301,7 +448,13 @@ def _parse_args(argv=None):
         "--n-max",
         type=int,
         default=6,
-        help="maximum physical-qubit count (default: 6; max supported: 6)",
+        help=f"maximum physical-qubit count (default: 6; max supported: {MAX_N})",
+    )
+    parser.add_argument(
+        "--canonicalizer",
+        choices=CANONICALIZERS,
+        default="auto",
+        help="nauty (needs pynauty; any supported n) or permutation (n <= 6); auto picks nauty when installed",
     )
     parser.add_argument("--k-min", type=int, default=1, help="minimum encoded-qubit count (default: 1)")
     parser.add_argument("--k-max", type=int, default=None, help="maximum encoded-qubit count (default: n-max)")
@@ -317,6 +470,10 @@ def _parse_args(argv=None):
     args = parser.parse_args(argv)
     if args.n_min < 1 or args.n_max < args.n_min or args.n_max > MAX_N:
         parser.error(f"require 1 <= n-min <= n-max <= {MAX_N}")
+    try:
+        resolve_canonicalizer(args.canonicalizer, args.n_max)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.k_min < 1 or (args.k_max is not None and args.k_max < args.k_min):
         parser.error("require 1 <= k-min <= k-max")
     if args.d_min < 1 or (args.d_max is not None and args.d_max < args.d_min):
@@ -339,6 +496,7 @@ def run_census(args, stream: TextIO) -> dict:
             "record_type": "census",
             "parameters": params,
             "equivalence": ["check-row-basis", "qubit-permutation", "global-XZ-swap"],
+            "canonicalizer": resolve_canonicalizer(args.canonicalizer, args.n_max),
             "distance_method": "verify/sat_certify.py",
         },
     )
@@ -349,7 +507,9 @@ def run_census(args, stream: TextIO) -> dict:
     unresolved = 0
     for n in range(args.n_min, args.n_max + 1):
         k_max = n if args.k_max is None else min(n, args.k_max)
-        for x_rows, z_rows, k in iter_css_classes(n, k_min=args.k_min, k_max=k_max):
+        for x_rows, z_rows, k in iter_css_classes(
+            n, k_min=args.k_min, k_max=k_max, canonicalizer=args.canonicalizer
+        ):
             classes_seen += 1
             HX = _matrix_from_masks(x_rows, n)
             HZ = _matrix_from_masks(z_rows, n)

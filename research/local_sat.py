@@ -43,25 +43,46 @@ try:
 except ImportError:
     _HAS_PYSAT = False
 
+# Newer CaDiCaL builds, where this python-sat has them. 1.9.5 closed two
+# instances 1.5.3 left open after 3 h (issue #2024), so "walled at N
+# conflicts" is a statement about one build and the build is a parameter.
+try:
+    from pysat.solvers import Cadical195
+except ImportError:  # pragma: no cover
+    Cadical195 = None
+try:
+    from pysat.solvers import Cadical300
+except ImportError:  # pragma: no cover
+    Cadical300 = None
+
 
 def _grid_sites(side):
     return [(float(x), float(y)) for y in range(side) for x in range(side)]
 
 
 def build_local_cnf(n_side, n_generators, max_weight, t, radius, sink=None,
-                    shared_t3=False):
+                    shared_t3=False, layers=1, nonempty_rows=False):
     """Build the locality-constrained CNF and return its variable maps.
 
     Returns a dict with keys: ``sites``, ``n``, ``G``, ``xr``, ``zr``, ``ax``,
-    ``az``, ``clauses``, ``incidence_vars``, ``iter_errors``. Separated from
-    solving so benchmarks, symmetry breaking, and MaxSAT reuse can share one
-    encoder definition.
+    ``az``, ``clauses``, ``incidence_vars``, ``iter_errors``,
+    ``detect_clauses``. Separated from solving so benchmarks, symmetry
+    breaking, and MaxSAT reuse can share one encoder definition.
 
     ``sink``: if given (any object with ``add_clause``), clauses are streamed
     into it and ``clauses`` is returned as None — keeps large t=3 formulas
     out of Python memory.
+
+    ``layers``: qubits per grid site. 2 is the bilayer of the 2D-local SAT
+    campaign (issue #2024): the site list repeated, so two qubits share
+    every coordinate and a check anchored at a site reaches both.
+
+    ``nonempty_rows``: require every row to act on at least one qubit. An
+    empty row satisfies every constraint above and decodes to a code with
+    fewer checks than G, which the enumerator rejects after a full solve;
+    the clause costs nothing and is implied by t >= 1 detection anyway.
     """
-    sites = _grid_sites(n_side)
+    sites = _grid_sites(n_side) * int(layers)
     n = len(sites)
     G = n_generators
 
@@ -279,6 +300,40 @@ def build_local_cnf(n_side, n_generators, max_weight, t, radius, sink=None,
                 act.append(a)
             for _c in seq_counter(act, max_weight, ("w", side, g)):
                 emit(_c)
+            if nonempty_rows:
+                emit(list(act))
+
+    def detect_clauses(xe, ze, fresh):
+        """Return the exact clauses forcing (xe, ze) to be detected.
+
+        ``fresh`` is a callable returning an unused variable. This is the
+        per-error encoding for one error, so a driver whose post-check finds
+        an undetected error can add the constraint that error violates
+        instead of blocking the whole model (issue #2703): every model the
+        solver returns afterwards detects it, where a blocked model only
+        rules out one incidence pattern.
+        """
+        cls, lits = [], []
+        for rowmap, pat in ((xr, ze), (zr, xe)):
+            for g in range(G):
+                row_lits = [rowmap[(g, q)] for q in range(n) if pat[q]]
+                if not row_lits:
+                    continue
+                if len(row_lits) == 1:
+                    lits.append(row_lits[0])
+                    continue
+                prev = None
+                for lit in row_lits:
+                    cur = fresh()
+                    if prev is None:
+                        cls += [[-cur, lit], [cur, -lit]]
+                    else:
+                        cls += [[-cur, prev, lit], [-cur, -prev, -lit],
+                                [cur, -prev, lit], [cur, prev, -lit]]
+                    prev = cur
+                lits.append(prev)
+        cls.append(lits)
+        return cls
 
     own_vars = set(aux.values())
     # distinct-code blocking: freeze only the check-incidence pattern, so
@@ -297,6 +352,7 @@ def build_local_cnf(n_side, n_generators, max_weight, t, radius, sink=None,
         "clauses": clauses,
         "incidence_vars": incidence_vars,
         "iter_errors": iter_errors,
+        "detect_clauses": detect_clauses,
         "n_vars": len(aux),  # highest var allocated; static symmetry aux starts above this
     }
 
@@ -477,6 +533,10 @@ def enumerate_local_sat_codes(
     symmetry="none",
     max_rounds=None,
     shared_t3=False,
+    nonempty_rows=False,
+    exact_on_reject=False,
+    stats=None,
+    budget_check=None,
 ):
     """Yield ``(spec, HX, HZ, coordinates, anchors_x, anchors_z)`` for distinct
     CSS codes whose checks are all local under the returned layout.
@@ -491,7 +551,8 @@ def enumerate_local_sat_codes(
                    (this bounds the interaction radius by construction)
     solver       : backend key (minisat | cadical | cryptominisat | kissat |
                    minicard)
-    layers       : recorded in spec for the locality block (rho in g)
+    layers       : qubits per grid site (2 = bilayer, the site list
+                   repeated); recorded in spec for the locality block
     conf_budget  : per-solve conflict budget (None = unlimited). Budgeted
                    solves use solve_limited, so a hard instance cannot eat
                    the whole run (SIGALRM cannot interrupt Minisat22 C code).
@@ -520,6 +581,30 @@ def enumerate_local_sat_codes(
                    each round is bounded by conf/time budgets, but the
                    ROUND count is what was unbounded (the 2026-09-05
                    overnight overrun: 500+ rounds on t3_5x5 with minisat).
+    nonempty_rows : add the clause that every row acts on some qubit, so
+                   the solver cannot return a model the post-check rejects
+                   for an empty row (see build_local_cnf).
+    exact_on_reject : when the post-check finds an undetected error, add
+                   the exact detection constraint for that error instead of
+                   blocking the model. Every later model detects it, where
+                   a block only rules out one incidence pattern; at 8x8
+                   each rejected model cost a full solve (issue #2703).
+    budget_check : called with the solver's accumulated statistics when a
+                   solve ends on its conflict budget; returning True
+                   re-solves the unchanged formula with a fresh budget,
+                   False ends the run as ``"budget"``. This is how a wall
+                   clock is enforced on CaDiCaL, whose python-sat wrapper
+                   cannot interrupt a running solve (``interrupt`` raises
+                   NotImplementedError): solve in conflict chunks and let
+                   the caller decide between chunks.
+    stats        : if a dict is passed, it receives ``rounds``, ``yielded``,
+                   ``rejected`` (by reason), ``final`` (``"UNSAT"`` when the
+                   solver proved the remaining formula empty, ``"budget"``
+                   when a conflict or time limit or interrupt ended the
+                   last solve, ``"max_codes"`` or ``"max_rounds"``
+                   otherwise), and ``solver``. A run that ends on a budget
+                   is not a closure, and ``final`` is how a driver tells
+                   the two apart; the generator's own stop looks the same.
 
     Each spec is rebuildable: {"family": "local-sat-css", ...}.
     """
@@ -529,10 +614,15 @@ def enumerate_local_sat_codes(
     solver_map = {
         "minisat": Minisat22,
         "cadical": Cadical153,
+        "cadical153": Cadical153,
         "cryptominisat": CryptoMinisat,
         "kissat": Kissat404,
         "minicard": Minicard,
     }
+    if Cadical195 is not None:
+        solver_map["cadical195"] = Cadical195
+    if Cadical300 is not None:
+        solver_map["cadical300"] = Cadical300
     if solver not in solver_map:
         raise ValueError(f"unknown solver {solver!r}; choose from {sorted(solver_map)}")
     if solver == "kissat" and max_codes != 1:
@@ -547,17 +637,22 @@ def enumerate_local_sat_codes(
 
     perms = _site_permutations(n_side) if symmetry == "orbit" else None
 
+    if stats is None:
+        stats = {}
+    stats.update(rounds=0, yielded=0, final=None, solver=solver,
+                 rejected={"zero_row": 0, "undetected": 0, "orbit": 0})
     if stream:
         solver_obj = solver_map[solver](bootstrap_with=[])
         cnf = build_local_cnf(
             n_side, n_generators, max_weight, t, radius, sink=solver_obj,
-            shared_t3=shared_t3,
+            shared_t3=shared_t3, layers=layers, nonempty_rows=nonempty_rows,
         )
         if symmetry == "lex":
             add_static_symmetry_clauses(cnf, solver_obj.add_clause)
     else:
         cnf = build_local_cnf(n_side, n_generators, max_weight, t, radius,
-                              shared_t3=shared_t3)
+                              shared_t3=shared_t3, layers=layers,
+                              nonempty_rows=nonempty_rows)
         if symmetry == "lex":
             add_static_symmetry_clauses(cnf, cnf["clauses"].append)
         solver_obj = solver_map[solver](bootstrap_with=cnf["clauses"])
@@ -579,13 +674,21 @@ def enumerate_local_sat_codes(
         if conf_budget is None:
             conf_budget = 10**12
     limited = conf_budget is not None or time_budget is not None
+
+    def fresh():
+        # Variables allocated after the build (lazy detection constraints)
+        # go above everything the encoder and the symmetry prefix used.
+        return solver_obj.nof_vars() + 1
+
     try:
         count = 0
         rounds = 0
         while max_codes is None or count < max_codes:
             if max_rounds is not None and rounds >= max_rounds:
+                stats["final"] = "max_rounds"
                 break
             rounds += 1
+            stats["rounds"] = rounds
             if limited:
                 if conf_budget is not None:
                     solver_obj.conf_budget(conf_budget)
@@ -597,7 +700,16 @@ def enumerate_local_sat_codes(
                     solver_obj.clear_interrupt()
                 except Exception:
                     pass
-            if not res:  # UNSAT or budget/interrupt exhausted
+            if not res:  # UNSAT (False) or budget/interrupt exhausted (None)
+                if res is None and budget_check is not None:
+                    try:
+                        acc = solver_obj.accum_stats()
+                    except Exception:  # noqa: BLE001
+                        acc = {}
+                    stats["conflicts"] = acc.get("conflicts")
+                    if budget_check(acc):
+                        continue  # same formula, another chunk of budget
+                stats["final"] = "UNSAT" if res is False else "budget"
                 break
             model = {abs(m) for m in solver_obj.get_model() if m > 0}
             HX = np.zeros((G, n), dtype=np.int8)
@@ -620,22 +732,29 @@ def enumerate_local_sat_codes(
                 if _canon_key(np.vstack([HX, HZ])) != orbit_canonical_key(
                     n_side, G, HX, HZ, perms=perms
                 ):
+                    stats["rejected"]["orbit"] += 1
                     solver_obj.add_clause(block)
                     continue
 
             if (HX.sum(axis=1) == 0).any() or (HZ.sum(axis=1) == 0).any():
+                stats["rejected"]["zero_row"] += 1
                 solver_obj.add_clause(block)
                 continue
 
-            ok = True
+            bad = None
             for xe, ze in iter_errors():
                 xev = np.array(xe, dtype=np.int8)
                 zev = np.array(ze, dtype=np.int8)
                 if not ((HX @ zev) % 2).any() and not ((HZ @ xev) % 2).any():
-                    ok = False
+                    bad = (xe, ze)
                     break
-            if not ok:
-                solver_obj.add_clause(block)
+            if bad is not None:
+                stats["rejected"]["undetected"] += 1
+                if exact_on_reject:
+                    for c in cnf["detect_clauses"](bad[0], bad[1], fresh):
+                        solver_obj.add_clause(c)
+                else:
+                    solver_obj.add_clause(block)
                 continue
 
             spec = {
@@ -651,7 +770,10 @@ def enumerate_local_sat_codes(
             }
             yield (spec, HX, HZ, list(sites), anchors_x, anchors_z)
             count += 1
+            stats["yielded"] = count
             solver_obj.add_clause(block)
+        else:
+            stats["final"] = "max_codes"
     finally:
         solver_obj.delete()
 

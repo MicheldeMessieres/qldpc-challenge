@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[824,210,20]] pair-partition CPM P=103",
  "code_type": "CSS",
  "n": 824,
@@ -6219,38 +6219,46 @@
    ]
   },
   "Z": {
-   "value": 28,
+   "value": 24,
    "confidence": "upper_bound",
    "witness": [
-    19,
-    25,
-    96,
-    167,
-    232,
-    235,
-    248,
-    304,
-    360,
-    384,
-    392,
-    434,
-    437,
-    471,
-    479,
-    511,
-    561,
-    571,
-    577,
-    619,
-    622,
-    624,
-    664,
-    717,
-    719,
-    768,
-    771,
-    782
-   ]
+    483,
+    486,
+    491,
+    496,
+    499,
+    501,
+    523,
+    526,
+    583,
+    591,
+    610,
+    615,
+    636,
+    654,
+    663,
+    676,
+    687,
+    692,
+    725,
+    744,
+    746,
+    796,
+    806,
+    820
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-03",
+    "tool": "single-block annihilator + ISD in the subspace",
+    "found_at_samples": 3,
+    "survived_samples": 40000,
+    "seeds": [
+     20261003
+    ]
+   }
   }
  },
  "provenance": {
@@ -6262,7 +6270,7 @@
    "arXiv:2607.14091"
   ],
   "date": "2026-09-26",
-  "notes": "Checked against the board: no same-parameter or WL-equivalent entry; see notes/824-210-20.md.",
+  "notes": "Checked against the board: no same-parameter or WL-equivalent entry; see notes/824-210-20.md. Revision 2026-10-03 (@vprusso): single-block annihilator with information-set decoding inside the subspace, Z side 28 to 24 (right block, annihilator subspace of dimension 105, found at information set 3, nothing lighter in 40,000); d unchanged at the minimum over the sides. Still a witness-backed upper bound.",
   "model": "MiMo-V2.6-Flash",
   "origin": "submission"
  },

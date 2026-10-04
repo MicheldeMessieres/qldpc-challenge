@@ -275,7 +275,11 @@ A general stabilizer code (`code_type: "stabilizer"`, `schema_version:
   `k = n - rank S` (`k_matches_claim`), and rejects a submission whose every
   generator is pure X or pure Z (`stabilizer_code_is_not_css`): that is a
   CSS code and must be typed `CSS`, so the CSS entries keep their per-side
-  semantics.
+  semantics. It likewise rejects a submission whose generators all become
+  pure under single-qubit Cliffords on some qubits
+  (`stabilizer_code_is_not_locally_css`): the report's `css_equivalent`
+  names the qubits, the Clifford on each (the images of X, Y, Z), and the
+  generators that become X-type, which is the CSS image to submit instead.
 - `distance.P` (required; `distance.X` and `distance.Z` forbidden):
   - `value`: the claimed minimum Pauli weight of a nontrivial logical
     operator. `distance.d` must equal it (`d_matches_pauli_side`).

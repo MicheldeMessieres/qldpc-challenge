@@ -65,7 +65,7 @@ import heuristic_distance as hd  # noqa: E402
 # states exactly what the board will show (no drift between the two).
 from build import LOCALITY_LABEL, WEIGHT_LABEL, cells, pareto  # noqa: E402
 from check_authorship import HANDLE  # noqa: E402
-from qldpc_verify import verify  # noqa: E402
+from qldpc_verify import is_css_up_to_local_clifford, verify  # noqa: E402
 
 
 # ----------------------------------------------------------------------------
@@ -168,8 +168,9 @@ def build_stabilizer_submission(A, B, args):
     |A_i union B_i|, and one Pauli-weight distance witness (RIS by Pauli
     weight, tightened by the accelerator on the doubled matrices and
     re-scored). Writes code_type "stabilizer" at schema 0.4. A code whose
-    every row is pure X or pure Z is refused here with the same instruction
-    the verifier gives: type it CSS.
+    every row is pure X or pure Z, or becomes so under single-qubit
+    Cliffords, is refused here with the same instruction the verifier gives:
+    type it CSS.
     """
     n = A.shape[1]
     if B.shape != A.shape:
@@ -181,6 +182,18 @@ def build_stabilizer_submission(A, B, args):
         raise SystemExit("every generator is pure X or pure Z: this is a CSS "
                          "code; submit it as H_X / H_Z (keys hx, hz) so it is "
                          "typed CSS and ranked on the CSS board")
+    found = is_css_up_to_local_clifford(A, B)
+    if found is not None:
+        types, ops = found
+        kinds = ", ".join(sorted({v for v in ops.values()}))
+        xs = [i for i, t in enumerate(types) if t == "X"]
+        raise SystemExit(
+            f"single-qubit Cliffords on {len(ops)} qubit(s) (X,Y,Z -> {kinds}) "
+            f"make every generator pure X or pure Z: this is a CSS code up to a "
+            f"local Clifford, which the verifier rejects. Submit its CSS image "
+            f"as H_X / H_Z (keys hx, hz): the supports of generators {xs[:8]}"
+            f"{', ...' if len(xs) > 8 else ''} ({len(xs)} of {len(types)}) as "
+            f"H_X rows and the rest as H_Z rows")
     S = np.concatenate([A, B], axis=1)
     k = n - gf2.rank(S)
     if k < 1:
@@ -430,18 +443,73 @@ def _descriptor(args):
     return ""
 
 
-def body_has_scaffolding(body):
-    """Report whether the body still carries scaffolding the checker rejects.
+def _box(ticked, text):
+    return f"- [{'x' if ticked else ' '}] {text}"
 
-    That means: draft footer, HTML comment, unticked box, TODO/FIXME. Used to
-    gate --open-pr so a PR never ships a body the CI prose check would fail.
+
+def _board_identities():
+    """Return the board's identity sets as verify/validate_candidate.py reads them.
+
+    One memoized structural pass (qldpc_verify.board_reports) serves this, the
+    frontier comparison, and the site build alike, so after the first caller
+    in a process it is free.
     """
-    import re
-    return bool(
-        re.search(r"edit before requesting review", body, re.I)
-        or "<!--" in body
-        or re.search(r"^\s*[-*]\s*\[ \]", body, re.M)
-        or re.search(r"\b(TODO|FIXME|TBD)\b", body))
+    import validate_candidate as vc
+    return vc._board_entries(), vc._identity_sets
+
+
+def board_dedup(report):
+    """Compare a verified candidate against the board the way the validator does.
+
+    Returns {"checked", "match", "kind"}: exact fingerprint first, then WL
+    signature, each through the local-Hadamard images on both sides. This is
+    the validator's own dedup verdict (verify/validate_candidate.py), computed
+    here so the drafted PR body can tick the equivalence box with evidence
+    instead of leaving a prompt a human has to answer by hand (issue #2328).
+    """
+    try:
+        board, identity_sets = _board_identities()
+        fps, sigs = identity_sets(report)
+    except Exception as e:
+        print(f"  note: board dedup skipped ({e}); the equivalence box stays "
+              f"unticked for a human to answer")
+        return {"checked": False, "match": None, "kind": None}
+
+    def fps_of(b):
+        return {b["fingerprint"]} | set(b.get("css_fingerprints") or [])
+
+    def sigs_of(b):
+        return {b["sig"]} | set(b.get("css_sigs") or [])
+
+    exact = next((b["name"] for b in board if fps & fps_of(b)), None)
+    if exact:
+        return {"checked": True, "match": exact, "kind": "exact fingerprint"}
+    wl = next((b["name"] for b in board if sigs & sigs_of(b)), None)
+    if wl:
+        return {"checked": True, "match": wl, "kind": "WL signature"}
+    return {"checked": True, "match": None, "kind": None}
+
+
+def _equivalence_box(dedup):
+    """Return the equivalence checklist line, ticked only on evidence.
+
+    No match on a checked board: ticked, and it says what was checked, so an
+    unedited draft passes the prose gate and --open-pr can succeed. A match,
+    or no board to check against: unticked, naming the entry, so the gate
+    holds the PR until a human has said in `provenance.notes` why this is a
+    different code.
+    """
+    if dedup and dedup.get("checked") and not dedup.get("match"):
+        return _box(True, "Checked against the current board by exact "
+                         "fingerprint and WL signature, local-Hadamard images "
+                         "included: no equivalent entry")
+    if dedup and dedup.get("match"):
+        return _box(False, f"Possibly equivalent to `{dedup['match']}` "
+                          f"({dedup['kind']}): say in `provenance.notes` why "
+                          f"this is a different code, or withdraw")
+    return _box(False, "If this may be equivalent to an existing entry, noted "
+                      "in `provenance.notes` (the board could not be loaded "
+                      "for the automatic check)")
 
 
 def _repo_path(path):
@@ -497,9 +565,9 @@ def pr_body(doc, report, args, out, note_out=None):
                   f"used for ranking).", ""]
     # Checklist boxes are ticked only when the tool can vouch for them. The
     # construction box reflects whether --construction was given; the
-    # equivalence box stays unticked by design — judging equivalence to an
-    # existing entry needs human eyes, so an unedited draft is deliberately
-    # not ready for review (the prose gate enforces exactly that).
+    # equivalence box reflects the board dedup `qldpc submit` ran (see
+    # _equivalence_box): ticked with the evidence when nothing matched,
+    # otherwise left for a human, which the prose gate enforces.
     lines += [
         "### Checklist",
         box(True, "One JSON file under `codes/`, conforming to "
@@ -511,8 +579,7 @@ def pr_body(doc, report, args, out, note_out=None):
         box(bool((args.construction or "").strip()),
             "Construction and references filled in under `provenance`")
         if (args.construction or "").strip() else None,
-        box(False, "If this may be equivalent to an existing entry, noted in "
-                   "`provenance.notes`"),
+        _equivalence_box(getattr(args, "_dedup", None)),
         "",
         "### What frontier does this advance?",
         "(Computed by `qldpc submit` against the current board; review and "
@@ -806,7 +873,16 @@ def attach_circuit_tier(doc, args):
     return files
 
 
+def _result(args):
+    """Return the result object `--json` prints; a throwaway dict otherwise."""
+    if not hasattr(args, "_result"):
+        args._result = {}
+    return args._result
+
+
 def cmd_submit(args):
+    res = _result(args)
+    res["stage"] = "build"
     args.authors = validate_authors(args.authors, args.anonymous)
     if args.no_circuit and args.circuits:
         raise SystemExit("--no-circuit and --circuits contradict each other")
@@ -834,17 +910,25 @@ def cmd_submit(args):
     else:
         doc = build_submission(HX, HZ, args)
         print("  verifying (CSS / k / weight / witnesses / locality)...", flush=True)
+    res["stage"] = "verify"
     report = verify(doc, refute=True)
     for c in report["checks"]:
         if not c["ok"]:
             print(f"    FAIL  {c['check']}: {c['detail']}")
     if not report["ok"]:
         print("\nverification FAILED; nothing written. Fix the issues above.")
+        res["error"] = {"stage": "verify", "message": "verification failed",
+                        "failed_checks": [
+                            {"check": c["check"], "detail": c["detail"]}
+                            for c in report["checks"] if not c["ok"]]}
         return 1
     n, k, d = doc["n"], doc["k"], doc["distance"]["d"]
     print(f"  OK  verified. score kd^2/n = {round(k * d * d / n, 3)}")
 
     slug = f"{n}-{k}-{d}"
+    res.update(slug=slug, n=n, k=k, d=d, code_type=doc.get("code_type", "CSS"),
+               score=round(k * d * d / n, 3),
+               earned_distance=report.get("earned_distance"))
     out = os.path.join(args.out, f"{slug}.json")
     circuits_dir = os.path.join(os.path.dirname(os.path.abspath(args.out)),
                                 "circuits", slug)
@@ -853,6 +937,8 @@ def cmd_submit(args):
             if os.path.exists(p):
                 print(f"\n{p} already exists. Use --force to overwrite, or "
                       f"rename.")
+                res["error"] = {"stage": "write", "message": f"{p} already "
+                                f"exists; use --force to overwrite, or rename"}
                 return 1
 
     circuit_files = None if args.no_circuit else attach_circuit_tier(doc, args)
@@ -860,16 +946,19 @@ def cmd_submit(args):
     if args.dry_run:
         print(f"\n--dry-run: would write {out}" +
               (f" and {circuits_dir}/" if circuit_files else ""))
-        if args.json:
-            print(json.dumps(doc, indent=1))
-        else:
+        res.update(stage="dry-run", dry_run=True, would_write=out,
+                   would_write_circuits=circuits_dir if circuit_files else None,
+                   doc=doc)
+        if not args.json:
             print(dry_run_summary(doc, report, out))
         return 0
+    res["stage"] = "write"
     os.makedirs(args.out, exist_ok=True)
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(doc, f, indent=1)
         f.write("\n")
     print(f"  wrote {out}")
+    res["code_path"] = out
     if circuit_files:
         os.makedirs(circuits_dir, exist_ok=True)
         for name, text in circuit_files.items():
@@ -879,6 +968,7 @@ def cmd_submit(args):
         print(f"  wrote {circuits_dir}/memory_{{x,z}}.{{stim,dem}}")
     else:
         circuits_dir = None
+    res["circuits_dir"] = circuits_dir
 
     # the public research note (notes/<slug>.md): how the code was found —
     # search narrative, sweep sizes, confirmation ladder, dead ends. Requested
@@ -890,6 +980,8 @@ def cmd_submit(args):
             note_md = f.read()
         if len(note_md.encode()) > 10 * 1024:
             print(f"\n{args.note_file} exceeds the 10 KiB note cap; trim it.")
+            res["error"] = {"stage": "note", "message": f"{args.note_file} "
+                            f"exceeds the 10 KiB note cap"}
             return 1
         note_out = os.path.join(_ROOT, "notes", f"{slug}.md")
         os.makedirs(os.path.dirname(note_out), exist_ok=True)
@@ -902,20 +994,38 @@ def cmd_submit(args):
               "sizes, ladder, dead ends.\n  See notes/TEMPLATE.md; the site "
               "renders it beside your code.".format(slug))
 
+    res["note_path"] = note_out
+    res["stage"] = "draft"
+    args._dedup = board_dedup(report)
     title = pr_title(n, k, d, _descriptor(args))
     body_file = write_pr_body(slug, pr_body(doc, report, args, out, note_out))
+    branch = f"submit-{slug}"
+    pr_author = next((a.lstrip("@") for a in args.authors
+                      if isinstance(a, str) and a.startswith("@")), None)
+    res.update(title=title, body_file=body_file, branch=branch,
+               pr_author=pr_author, dedup=args._dedup,
+               base_ref=args.base_ref or None)
+    files = [out] + ([note_out] if note_out else []) + \
+        ([circuits_dir] if circuits_dir else [])
+    steps = [
+        f"git checkout -b {branch}" + (f" {args.base_ref}" if args.base_ref else ""),
+        "git add " + " ".join(files),
+        f"git commit -m {title!r}",
+        f"git push -u origin {branch}",
+        f"gh pr create --title {title!r} --body-file {body_file}",
+    ]
+    res["next_steps"] = steps
 
     if args.open_pr:
+        res["stage"] = "open-pr"
         return open_pr(slug, out, note_out, title, body_file,
-                       root=_ROOT, circuits_dir=circuits_dir)
+                       root=_ROOT, circuits_dir=circuits_dir,
+                       pr_author=pr_author, base_ref=args.base_ref or None,
+                       res=res)
     print("\nnext: open a PR with " +
           ("these files" if note_out or circuits_dir else "this file"))
-    print(f"  git checkout -b submit-{slug}")
-    print(f"  git add {out}" + (f" {note_out}" if note_out else "") +
-          (f" {circuits_dir}" if circuits_dir else ""))
-    print(f"  git commit -m {title!r}")
-    print(f"  git push -u origin submit-{slug}")
-    print(f"  gh pr create --title {title!r} --body-file {body_file}")
+    for step in steps:
+        print(f"  {step}")
     print(f"\nthe PR body was drafted for you from the verified submission:"
           f"\n  {body_file}"
           f"\nit follows .github/pull_request_template.md — read it and fill"
@@ -925,7 +1035,16 @@ def cmd_submit(args):
 
 
 def open_pr(slug, out, note_out=None, title=None, body_file=None, root=None,
-            circuits_dir=None):
+            circuits_dir=None, pr_author=None, base_ref=None, res=None):
+    """Branch, commit, push, and open the PR; the result goes into `res`.
+
+    `pr_author` feeds the prose pre-flight the same handle CI passes, so a
+    green pre-flight means what a green CI run means. `base_ref` starts the
+    branch from that ref (say origin/main) and returns to the branch that was
+    checked out afterwards, so successive --open-pr runs from one checkout
+    yield independent one-code PRs, which is what the scope check requires.
+    """
+    res = res if res is not None else {}
     n_k_d = slug.replace("-", ",")
     branch = f"submit-{slug}"
     title = title or f"Add [[{n_k_d}]]"
@@ -938,14 +1057,20 @@ def open_pr(slug, out, note_out=None, title=None, body_file=None, root=None,
         if os.path.exists(checker):
             files = [os.path.relpath(out, root)] + (
                 [os.path.relpath(note_out, root)] if note_out else [])
-            pre = subprocess.run(
-                [sys.executable, os.path.relpath(checker, root),
-                 "--root", root, "--body-file", body_file, "--files", *files],
-                cwd=root, check=False)
+            cmd = [sys.executable, os.path.relpath(checker, root),
+                   "--root", root, "--body-file", body_file, "--files", *files]
+            if pr_author:
+                cmd += ["--pr-author", pr_author]
+            pre = subprocess.run(cmd, cwd=root, check=False)
             if pre.returncode != 0:
                 print(f"\nprose pre-flight FAILED ({pre.returncode}); no PR "
                       f"was opened. Fix the issues above (the drafted body is "
                       f"at {body_file}) and re-run with --open-pr.")
+                res["error"] = {"stage": "prose-preflight",
+                                "returncode": pre.returncode,
+                                "message": "the drafted body or staged files "
+                                           "fail verify/check_prose.py; fix "
+                                           "them and re-run with --open-pr"}
                 return 1
     add = ["git", "add", out] + ([note_out] if note_out else []) + \
         ([circuits_dir] if circuits_dir else [])
@@ -953,22 +1078,49 @@ def open_pr(slug, out, note_out=None, title=None, body_file=None, root=None,
     # pull request template, which the commit message does not carry (#404).
     create = ["gh", "pr", "create", "--title", title]
     create += ["--body-file", body_file] if body_file else ["--fill"]
+    checkout = ["git", "checkout", "-b", branch] + ([base_ref] if base_ref else [])
     cmds = [
-        ["git", "checkout", "-b", branch],
+        checkout,
         add,
         ["git", "commit", "-m", title],
         ["git", "push", "-u", "origin", branch],
         create,
     ]
+    previous = None
+    if base_ref:
+        head = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                              cwd=_ROOT, capture_output=True, text=True,
+                              check=False)
+        previous = head.stdout.strip() if head.returncode == 0 else None
+    res["commands"] = [" ".join(c) for c in cmds]
     for c in cmds:
         print(f"  $ {' '.join(c)}", flush=True)
-        r = subprocess.run(c, cwd=_ROOT)
+        r = subprocess.run(c, cwd=_ROOT, capture_output=True, text=True,
+                           check=False)
+        if r.stdout:
+            print(r.stdout, end="" if r.stdout.endswith("\n") else "\n")
+        if r.stderr:
+            print(r.stderr, end="" if r.stderr.endswith("\n") else "\n",
+                  file=sys.stderr)
         if r.returncode != 0:
             print(f"  command failed ({r.returncode}); finish the remaining "
                   f"steps by hand.")
             if body_file:
                 print(f"  the drafted PR body is at {body_file}")
+            res["error"] = {"stage": "open-pr", "command": " ".join(c),
+                            "returncode": r.returncode,
+                            "message": (r.stderr or r.stdout or "").strip()[-2000:]}
             return r.returncode
+        if c is create:
+            m = re.search(r"https://\S+/pull/\d+", r.stdout or "")
+            res["pr_url"] = m.group(0) if m else None
+            res["pr_number"] = int(res["pr_url"].rsplit("/", 1)[1]) if m else None
+    if previous and previous != "HEAD":
+        back = subprocess.run(["git", "checkout", previous], cwd=_ROOT,
+                              capture_output=True, text=True, check=False)
+        res["returned_to"] = previous if back.returncode == 0 else None
+        if back.returncode != 0:
+            print(f"  note: could not return to {previous} ({back.stderr.strip()})")
     print("\nthe PR body was drafted from the verified submission; fill in the"
           "\n'what frontier does this advance?' section before review "
           "(gh pr edit).")
@@ -1038,8 +1190,8 @@ def cmd_targets(args):
     return 0
 
 
-def _plural(n, word):
-    return f"{n} {word}" + ("" if n == 1 else "s")
+def _plural(n, word, plural=None):
+    return f"{n} {word}" if n == 1 else f"{n} {plural or word + 's'}"
 
 
 def _fieldnote_meta(path):
@@ -1123,6 +1275,7 @@ def cmd_recent(args):
 
     codes = [code_row(d, f) for d, f in added("codes/")
              if f.endswith(".json")]
+    camps = campaign_rows(since)
     fnotes = []
     for d, f in added("fieldnotes/"):
         if not f.endswith(".md") or f.endswith("README.md"):
@@ -1131,20 +1284,34 @@ def cmd_recent(args):
         fnotes.append({"date": d, "path": f, "title": title, "topics": topics,
                        "hay": f"{f} {title} {' '.join(topics)}".lower()})
 
-    n_codes, n_fnotes = len(codes), len(fnotes)
+    n_codes, n_fnotes, n_camps = len(codes), len(fnotes), len(camps)
     if want:
         codes = [c for c in codes if any(w in c["hay"] for w in want)]
         fnotes = [f for f in fnotes if any(w in f["hay"] for w in want)]
+        camps = [c for c in camps if any(w in c["hay"] for w in want)]
     n_note = sum(1 for c in codes if c["note"])
+
+    def public(rows):
+        return [{k: v for k, v in r.items() if k != "hay"} for r in rows]
+
+    _result(args).update(
+        days=args.days, filters=want,
+        counts={"codes": n_codes, "fieldnotes": n_fnotes,
+                "campaigns": n_camps, "codes_with_note": n_note},
+        codes=public(codes), fieldnotes=public(fnotes),
+        campaigns=public(camps))
 
     lim = None if args.full else max(1, args.limit)
     filt = f" matching {' + '.join(want)}" if want else ""
     print(f"board activity, last {args.days} days{filt}: "
           f"{_plural(len(codes), 'code')} ({n_note} with a research note), "
-          f"{_plural(len(fnotes), 'fieldnote')}")
+          f"{_plural(len(fnotes), 'fieldnote')}, "
+          f"{_plural(len(camps), 'campaign summary', 'campaign summaries')}")
     if want:
-        print(f"  (of {_plural(n_codes, 'code')} and "
-              f"{_plural(n_fnotes, 'fieldnote')} in the window)")
+        print(f"  (of {_plural(n_codes, 'code')}, "
+              f"{_plural(n_fnotes, 'fieldnote')}, and "
+              f"{_plural(n_camps, 'campaign summary', 'campaign summaries')} "
+              f"in the window)")
 
     shown = codes if lim is None else codes[:lim]
     if shown:
@@ -1167,9 +1334,213 @@ def cmd_recent(args):
     if lim is not None and len(fnotes) > lim:
         print(f"  ... {len(fnotes) - lim} more (--limit N, --full)")
 
-    print("full log: docs research-log page, or ls notes/ fieldnotes/")
+    shown = camps if lim is None else camps[:lim]
+    if shown:
+        print("campaign summaries (committed research/campaigns/*/summary.json):")
+    for c in shown:
+        fams = f"  [{', '.join(c['families'])}]" if c["families"] else ""
+        print(f"  {c['date']}  {c['path']}")
+        print(f"      {c['campaign_id']}: {c['status']}, "
+              f"{_plural(c['experiments'], 'experiment')}, "
+              f"{_plural(c['survivors'], 'survivor')}, "
+              f"{_plural(c['frontier_advances'], 'frontier advance')}, "
+              f"{_plural(c['negative_results'], 'negative result')}{fams}")
+    if lim is not None and len(camps) > lim:
+        print(f"  ... {len(camps) - lim} more (--limit N, --full)")
+
+    print("full log: docs research-log page, or ls notes/ fieldnotes/ "
+          "research/campaigns/")
     return 0
 
+
+def campaign_rows(since):
+    """Return the committed campaign summaries touched in the window, as data.
+
+    Item 4 of issue #2314: a campaign that commits
+    research/campaigns/<id>/summary.json (schema/campaign.schema.json, written
+    by research/kit/campaign.py) is consumable here without reading its
+    report, so the next session learns what was screened, what survived, and
+    what did not, from the summary rather than from prose. Summaries are
+    rewritten in place as a campaign runs, so the date is the file's last
+    commit in the window, not its first.
+    """
+    root = os.path.join(_ROOT, "research", "campaigns")
+    rows = []
+    if not os.path.isdir(root):
+        return rows
+    for cid in sorted(os.listdir(root)):
+        path = os.path.join(root, cid, "summary.json")
+        if not os.path.exists(path):
+            continue
+        rel = os.path.relpath(path, _ROOT)
+        r = subprocess.run(
+            ["git", "log", "-1", since, "--pretty=format:%as", "--", rel],
+            cwd=_ROOT, capture_output=True, text=True, check=False)
+        date = r.stdout.strip()
+        if not date:
+            continue                     # not committed, or not in the window
+        try:
+            with open(path, encoding="utf-8") as fh:
+                summ = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        exps = summ.get("experiments") or []
+        fams = sorted({e.get("family") for e in exps if e.get("family")})
+        stopped = summ.get("stopped_by") or {}
+        row = {
+            "date": date, "path": rel,
+            "campaign_id": summ.get("campaign_id") or cid,
+            "campaign_name": summ.get("campaign_name") or "",
+            "status": summ.get("status") or "",
+            "stopped_by": stopped.get("type"),
+            "families": fams,
+            "experiments": len(exps),
+            "survivors": len(summ.get("survivors") or []),
+            "frontier_advances": summ.get("frontier_advances") or 0,
+            "negative_results": len(summ.get("negative_results") or []),
+            "budget_consumed": (summ.get("budget") or {}).get("consumed") or {},
+            "report": summ.get("report") or "",
+        }
+        row["hay"] = (f"{row['campaign_id']} {row['campaign_name']} "
+                      f"{' '.join(fams)} {row['report']}").lower()
+        rows.append(row)
+    rows.sort(key=lambda r: r["date"], reverse=True)
+    return rows
+
+
+
+# ---------------------------------------------------------------------------
+# screened: the shared screening registry, read across committed summaries
+# ---------------------------------------------------------------------------
+# Issue #2726. research/candidates/ is gitignored working output, so a family
+# screened and discarded leaves nothing behind and the next session pays for
+# it again. The committed record is research/campaigns/<id>/summary.json, and
+# this is the reader over all of them: one call answers whether a family
+# member was screened, at what depth, and how it went. Advisory only -- the
+# gate remains the only thing that admits a code.
+
+def screening_rows(family="", params=None, verdicts=()):
+    """Experiment rows across committed summaries, filtered.
+
+    ``params`` matches as a subset: a row matches when every queried key is
+    present on it and compares equal, so a query on the ring alone finds
+    every member screened over that ring. Values compare as strings, since a
+    campaign that wrote l as "6" and one that wrote 6 screened the same
+    member.
+    """
+    root = os.path.join(_ROOT, "research", "campaigns")
+    want = {str(k): str(v) for k, v in (params or {}).items()}
+    rows, quality, summaries = [], [], 0
+    if not os.path.isdir(root):
+        return rows, quality, summaries
+    for cid in sorted(os.listdir(root)):
+        path = os.path.join(root, cid, "summary.json")
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as fh:
+                summ = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        summaries += 1
+        rel = os.path.relpath(path, _ROOT)
+        ident = summ.get("campaign_id") or cid
+        backfilled = bool(summ.get("backfilled"))
+        for q in summ.get("screen_quality") or []:
+            if family and q.get("family") != family:
+                continue
+            quality.append(dict(q, campaign_id=ident, path=rel))
+        for exp in summ.get("experiments") or []:
+            if family and exp.get("family") != family:
+                continue
+            if verdicts and exp.get("verdict") not in verdicts:
+                continue
+            got = {str(k): str(v) for k, v in (exp.get("params") or {}).items()}
+            if any(got.get(k) != v for k, v in want.items()):
+                continue
+            screened = exp.get("screened") or {}
+            rows.append({
+                "campaign_id": ident, "path": rel,
+                "backfilled": backfilled,
+                "family": exp.get("family") or "", "seed": exp.get("seed"),
+                "params": exp.get("params") or {},
+                "screened_d": screened.get("d"),
+                "trials": screened.get("trials"),
+                "backend": screened.get("backend") or "",
+                "rung": screened.get("rung"),
+                "verdict": exp.get("verdict") or "",
+                "mode": exp.get("mode") or "",
+                "survivors": exp.get("survivors") or 0,
+                "note": exp.get("note") or "",
+            })
+    return rows, quality, summaries
+
+
+def _kv_pairs(items):
+    """Parse repeated --param k=v into pairs, rejecting a bare token."""
+    for item in items or []:
+        if "=" not in item:
+            raise SystemExit(f"--param wants key=value, got {item!r}")
+        k, v = item.split("=", 1)
+        yield k.strip(), v.strip()
+
+
+def cmd_screened(args):
+    """Report whether this family at these parameters was already screened.
+
+    The question to ask before paying for a ladder. Reads only committed
+    campaign summaries, so a row here is a record someone left deliberately,
+    not a reading of one machine's working directory.
+    """
+    params = dict(_kv_pairs(args.param))
+    if args.params:
+        try:
+            params.update(json.loads(args.params))
+        except ValueError as e:
+            raise SystemExit(f"--params is not JSON: {e}") from None
+    rows, quality, summaries = screening_rows(
+        family=args.family, params=params,
+        verdicts=tuple(args.verdict) if args.verdict else ())
+
+    _result(args).update(query={"family": args.family, "params": params,
+                                "verdict": list(args.verdict or [])},
+                         summaries_read=summaries, matches=len(rows),
+                         rows=rows, screen_quality=quality)
+
+    what = args.family or "any family"
+    if params:
+        what += " at " + ", ".join(f"{k}={v}" for k, v in sorted(params.items()))
+    if not rows:
+        print(f"{what}: no committed campaign summary records screening it "
+              f"({summaries} read)")
+        return
+    print(f"{what}: {_plural(len(rows), 'screening record')} across "
+          f"{_plural(summaries, 'campaign summary', 'campaign summaries')}")
+    lim = None if args.full else max(1, args.limit)
+    for r in (rows if lim is None else rows[:lim]):
+        depth = (f"d<={r['screened_d']} at {r['trials']} trials"
+                 if r["screened_d"] is not None else
+                 (f"{r['trials']} trials, no weight recorded"
+                  if r["trials"] else "depth not recorded"))
+        if r["backend"]:
+            depth += f" ({r['backend']})"
+        tail = f"  {r['verdict']}" if r["verdict"] else "  verdict not recorded"
+        if r["backfilled"]:
+            tail += ", backfilled"
+        pretty = ", ".join(f"{k}={v}" for k, v in sorted(r["params"].items()))
+        shown = pretty or "(no construction parameters recorded)"
+        print(f"  {r['campaign_id']}  {r['family']}  {shown}")
+        print(f"    {depth}{tail}")
+    if lim is not None and len(rows) > lim:
+        print(f"  ... {len(rows) - lim} more (--limit N, --full)")
+    for q in quality:
+        if q.get("spearman") is None:
+            print(f"screen quality, {q['family']}: undefined over "
+                  f"{_plural(q.get('pairs') or 0, 'pair')} ({q['campaign_id']})")
+        else:
+            print(f"screen quality, {q['family']}: Spearman "
+                  f"{q['spearman']:+.2f} over "
+                  f"{_plural(q.get('pairs') or 0, 'pair')} ({q['campaign_id']})")
 
 
 # ---------------------------------------------------------------------------
@@ -1614,10 +1985,19 @@ def main(argv=None):
     s.add_argument("--dry-run", action="store_true",
                    help="build and verify but do not write the file")
     s.add_argument("--json", action="store_true",
-                   help="with --dry-run, print the full submission JSON "
-                        "instead of the summary")
+                   help="print exactly one JSON object on stdout describing "
+                        "the result (stage, slug, code_path, note_path, "
+                        "title, body_file, branch, next_steps, pr_url, or "
+                        "error) and move the human-readable output to "
+                        "stderr; with --dry-run the object carries the full "
+                        "submission under `doc`")
     s.add_argument("--open-pr", action="store_true",
                    help="create the branch, commit, push, and open the PR")
+    s.add_argument("--base-ref", default="",
+                   help="start the submission branch from this ref (e.g. "
+                        "origin/main) and return to the current branch "
+                        "afterwards, so successive --open-pr runs from one "
+                        "checkout produce independent one-code PRs")
     s.set_defaults(func=cmd_submit)
 
     r = sub.add_parser("recent", help="what landed recently: codes, research "
@@ -1634,7 +2014,35 @@ def main(argv=None):
     r.add_argument("--topic", default="",
                    help="only rows mentioning this topic, matched against "
                         "fieldnote topics and titles and against code names")
+    r.add_argument("--json", action="store_true",
+                   help="print one JSON record on stdout (codes, fieldnotes, "
+                        "and campaign summaries in the window, with counts) "
+                        "instead of the listing")
     r.set_defaults(func=cmd_recent)
+
+    sc = sub.add_parser("screened",
+                        help="was this family at these parameters already "
+                             "screened, at what depth, and how did it go "
+                             "(committed campaign summaries only)")
+    sc.add_argument("--family", default="",
+                    help="family tag, e.g. generalized-bicycle")
+    sc.add_argument("--param", action="append", default=[], metavar="K=V",
+                    help="construction parameter to match, repeatable; "
+                         "matched as a subset, so --param ring=Z_341 finds "
+                         "every member screened over that ring")
+    sc.add_argument("--params", default="",
+                    help="the same as a JSON object")
+    sc.add_argument("--verdict", action="append", default=[],
+                    choices=["passed", "refuted", "duplicate", "dominated",
+                             "not_run"],
+                    help="only rows with this gate verdict, repeatable")
+    sc.add_argument("--limit", type=int, default=20,
+                    help="rows to print (default 20); --full for all")
+    sc.add_argument("--full", action="store_true")
+    sc.add_argument("--json", action="store_true",
+                    help="print one JSON record on stdout instead of the "
+                         "listing")
+    sc.set_defaults(func=cmd_screened)
 
     rp = sub.add_parser("reproduce",
                         help="re-run one entry's evidence chain and write a "
@@ -1675,7 +2083,44 @@ def main(argv=None):
     g.set_defaults(func=cmd_targets)
 
     args = p.parse_args(argv)
+    if getattr(args, "json", False):
+        return _run_json(args)
     return args.func(args)
+
+
+def _run_json(args):
+    """Run the command with a machine-readable contract (issue #2328).
+
+    Everything the command prints goes to stderr; stdout receives exactly one
+    JSON object, the command's result record, whether it succeeded or not. A
+    usage error raised as SystemExit(<message>) becomes
+    {"ok": false, "error": {"class": "usage", "message": ...}} with exit code
+    2, so a caller never has to parse prose to learn what happened.
+    """
+    import contextlib
+    res = _result(args)
+    stdout = sys.stdout
+    rc = 1
+    try:
+        with contextlib.redirect_stdout(sys.stderr):
+            rc = args.func(args)
+    except SystemExit as e:
+        code = e.code
+        if isinstance(code, str):
+            res["error"] = {"class": "usage", "message": code}
+            rc = 2
+        else:
+            rc = 0 if code is None else int(code)
+            if rc:
+                res.setdefault("error", {"class": "exit", "message": f"exit {rc}"})
+    rc = 0 if rc is None else int(rc)
+    res["ok"] = rc == 0
+    res["exit_code"] = rc
+    if rc and "error" in res and "class" not in res["error"]:
+        res["error"]["class"] = res["error"].get("stage", "error")
+    stdout.write(json.dumps(res, indent=1, default=str) + "\n")
+    stdout.flush()
+    return rc
 
 
 if __name__ == "__main__":

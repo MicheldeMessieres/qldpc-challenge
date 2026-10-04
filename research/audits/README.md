@@ -23,7 +23,7 @@ uv run --frozen python research/audits/leader_audit.py screen \
 
 # a candidate against the board entry it would beat only on d, same budget
 uv run --frozen python research/audits/leader_audit.py pair \
-    research/candidates/<n>-<k>-<d>.json --trials 2000000 --seeds 51 \
+    <candidate>.json --trials 2000000 --seeds 51 \
     --pair-depth 64 --witness-dir <dir-for-witnesses>
 ```
 
@@ -103,8 +103,8 @@ depth 10 measures the candidate set rather than the code:
 
 | entry | trials | seed | depth 10 | depth 64 |
 |---|---|---:|---:|---:|
-| `codes/684-12-77.json` | 200,000 | 71 | 89 | 85 (at 24/48) |
-| `codes/684-12-77.json` | 200,000 | 101 | 97 | **87** |
+| `684-12-77` (since tightened) | 200,000 | 71 | 89 | 85 (at 24/48) |
+| `684-12-77` (since tightened) | 200,000 | 101 | 97 | **87** |
 
 Depth 64 costs about 1.4x depth 10, not 45x -- the per-trial cost is dominated
 by the elimination, not the pair phase. So an `inconclusive` verdict taken at a
@@ -121,7 +121,7 @@ on `d` alone at one identical budget:
 
 ```
 uv run --frozen python research/audits/leader_audit.py pair \
-    research/candidates/<n>-<k>-<d>.json --trials 2000000 --seeds 51 52 \
+    <candidate>.json --trials 2000000 --seeds 51 52 \
     --pair-depth 64 --witness-dir <dir-for-witnesses>
 ```
 
@@ -237,3 +237,19 @@ stamp and it goes deep instead, which is correct but slower.
 
 Worked examples in the history: `[[684,14,72]]` to `[[684,14,54]]`,
 `[[540,12,44]]` to `[[540,12,41]]`, `[[682,140,83]]` to 66.
+
+## Permutation equivalence between two entries
+
+`permutation_equivalence.py` decides whether two entries are one code: it
+applies an exhibited qubit permutation to the first entry's checks and tests
+that the X and Z row spaces land exactly on the second's. The pairs settled
+so far, with their permutations and the blob hashes of the files they were
+checked against, are in `permutation_equivalences.json`; running the script
+with no arguments re-checks every one of them from git, so the record
+survives the removal of the duplicate it names. For a new pair:
+
+```
+uv run python research/audits/permutation_equivalence.py FIRST.json SECOND.json --perm "[...]"
+```
+
+A hit means the pair falls under "One code, one entry" in `CONTRIBUTING.md`.

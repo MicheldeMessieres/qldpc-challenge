@@ -161,13 +161,14 @@ def validate_candidate(doc, *, seed=None, refute=True):
         verdict["labels"].append(f"refuted (over-claimed distance): {nd['detail']}")
 
     # 3. DEDUP -- compare against the board by exact fingerprint and WL signature,
-    #    both already computed by the verifier above. A stabilizer candidate
-    #    that is a CSS code up to a Hadamard on some qubits is
-    #    also compared through that CSS code's fingerprint and signature, in
-    #    both directions, so a relabeled copy of a board entry is marked a
-    #    duplicate of it rather than admitted as a new code. The CSS and
-    #    stabilizer boards are separate, so this is the ONE place the two
-    #    types meet, and only to recognize the same code.
+    #    both already computed by the verifier above. A CSS candidate is also
+    #    compared through its local-Hadamard images (and a CSS board entry
+    #    through its own), so a Hadamard-relabeled copy of a board entry is
+    #    marked a duplicate of it rather than admitted as a new code. A
+    #    stabilizer candidate that is CSS up to local Cliffords never gets
+    #    here: the verifier rejects it with its CSS image spelled out. The
+    #    CSS and stabilizer boards are separate, so this is the
+    #    ONE place the two types meet, and only to recognize the same code.
     cand_fp = rep.get("fingerprint")
     cand_fps, cand_sigs = _identity_sets(rep)
     board = _board_entries()
@@ -186,10 +187,11 @@ def validate_candidate(doc, *, seed=None, refute=True):
         b["fingerprint"] == cand_fp for b in board if b["name"] == exact_dup)
     if exact_dup and via_hadamard:
         g["dedup"]["local_clifford"] = "hadamard"
+        hq = rep.get("css_equivalent", {}).get("hadamard_qubits")
         verdict["labels"].append(
             f"duplicate: identical to board entry {exact_dup} up to a Hadamard "
-            f"on {len(rep.get('css_equivalent', {}).get('hadamard_qubits', []))} "
-            f"qubit(s)")
+            + (f"on {len(hq)} qubit(s)" if hq is not None else
+               "on some qubits (an X/Z swap of a component)"))
     elif exact_dup:
         # A candidate with the same matrices but a strictly LOWER claimed
         # distance is not someone filing the same code twice; it is a distance

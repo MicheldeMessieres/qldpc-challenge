@@ -55,6 +55,24 @@
           "type": "string",
           "description": "for formal: the formalization the proof was produced against, e.g. 'arXiv:2605.16523'"
         },
+        "replay": {
+          "type": "object",
+          "description": "for formal: how a third party reaches the same theorem. A formal certificate is a theorem in a proof development rather than a file, so what the certificate carries is a recipe precise enough to re-derive it. The transportable object such a development does emit, a SAT query and its refutation, is proof_log: it confirms the formula is unsatisfiable and says nothing about whether the formula asks the distance question, which is the distinction level already draws.",
+          "additionalProperties": false,
+          "required": ["repo", "commit", "theorem"],
+          "properties": {
+            "repo": { "type": "string", "description": "the formal development, e.g. github.com/VerifiedQC/Lean-QEC" },
+            "commit": { "type": "string", "description": "the exact commit the theorem was checked at" },
+            "theorem": { "type": "string", "description": "the theorem name, e.g. BB72_dist_6" },
+            "build": { "type": "string", "description": "the command that reproduces the check, e.g. 'lake exe cache get && lake build'" },
+            "toolchain": { "type": "string", "description": "the toolchain, e.g. leanprover/lean4:v4.30.0-rc2" },
+            "mathlib": { "type": "string", "description": "the mathlib revision the development pins" }
+          }
+        },
+        "checks_sha256": {
+          "type": "string",
+          "description": "for formal: sha256 of this entry's canonical (H_X, H_Z), binding the theorem to this code rather than to one that resembles it. A formal proof is about a code defined inside the development, and a perfect proof about a different matrix pair certifies nothing here. The only maintainable way to hold the binding is to generate the formal definition from codes/<slug>.json rather than transcribe it."
+        },
         "note": { "type": "string", "maxLength": 500 }
       },
       "allOf": [

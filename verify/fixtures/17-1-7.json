@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.4",
+  "name": "[[17,1,7]] one-block palindromic cyclic code",
+  "code_type": "stabilizer",
+  "n": 17,
+  "k": 1,
+  "checks": {
+    "S": [
+      {"X": [1, 16], "Z": [3, 5, 6, 11, 12, 14]},
+      {"X": [0, 2], "Z": [4, 6, 7, 12, 13, 15]},
+      {"X": [1, 3], "Z": [5, 7, 8, 13, 14, 16]},
+      {"X": [2, 4], "Z": [0, 6, 8, 9, 14, 15]},
+      {"X": [3, 5], "Z": [1, 7, 9, 10, 15, 16]},
+      {"X": [4, 6], "Z": [0, 2, 8, 10, 11, 16]},
+      {"X": [5, 7], "Z": [0, 1, 3, 9, 11, 12]},
+      {"X": [6, 8], "Z": [1, 2, 4, 10, 12, 13]},
+      {"X": [7, 9], "Z": [2, 3, 5, 11, 13, 14]},
+      {"X": [8, 10], "Z": [3, 4, 6, 12, 14, 15]},
+      {"X": [9, 11], "Z": [4, 5, 7, 13, 15, 16]},
+      {"X": [10, 12], "Z": [0, 5, 6, 8, 14, 16]},
+      {"X": [11, 13], "Z": [0, 1, 6, 7, 9, 15]},
+      {"X": [12, 14], "Z": [1, 2, 7, 8, 10, 16]},
+      {"X": [13, 15], "Z": [0, 2, 3, 8, 9, 11]},
+      {"X": [14, 16], "Z": [1, 3, 4, 9, 10, 12]},
+      {"X": [0, 15], "Z": [2, 4, 5, 10, 11, 13]}
+    ]
+  },
+  "distance": {
+    "d": 7,
+    "P": {
+      "value": 7,
+      "confidence": "upper_bound",
+      "witness": {
+        "X": [
+          0,
+          5,
+          12,
+          13
+        ],
+        "Z": [
+          4,
+          10,
+          12,
+          13,
+          14
+        ]
+      }
+    }
+  },
+  "provenance": {
+    "authors": [
+      "Camara, Ollivier, Tillich"
+    ],
+    "construction": "one-block cyclic stabilizer code: generator X^a Z^b with a(x) = x + x^16, b(x) = x^3 + x^5 + x^6 + x^11 + x^12 + x^14 in F_2[x]/(x^17 - 1) and its 17 cyclic shifts; palindromic a and b make the shifts commute. The witness X I I I I X I I I I I I Y Y Z I I ... has Pauli weight 7 (two Y factors)",
+    "origin": "baseline",
+    "references": [
+      "arXiv:quant-ph/0502086"
+    ],
+    "date": "2005",
+    "notes": "The checks are byte-for-byte those of the board entry codes/17-1-7.json (the one-block palindromic cyclic code); a correction to that entry should be mirrored here. Non-CSS under every single-qubit Clifford (generators i and i+2 share an X qubit and generators i and i-2 meet X against Z, so no two-coloring of the generators exists), which is what makes it a stabilizer fixture that verifies: the XZZX toric code is the toric code behind Hadamards and is rejected. Distance 7 is exact by Pauli enumeration; recorded as upper_bound because the Pauli-weight certifier is not available."
+  },
+  "family": "other"
+}

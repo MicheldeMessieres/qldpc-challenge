@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[360,10,28]] 2BGA on Z_30:Z_6",
  "code_type": "CSS",
  "n": 360,
@@ -3647,42 +3647,52 @@
    ]
   },
   "Z": {
-   "value": 32,
+   "value": 30,
    "confidence": "upper_bound",
    "witness": [
-    20,
-    22,
-    27,
-    34,
-    36,
-    40,
-    55,
-    56,
-    61,
-    86,
-    88,
-    94,
-    96,
-    106,
-    118,
-    122,
-    138,
-    150,
-    154,
-    168,
-    180,
-    189,
-    194,
-    198,
-    204,
-    213,
-    214,
+    181,
+    186,
+    197,
+    202,
+    207,
+    212,
+    217,
+    222,
+    233,
+    238,
+    243,
+    248,
     253,
+    258,
     269,
-    344,
-    353,
-    358
-   ]
+    274,
+    279,
+    284,
+    289,
+    294,
+    305,
+    310,
+    315,
+    320,
+    325,
+    330,
+    341,
+    346,
+    351,
+    356
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-03",
+    "tool": "single-block annihilator + ISD in the subspace",
+    "found_at_samples": 1,
+    "survived_samples": 40000,
+    "seeds": [
+     20261003
+    ]
+   }
   }
  },
  "provenance": {
@@ -3693,7 +3703,7 @@
   "origin": "submission",
   "date": "2026-09-06",
   "model": "Claude Opus 5",
-  "notes": "Equivalence and literature checks were run before submission. verify/validate_candidate.py reports no exact-fingerprint duplicate and no WL-signature-equivalent entry on the board. Independently checked against the published non-abelian 2BGA enumeration of arXiv:2306.16400 (Lin & Pryadko, Phys. Rev. A 109, 022407; codes at github.com/QEC-pages/2BGA-codes, nonabelian.zip, 71051 rows parsed): no published row dominates this code on all of (n, k, d, W). At n = 360 the code lies beyond that enumeration's n <= 200 range, so its completeness result does not speak to this code either way; novelty against the wider literature remains unverified."
+  "notes": "Equivalence and literature checks were run before submission. verify/validate_candidate.py reports no exact-fingerprint duplicate and no WL-signature-equivalent entry on the board. Independently checked against the published non-abelian 2BGA enumeration of arXiv:2306.16400 (Lin & Pryadko, Phys. Rev. A 109, 022407; codes at github.com/QEC-pages/2BGA-codes, nonabelian.zip, 71051 rows parsed): no published row dominates this code on all of (n, k, d, W). At n = 360 the code lies beyond that enumeration's n <= 200 range, so its completeness result does not speak to this code either way; novelty against the wider literature remains unverified. Revision 2026-10-03 (@vprusso): single-block annihilator with information-set decoding inside the subspace, Z side 32 to 30 (right block, annihilator subspace of dimension 22, found at information set 1, nothing lighter in 40,000); d unchanged at the minimum over the sides. Still a witness-backed upper bound."
  },
  "family": "generalized-bicycle"
 }

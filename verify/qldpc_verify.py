@@ -32,11 +32,12 @@ What "verified" means per field:
               with the instruction to type it CSS, so the 500-plus CSS entries
               keep their per-side semantics. The fingerprint is rref(S) and
               the WL signature carries X/Z/Y edge labels. A stabilizer code
-              that is CSS up to a Hadamard on some qubit subset has that
-              subset found (is_css_up_to_local_hadamard) and the CSS code it
-              maps to fingerprinted, so the dedup gate can mark a relabeled
-              board entry as a duplicate. CSS and stabilizer codes rank on
-              separate leaderboards; nothing here compares across the two.
+              that is CSS up to single-qubit Cliffords on some qubits
+              (is_css_up_to_local_clifford) is rejected with the fix spelled
+              out, like the all-pure case: it carries nothing its CSS image
+              does not, and that image belongs on the CSS board. CSS and
+              stabilizer codes rank on separate leaderboards; nothing here
+              compares across the two.
   locality    for a 2d-local-* track: a layout (coordinates for all n qubits
               plus the number of physical `layers`) is required; at most
               `layers` qubits per site and distinct sites
@@ -270,6 +271,143 @@ def is_css_up_to_local_hadamard(A, B):
     # every root takes h = 0; the complement of a component is the other
     # solution and is handled by the caller (hadamard_css_images)
     return sorted(q for q in range(n) if find(q)[1])
+
+
+def is_css_up_to_local_clifford(A, B):
+    """Find single-qubit Cliffords that make every generator pure X or pure Z.
+
+    Returns None when no such local Clifford exists, else (types, ops):
+    types[i] is "X" or "Z", the letter generator i becomes, and ops maps each
+    qubit whose Clifford is not the identity to the images of (X, Y, Z) under
+    it, e.g. "ZYX" for a Hadamard, "YXZ" for S, "XZY" for sqrt(X).
+
+    A single-qubit Clifford permutes the letters X, Y, Z on its qubit, so a
+    local Clifford sends generator i to a pure operator iff every letter it
+    carries lands on one target t_i in {X, Z}. The permutation on qubit q is
+    injective, so two generators sharing q must get the same target when they
+    carry the same letter there and different targets when they carry
+    different letters; a qubit carrying all three letters rules the map out.
+    That is a system of parity constraints on the t_i, solved exactly by
+    union-find with parities, as is_css_up_to_local_hadamard solves the
+    Hadamard case on the qubits. The solution is again unique up to
+    complementing a connected component (the X/Z swap of its generators);
+    per component this returns the side with fewer non-identity Cliffords,
+    so the report names the smaller qubit set (a tie keeps the root typed X).
+
+    Subsumes the Hadamard solver: a Hadamard is the local Clifford that fixes
+    Y, so whatever that finds, this finds too.
+    """
+    A = _as_int8(A)
+    B = _as_int8(B)
+    m, n = A.shape
+    # letter of generator i on qubit q: 1 = X, 2 = Z, 3 = Y
+    letter = A.astype(np.int8) + 2 * B.astype(np.int8)
+    parent = list(range(m))
+    parity = [0] * m           # t_i xor t_parent[i]
+
+    def find(i):
+        path = []
+        while parent[i] != i:
+            path.append(i)
+            i = parent[i]
+        root, acc = i, 0
+        for v in reversed(path):
+            acc ^= parity[v]
+            parity[v] = acc
+            parent[v] = root
+        return root, (parity[path[0]] if path else 0)
+
+    def unite(i, j, want):
+        """Impose t_i xor t_j = want; False on a contradiction."""
+        ri, pi = find(i)
+        rj, pj = find(j)
+        if ri == rj:
+            return pi ^ pj == want
+        parent[rj] = ri
+        parity[rj] = pi ^ pj ^ want
+        return True
+
+    present = {}               # qubit -> {letter: first generator carrying it}
+    for q in range(n):
+        gens = np.nonzero(letter[:, q])[0]
+        if len(gens) == 0:
+            continue
+        first = {}
+        for ii in gens:
+            i = int(ii)
+            L = int(letter[i, q])
+            if L in first:
+                if not unite(first[L], i, 0):
+                    return None
+            else:
+                first[L] = i
+        if len(first) > 2:
+            return None
+        if len(first) == 2:
+            i, j = first.values()
+            if not unite(i, j, 1):
+                return None
+        present[q] = first
+    roots = [find(i) for i in range(m)]
+    types = ["Z" if p else "X" for _, p in roots]
+    name = {1: "X", 2: "Z", 3: "Y"}
+    swap = {"X": "Z", "Z": "X"}
+
+    def perm_on(first, flip):
+        """Images of (X, Y, Z) on a qubit carrying the letters in `first`.
+
+        With this component's types as found or (flip) swapped. The letters
+        q carries go to their generators' targets; whatever is left goes to
+        Y (two letters present) or stays put where it can.
+        """
+        img = {name[L]: (swap[types[i]] if flip else types[i])
+               for L, i in first.items()}
+        if len(img) == 1:
+            (L, t), = img.items()
+            if L != t:
+                other = ({"X", "Y", "Z"} - {L, t}).pop()
+                img[t] = L          # swap the two, fix the third
+                img[other] = other
+        else:
+            rest = ({"X", "Y", "Z"} - set(img)).pop()
+            img[rest] = "Y"
+        return "".join(img.get(L, L) for L in "XYZ")
+
+    # every generator on a qubit sits in one component, so the choice of
+    # side is per component: take the one with fewer non-identity Cliffords
+    by_comp = {}
+    for q, first in present.items():
+        r = roots[next(iter(first.values()))][0]
+        by_comp.setdefault(r, []).append((q, perm_on(first, False), perm_on(first, True)))
+    ops = {}
+    for r, rows in by_comp.items():
+        flip = (sum(p1 != "XYZ" for _, _, p1 in rows)
+                < sum(p0 != "XYZ" for _, p0, _ in rows))
+        if flip:
+            for i in range(m):
+                if roots[i][0] == r:
+                    types[i] = swap[types[i]]
+        for q, p0, p1 in rows:
+            perm = p1 if flip else p0
+            if perm != "XYZ":
+                ops[q] = perm
+    return types, ops
+
+
+def clifford_css_images(doc, types):
+    """Return the CSS documents a stabilizer code maps to under local Cliffords.
+
+    `types` comes from is_css_up_to_local_clifford: generator i becomes a pure
+    operator of that letter on its full support (a Y counts as one qubit).
+    The result is the mapped code and its X/Z swap, as hadamard_css_images
+    returns, each shaped so signature() and the fingerprint apply.
+    """
+    X, Z = [], []
+    for g, t in zip(doc["checks"]["S"], types):
+        (X if t == "X" else Z).append(sorted(set(g["X"]) | set(g["Z"])))
+    base = {"n": doc["n"], "k": doc["k"], "distance": {"d": doc["distance"]["d"]}}
+    return [dict(base, code_type="CSS", checks={"X": X, "Z": Z}),
+            dict(base, code_type="CSS", checks={"X": Z, "Z": X})]
 
 
 def hadamard_css_images(doc, hadamard_qubits):
@@ -1239,34 +1377,64 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
                "a valid P witness is required to earn a distance" if stab else
                "valid X and Z witnesses are required to earn a global distance")
 
-    # 7a. local-Hadamard equivalence. A CSS board code with a
-    #     Hadamard on some qubits is a stabilizer code with the same
-    #     [[n, k, d]] and weight, and neither rref(S) nor the labeled WL
-    #     signature matches the original. When a Hadamard subset exists that
-    #     makes every generator pure, the CSS code it maps to (and its X/Z
-    #     swap, the complement subset) is fingerprinted and WL-signed here,
-    #     and the dedup gate (validate_candidate, verify_all) compares those
-    #     against the board and marks a hit as a duplicate of that entry, not
-    #     a rejection. Informational: the check never fails an entry.
+    # 7a. local-Clifford equivalence. A CSS code with a single-qubit
+    #     Clifford on some qubits (a Hadamard, an S, any of the six) is a
+    #     stabilizer code with the same [[n, k, d]] and weight, and neither
+    #     rref(S) nor the labeled WL signature matches the original. It
+    #     carries nothing its CSS image does not, so it is rejected with the
+    #     fix spelled out, exactly as the all-pure case is in step 3: typed
+    #     CSS, the image ranks on the CSS board under the per-side semantics,
+    #     and the board's own dedup then sees it. Before this the check was
+    #     informational and searched Hadamards only, so a rotated copy of a
+    #     CSS code that was not on the board was admitted as "non-CSS". The
+    #     CSS image's fingerprint and signature are still reported, so a
+    #     reader can match it against the board by hand.
     if stab:
-        h = is_css_up_to_local_hadamard(A, B)
-        if h is not None:
-            images = hadamard_css_images(doc, h)
+        found = is_css_up_to_local_clifford(A, B)
+        if found is not None and not found[1]:
+            # No Clifford needed: every generator is already pure, which is
+            # the CSS code step 3 rejects with its own instruction. A second
+            # rejection naming zero qubits would only confuse the submitter.
+            record("stabilizer_code_is_not_locally_css", True,
+                   "every generator is already pure, see "
+                   "stabilizer_code_is_not_css")
+        elif found is not None:
+            types, ops = found
+            images = clifford_css_images(doc, types)
+            qubits = sorted(ops)
+            kinds = sorted({v for v in ops.values()})
             report["css_equivalent"] = {
-                "hadamard_qubits": h,
+                "clifford_qubits": qubits,
+                "clifford_ops": {str(q): ops[q] for q in qubits},
+                "x_type_generators": [i for i, t in enumerate(types) if t == "X"],
                 "fingerprints": [css_fingerprint(_matrix(im["checks"]["X"], n),
                                                  _matrix(im["checks"]["Z"], n))
                                  for im in images],
                 "signatures": [signature(im)["hash"] for im in images],
             }
-            record("local_hadamard_css_equivalent", True,
-                   f"a Hadamard on {len(h)} qubit(s) makes every generator "
-                   f"pure: this code is locally Clifford equivalent to a CSS "
-                   f"code, whose fingerprint the dedup gate compares against "
-                   f"the CSS board")
+            if kinds == ["ZYX"]:
+                report["css_equivalent"]["hadamard_qubits"] = qubits
+                what = f"a Hadamard on {len(qubits)} qubit(s)"
+            else:
+                what = (f"single-qubit Cliffords on {len(qubits)} qubit(s) "
+                        f"(X,Y,Z -> {', '.join(kinds)})")
+            shown = ", ".join(map(str, qubits[:12])) + (", ..." if len(qubits) > 12 else "")
+            nx = sum(1 for t in types if t == "X")
+            record("stabilizer_code_is_not_locally_css", False,
+                   f"{what} [{shown}] makes every generator pure, so this is "
+                   f"a CSS code up to a local Clifford: set code_type to "
+                   f"\"CSS\" and submit that image, generator supports as "
+                   f"checks.X ({nx} generators) and checks.Z "
+                   f"({len(types) - nx}) with distance.X and distance.Z "
+                   f"witnesses (css_equivalent in this report names the "
+                   f"X-type generators and the Clifford per qubit)")
+        else:
+            record("stabilizer_code_is_not_locally_css", True,
+                   "no single-qubit Cliffords make every generator pure X or "
+                   "pure Z: the code is non-CSS under any local Clifford")
     else:
         # A CSS entry is filed under its own local-Hadamard images too, so the
-        # two families are deduped up to the same relation (#2327). Without
+        # two families are deduped up to the same relation. Without
         # this the verdict depended on the submitter's code_type: a Hadamard
         # relabelling of a board entry was caught when typed `stabilizer` and
         # missed when typed `CSS`. Informational, like the branch above: it

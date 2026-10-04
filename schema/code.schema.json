@@ -34,7 +34,7 @@
         "CSS",
         "stabilizer"
       ],
-      "description": "CSS: checks.X and checks.Z, per-side distance witnesses. stabilizer (schema 0.4): checks.S, one list of Pauli generators, and a single Pauli-weight distance witness distance.P. A code whose every generator is pure X or pure Z is a CSS code and must be typed CSS; the verifier rejects it otherwise. The two types are ranked on separate leaderboards."
+      "description": "CSS: checks.X and checks.Z, per-side distance witnesses. stabilizer (schema 0.4): checks.S, one list of Pauli generators, and a single Pauli-weight distance witness distance.P. A code whose every generator is pure X or pure Z, or becomes so under single-qubit Cliffords on some qubits, is a CSS code and must be typed CSS (as that image); the verifier rejects it otherwise. The two types are ranked on separate leaderboards."
     },
     "n": {
       "type": "integer",

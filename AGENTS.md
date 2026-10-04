@@ -81,9 +81,9 @@ Two more, same reason:
 - What you claim in the body must match the file in the diff. A distance is `upper_bound`
   until a certificate says otherwise — do not call a witnessed bound "certified", and do
   not put a distance in the filename that the JSON does not support.
-- Delete the drafting scaffolding before asking for review: the `qldpc submit` footer, HTML
-  comments, unticked checklist boxes, session URLs. If a checklist box is not true, make it
-  true or say why. The drafted body also carries parenthetical prompts (e.g. "(Name the
+- Delete the drafting scaffolding before asking for review: HTML comments, unticked
+  checklist boxes, session URLs. If a checklist box is not true, make it true or say why
+  (`qldpc submit` ticks the equivalence box itself when its board dedup finds nothing). The drafted body also carries parenthetical prompts (e.g. "(Name the
   track and the existing entry this beats…)"): replace each with real content. Then run
   `uv run python verify/check_prose.py --body-file <body.md> --files <changed .md files>`
   locally; it must exit 0 before you request review.
@@ -100,6 +100,13 @@ verify/prepush_prose_check.sh <pr-body.md>
 It re-runs the check inside a clean worktree of HEAD (committed content only), which fails
 exactly when CI would. It must exit 0 before the push. Treat this as part of pushing, not
 as an optional review step — the working-tree check proves nothing about what CI sees.
+
+In a fork, `origin` is the fork, and its `origin/main` is whatever the fork last synced,
+which is not what CI diffs against. The script uses `upstream/main` when an `upstream`
+remote exists and refuses to default to a fork's `origin/main` otherwise, so add the
+canonical repository as `upstream` (`git remote add upstream
+https://github.com/unitaryfoundation/qldpc-challenge.git && git fetch upstream`) or pass
+`BASE=<remote>/main`.
 
 A note named `<n>-<k>-<d>.md` must state its own `[[n,k,d]]` first. Follow
 `notes/TEMPLATE.md`; its sections are what a later searcher reads.

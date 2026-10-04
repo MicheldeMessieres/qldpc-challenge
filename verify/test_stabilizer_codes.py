@@ -1,13 +1,17 @@
 """General (non-CSS) stabilizer codes through the trust anchor.
 
-The fixtures under verify/fixtures/ are the [[5,1,3]] code and the XZZX toric
-code at L = 3 and 4; the tests here build the adversarial variants in place:
-a CSS code typed "stabilizer" (rejected, with the fix spelled out), a
-Hadamard-conjugated copy of a board entry (a duplicate of it, not a new code),
-a non-isotropic S (rejected), a Y-carrying witness whose Hamming weight is not
-its Pauli weight (the Pauli weight is what counts), and an inflated distance
-claim (refuted by the heuristic gate). The last group checks that the two
-boards stay separate: a CSS entry never dominates a stabilizer one.
+The fixtures under verify/fixtures/ are the [[5,1,3]] code, the one-block
+palindromic cyclic [[17,1,7]] code (both non-CSS under every local Clifford),
+and the XZZX toric code at L = 3 and 4 (the toric code with a Hadamard on
+half its qubits, so rejected as CSS up to a local Clifford). The
+tests here build the adversarial variants in place: a CSS code typed
+"stabilizer" (rejected, with the fix spelled out), a Hadamard- or
+S-conjugated copy of a CSS code (rejected the same way, whether or not the
+CSS code is on the board), a non-isotropic S (rejected), a Y-carrying witness
+whose Hamming weight is not its Pauli weight (the Pauli weight is what
+counts), and an inflated distance claim (refuted by the heuristic gate). The
+last group checks that the two boards stay separate: a CSS entry never
+dominates a stabilizer one.
 """
 import copy
 import json
@@ -24,7 +28,7 @@ import validate_candidate as V
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXTURES = os.path.join(ROOT, "verify", "fixtures")
-STABILIZER_FIXTURES = ("5-1-3", "18-2-3", "32-2-4")
+STABILIZER_FIXTURES = ("5-1-3", "17-1-7")       # non-CSS under every local Clifford
 
 
 def load_fixture(slug):
@@ -73,11 +77,36 @@ def hadamard_copy(css_doc, qubits, witness_side="X"):
                           k=css_doc["k"])
 
 
+def phase_copy(css_doc, qubits):
+    """Return a stabilizer-typed copy of a CSS doc with an S gate on `qubits`.
+
+    S sends X to Y and fixes Z, so the X checks pick up a Z factor on those
+    qubits (X -> Y) and the Z checks are unchanged; no Hadamard subset makes
+    this pure again, only the inverse S does. The witness is the Z side's,
+    which S fixes.
+    """
+    sq = set(qubits)
+    gens = [{"X": sorted(s), "Z": sorted(set(s) & sq)} for s in css_doc["checks"]["X"]]
+    gens += [{"X": [], "Z": sorted(s)} for s in css_doc["checks"]["Z"]]
+    witness = {"X": [], "Z": sorted(css_doc["distance"]["Z"]["witness"])}
+    return stabilizer_doc(css_doc["n"], gens, css_doc["distance"]["d"], witness,
+                          name=css_doc["name"] + " with local S gates",
+                          k=css_doc["k"])
+
+
+def css_fp(doc):
+    n = doc["n"]
+    return Q.css_fingerprint(Q._matrix(doc["checks"]["X"], n),
+                             Q._matrix(doc["checks"]["Z"], n))
+
+
 def toric_css(L):
     """Return the plain toric code on an L x L torus, as a CSS doc.
 
-    Same edge labeling as the XZZX fixtures: horizontal edge (i, j) is
-    i*L + j, vertical edge (i, j) is L*L + i*L + j.
+    Horizontal edge (i, j) is i*L + j, vertical edge (i, j) is L*L + i*L + j;
+    X checks are the stars, Z checks the plaquettes. The witnesses are the
+    column of horizontal edges (an X logical) and the column of vertical
+    edges (a Z logical), both of weight L.
     """
     def h(i, j):
         return (i % L) * L + (j % L)
@@ -88,8 +117,20 @@ def toric_css(L):
          for i in range(L) for j in range(L)]
     Z = [sorted({h(i, j), h(i + 1, j), v(i, j), v(i, j + 1)})
          for i in range(L) for j in range(L)]
-    return {"n": 2 * L * L, "k": 2, "distance": {"d": L},
+    return {"name": f"toric L={L}", "n": 2 * L * L, "k": 2,
+            "distance": {"d": L,
+                         "X": {"value": L, "confidence": "upper_bound",
+                               "witness": [h(i, 0) for i in range(L)]},
+                         "Z": {"value": L, "confidence": "upper_bound",
+                               "witness": [v(i, 0) for i in range(L)]}},
             "code_type": "CSS", "checks": {"X": X, "Z": Z}}
+
+
+def xzzx(L):
+    """The XZZX toric code: the toric code with a Hadamard on every vertical
+    edge, typed stabilizer. Rejected as CSS up to a local Clifford; here it
+    is the solver's and the rejection's test input."""
+    return hadamard_copy(toric_css(L), list(range(L * L, 2 * L * L)))
 
 
 # --- the fixtures verify ----------------------------------------------------
@@ -107,6 +148,8 @@ def test_fixture_verifies_with_refutation(slug):
     assert rep["computed"]["flags"]["css"] is False
     assert "stabilizer_commutation" not in failed(rep)
     assert "distance_not_refuted" not in failed(rep)
+    assert "stabilizer_code_is_not_locally_css" not in failed(rep)
+    assert "css_equivalent" not in rep
     assert Q.sides(doc) == ("P",)
 
 
@@ -116,9 +159,10 @@ def test_five_qubit_parameters():
     assert rep["computed"]["rank_S"] == 4
     assert rep["computed"]["max_check_weight"] == 4
     assert rep["computed"]["weight_class"] == "weight-4"
-    # the perfect code is not CSS under any local Hadamards
+    # the perfect code is not CSS under any local Clifford
     A, B = Q.stabilizer_matrices(doc)
     assert Q.is_css_up_to_local_hadamard(A, B) is None
+    assert Q.is_css_up_to_local_clifford(A, B) is None
     assert "css_equivalent" not in rep
 
 
@@ -161,6 +205,9 @@ def test_css_code_typed_stabilizer_is_rejected_with_the_fix():
     assert not rep["ok"]
     msg = failed(rep)["stabilizer_code_is_not_css"]
     assert 'set code_type to "CSS"' in msg and "checks.X" in msg
+    # step 3 owns the all-pure case; the local-Clifford check does not pile
+    # a second rejection naming zero qubits on top of it
+    assert "stabilizer_code_is_not_locally_css" not in failed(rep)
     # and the same code typed CSS still passes as it always did
     assert Q.verify(steane)["ok"]
 
@@ -210,43 +257,71 @@ def test_exact_claim_accepted_as_upper_bound():
     assert any(c["check"] == "distance_P_exact_flagged" for c in rep["checks"])
 
 
-# --- dedup: local Hadamards -------------------------------------------------
+# --- CSS up to a local Clifford ---------------------------------------------
 
 def test_hadamard_solver_finds_the_subset_and_the_css_image():
     for L in (3, 4):
-        doc = load_fixture(f"{2 * L * L}-2-{L}")
+        doc = xzzx(L)
         A, B = Q.stabilizer_matrices(doc)
         h = Q.is_css_up_to_local_hadamard(A, B)
         assert h is not None
         images = Q.hadamard_css_images(doc, h)
         toric = toric_css(L)
-        n = toric["n"]
-        fp_toric = Q.css_fingerprint(Q._matrix(toric["checks"]["X"], n),
-                                     Q._matrix(toric["checks"]["Z"], n))
-        fps = [Q.css_fingerprint(Q._matrix(im["checks"]["X"], n),
-                                 Q._matrix(im["checks"]["Z"], n)) for im in images]
-        assert fp_toric in fps
+        fp_toric = css_fp(toric)
+        assert fp_toric in [css_fp(im) for im in images]
+        # the Clifford solver finds the same map (either side of the tie: a
+        # Hadamard on exactly half the qubits) and the same images
+        types, ops = Q.is_css_up_to_local_clifford(A, B)
+        assert sorted(ops) in (h, sorted(set(range(doc["n"])) - set(h)))
+        assert set(ops.values()) == {"ZYX"}
+        assert {css_fp(im) for im in Q.clifford_css_images(doc, types)} == \
+            {css_fp(im) for im in images}
         rep = Q.verify(doc)
         assert fp_toric in rep["css_equivalent"]["fingerprints"]
         assert Q.signature(toric)["hash"] in rep["css_equivalent"]["signatures"]
-    # a Y anywhere rules the map out
+        assert rep["css_equivalent"]["hadamard_qubits"] == h
+    # a Y anywhere rules the Hadamard map out
     five = load_fixture("5-1-3")
     A, B = Q.stabilizer_matrices(five)
     assert Q.is_css_up_to_local_hadamard(A, B) is None
 
 
-def test_hadamard_copy_of_a_board_code_is_a_duplicate():
+@pytest.mark.parametrize("L", (3, 4))
+def test_xzzx_toric_is_rejected_as_the_toric_code_behind_hadamards(L, monkeypatch):
+    """The rejection does not depend on the parent being on the board (the
+    dedup gate could only see a parent that was). With an empty board the
+    entry is still refused, with the fix."""
+    doc = xzzx(L)
+    rep = Q.verify(doc)
+    assert not rep["ok"]
+    msg = failed(rep)["stabilizer_code_is_not_locally_css"]
+    assert "a Hadamard on" in msg and 'set code_type to "CSS"' in msg
+    assert "checks.X" in msg and "checks.Z" in msg
+    assert "stabilizer_code_is_not_css" not in failed(rep)   # the rows do mix
+    monkeypatch.setattr(V, "_board_entries", lambda: [])
+    verdict = V.validate_candidate(doc, refute=False)
+    assert verdict["passed"] is False
+    assert "invalid: verifier rejected" in verdict["labels"]
+    assert "stabilizer_code_is_not_locally_css" in verdict["gates"]["verify"]["failed_checks"]
+
+
+def test_hadamard_copy_of_a_css_code_is_rejected_not_deduped():
     steane = load_code("7-1-3")
     doc = hadamard_copy(steane, [0, 1, 2])
     rep = Q.verify(doc)
-    assert rep["ok"], failed(rep)
-    assert "stabilizer_code_is_not_css" not in failed(rep)
+    assert not rep["ok"]
+    assert "stabilizer_code_is_not_locally_css" in failed(rep)
+    ceq = rep["css_equivalent"]
+    assert ceq["hadamard_qubits"] == [0, 1, 2] == ceq["clifford_qubits"]
+    assert set(ceq["clifford_ops"].values()) == {"ZYX"}
+    assert css_fp(steane) in ceq["fingerprints"]
+    # the X-type generators named in the report are Steane's X checks, so the
+    # reader can rebuild the image the message asks for
+    assert ceq["x_type_generators"] == list(range(len(steane["checks"]["X"])))
     verdict = V.validate_candidate(doc, refute=False)
-    assert verdict["gates"]["dedup"]["exact_duplicate_of"] == "7-1-3.json"
-    assert verdict["gates"]["dedup"]["local_clifford"] == "hadamard"
     assert verdict["passed"] is False
-    assert any("up to a Hadamard" in lab for lab in verdict["labels"])
-    # a qubit-permuted Hadamard copy is caught by the WL signature instead
+    assert "invalid: verifier rejected" in verdict["labels"]
+    # a qubit permutation does not help: the solver sees through it
     perm = [3, 6, 0, 5, 1, 4, 2]
     permuted = copy.deepcopy(doc)
     permuted["checks"]["S"] = [{"X": sorted(perm[q] for q in g["X"]),
@@ -255,9 +330,60 @@ def test_hadamard_copy_of_a_board_code_is_a_duplicate():
     w = doc["distance"]["P"]["witness"]
     permuted["distance"]["P"]["witness"] = {"X": sorted(perm[q] for q in w["X"]),
                                             "Z": sorted(perm[q] for q in w["Z"])}
-    verdict = V.validate_candidate(permuted, refute=False)
-    assert verdict["gates"]["dedup"]["exact_duplicate_of"] is None
-    assert verdict["gates"]["dedup"]["wl_equivalent_of"] == "7-1-3.json"
+    rep = Q.verify(permuted)
+    assert "stabilizer_code_is_not_locally_css" in failed(rep)
+    assert rep["css_equivalent"]["hadamard_qubits"] == sorted(perm[q] for q in [0, 1, 2])
+
+
+def test_s_rotated_css_code_is_rejected_beyond_hadamards():
+    """An S on some qubits (X -> Y) leaves no pure-making Hadamard subset,
+    yet the code is still a CSS code in disguise."""
+    steane = load_code("7-1-3")
+    doc = phase_copy(steane, [0, 1, 2])
+    A, B = Q.stabilizer_matrices(doc)
+    assert (A & B).any(), "the X checks now carry Y factors"
+    assert Q.is_css_up_to_local_hadamard(A, B) is None
+    types, ops = Q.is_css_up_to_local_clifford(A, B)
+    assert sorted(ops) == [0, 1, 2] and set(ops.values()) == {"YXZ"}
+    rep = Q.verify(doc)
+    assert not rep["ok"]
+    msg = failed(rep)["stabilizer_code_is_not_locally_css"]
+    assert "single-qubit Cliffords on 3 qubit(s)" in msg and "YXZ" in msg
+    assert css_fp(steane) in rep["css_equivalent"]["fingerprints"]
+    assert "hadamard_qubits" not in rep["css_equivalent"]
+    # mixing H and S across qubits is one local Clifford too
+    mixed = phase_copy(steane, [0])
+    hq = {4, 5}
+    for g in mixed["checks"]["S"]:
+        xs, zs = set(g["X"]), set(g["Z"])
+        g["X"], g["Z"] = sorted((xs - hq) | (zs & hq)), sorted((zs - hq) | (xs & hq))
+    w = mixed["distance"]["P"]["witness"]
+    xs, zs = set(w["X"]), set(w["Z"])
+    w["X"], w["Z"] = sorted((xs - hq) | (zs & hq)), sorted((zs - hq) | (xs & hq))
+    types, ops = Q.is_css_up_to_local_clifford(*Q.stabilizer_matrices(mixed))
+    assert ops == {0: "YXZ", 4: "ZYX", 5: "ZYX"}
+    assert css_fp(steane) in {css_fp(im) for im in Q.clifford_css_images(mixed, types)}
+    assert "stabilizer_code_is_not_locally_css" in failed(Q.verify(mixed))
+
+
+def test_clifford_solver_says_no_on_genuinely_non_css_codes():
+    # the five-qubit code and its S-conjugate YZZYI: generators i and i+1
+    # meet X against Z on one qubit, so the types would have to alternate
+    # around an odd cycle
+    five = load_fixture("5-1-3")
+    assert Q.is_css_up_to_local_clifford(*Q.stabilizer_matrices(five)) is None
+    yzzy = copy.deepcopy(five)
+    for g in yzzy["checks"]["S"]:
+        g["Z"] = sorted(set(g["Z"]) | set(g["X"]))
+    assert Q.is_css_up_to_local_clifford(*Q.stabilizer_matrices(yzzy)) is None
+    # a qubit carrying all three letters has no injective image onto {X, Z}
+    gens = [{"X": [0, 1], "Z": []}, {"X": [], "Z": [0, 2]}, {"X": [0, 3], "Z": [0, 3]}]
+    A, B = Q._matrix([g["X"] for g in gens], 4), Q._matrix([g["Z"] for g in gens], 4)
+    assert Q.is_css_up_to_local_clifford(A, B) is None
+    # and the fixtures that verify are the ones the solver clears
+    for slug in STABILIZER_FIXTURES:
+        A, B = Q.stabilizer_matrices(load_fixture(slug))
+        assert Q.is_css_up_to_local_clifford(A, B) is None
 
 
 def test_labeled_signature_separates_letter_patterns():
@@ -302,32 +428,32 @@ def heavy_pauli_witness(doc, target):
 
 
 def test_inflated_distance_is_refuted():
-    doc = load_fixture("32-2-4")
-    v = heavy_pauli_witness(doc, 6)
+    doc = load_fixture("17-1-7")
+    v = heavy_pauli_witness(doc, 9)
     bad = copy.deepcopy(doc)
-    bad["distance"]["d"] = 6
-    bad["distance"]["P"] = {"value": 6, "confidence": "upper_bound",
+    bad["distance"]["d"] = 9
+    bad["distance"]["P"] = {"value": 9, "confidence": "upper_bound",
                             "witness": H.pauli_witness(v, doc["n"])}
     assert Q.verify(bad)["ok"], "the heavy witness is a genuine logical"
     rep = Q.verify(bad, refute=True, seed=0)
     assert not rep["ok"]
-    assert "found weight-4 logical" in failed(rep)["distance_not_refuted"]
+    assert "found weight-7 logical" in failed(rep)["distance_not_refuted"]
     refuted, d_found, wit, _ = H.refute_check(bad, seed=0, trials=500)
-    assert refuted and d_found == 4
+    assert refuted and d_found == 7
     A, B = Q.stabilizer_matrices(doc)
     x, z = Q.witness_pauli(wit, doc["n"])
     assert H.valid_pauli_logical(np.concatenate([x, z]), A, B)
     if G.GF is not None:
         refuted, d_found, wit, done = G._fast_refute(bad, 3, 20000)
-        assert refuted and d_found == 4 and done == 20000
+        assert refuted and d_found == 7 and done == 20000
         assert set(wit) == {"X", "Z"}
         x, z = Q.witness_pauli(wit, doc["n"])
         assert H.valid_pauli_logical(np.concatenate([x, z]), A, B)
-        assert Q.pauli_weight(x, z) == 4
+        assert Q.pauli_weight(x, z) == 7
 
 
 def test_estimate_reports_one_side():
-    doc = load_fixture("18-2-3")
+    doc = xzzx(3)
     res = H.estimate(doc, trials=300, seed=0, fast_trials=0)
     assert res["verdict"] == "corroborated"
     assert set(res["sides"]) == {"P"}
@@ -337,11 +463,11 @@ def test_estimate_reports_one_side():
 # --- gate plumbing: sides(), classify_diff, authorship binding -----------------
 
 def test_classify_diff_and_binding_on_a_pauli_side():
-    doc = load_fixture("32-2-4")
+    doc = load_fixture("17-1-7")
     base = copy.deepcopy(doc)
-    base["distance"]["d"] = 6
-    base["distance"]["P"] = {"value": 6, "confidence": "upper_bound",
-                             "witness": H.pauli_witness(heavy_pauli_witness(doc, 6), 32)}
+    base["distance"]["d"] = 9
+    base["distance"]["P"] = {"value": 9, "confidence": "upper_bound",
+                             "witness": H.pauli_witness(heavy_pauli_witness(doc, 9), 17)}
     new = copy.deepcopy(doc)
     new["distance"]["P"]["witness_provenance"] = {
         "found_by": ["@bob"], "date": "2026-09-25", "found_at_samples": 1000}
@@ -350,11 +476,11 @@ def test_classify_diff_and_binding_on_a_pauli_side():
     ok, why = check_authorship.refutation_binding("bob", base, new)
     assert ok, why
     wrong_d = copy.deepcopy(new)
-    wrong_d["distance"]["d"] = 5
+    wrong_d["distance"]["d"] = 8
     assert G.classify_diff(base, wrong_d)[1] == "distance.d is not P.value"
     assert check_authorship.refutation_binding("bob", base, wrong_d)[1] == \
         "distance.d is not P.value"
-    assert G._witness_weight(new["distance"]["P"]) == 4
+    assert G._witness_weight(new["distance"]["P"]) == 7
     assert G._locality_rank(doc) == 2
 
 
@@ -415,17 +541,18 @@ def test_site_records_are_per_board():
 
 def test_cli_loads_a_symplectic_npz_and_refuses_pure_rows(tmp_path):
     import qldpc as cli
-    doc = load_fixture("18-2-3")
+    doc = load_fixture("17-1-7")
     A, B = Q.stabilizer_matrices(doc)
-    p = os.path.join(str(tmp_path), "xzzx.npz")
+    p = os.path.join(str(tmp_path), "cyc.npz")
     np.savez(p, s=np.concatenate([A, B], axis=1))
     A2, B2, coords, draft = cli.load_checks(p)
     assert draft == {"code_type": "stabilizer"} and coords is None
     assert (A2 == A).all() and (B2 == B).all()
-    p2 = os.path.join(str(tmp_path), "xzzx_ab.npz")
+    p2 = os.path.join(str(tmp_path), "cyc_ab.npz")
     np.savez(p2, a=A, b=B)
     A3, B3, _, draft = cli.load_checks(p2)
     assert draft == {"code_type": "stabilizer"} and (A3 == A).all() and (B3 == B).all()
+    AH, BH = Q.stabilizer_matrices(xzzx(3))
     steane = load_code("7-1-3")
     HX = Q._matrix(steane["checks"]["X"], 7)
     p3 = os.path.join(str(tmp_path), "steane.npz")
@@ -442,7 +569,10 @@ def test_cli_loads_a_symplectic_npz_and_refuses_pure_rows(tmp_path):
         setattr(args, f"budget_{key}", None)
     with pytest.raises(SystemExit, match="pure X or pure Z"):
         cli.build_stabilizer_submission(a, b, args)
+    with pytest.raises(SystemExit, match="CSS code up to a local Clifford"):
+        cli.build_stabilizer_submission(AH, BH, args)
+    args.trials = 2000
     sub = cli.build_stabilizer_submission(A, B, args)
     assert sub["code_type"] == "stabilizer" and sub["schema_version"] == "0.4"
-    assert sub["distance"]["d"] == 3 and Q.verify(sub)["ok"]
+    assert sub["distance"]["d"] == 7 and Q.verify(sub)["ok"]
     assert cli.schema_version_for(sub) == "0.4"

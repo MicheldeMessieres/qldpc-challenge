@@ -145,9 +145,11 @@ def main(argv=None):
                     sigs.setdefault(rep["signature"]["hash"], []).append(rel)
                 if "fingerprint" in rep:
                     fps.setdefault(rep["fingerprint"], []).append(rel)
-                # a stabilizer entry that is CSS up to local Hadamards is also
-                # filed under that CSS code's identity, so a
-                # Hadamard-relabeled copy of a CSS entry collides with it
+                # a CSS entry is also filed under its local-Hadamard images
+                # (its X/Z swap, for a connected code), so a relabeled copy
+                # collides with it; a stabilizer entry that is CSS up to
+                # local Cliffords is rejected outright, so it never reaches
+                # this point
                 ceq = rep.get("css_equivalent") or {}
                 for fp in set(ceq.get("fingerprints") or []):
                     fps.setdefault(fp, []).append(rel + " (via local Hadamard)")

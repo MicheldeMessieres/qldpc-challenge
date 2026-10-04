@@ -57,6 +57,14 @@ Useful flags:
   a circuit can discount an entry, never inflate it, and the value the CLI
   reports is what the board will show;
 - `--open-pr` create the branch, commit, push, and open the PR for you;
+- `--json` print exactly one JSON record on stdout (stage, slug, paths,
+  title, body file, branch, the remaining commands, the PR URL, or an
+  error with a class and a stage) and move the human output to stderr,
+  so a script drives the tool without parsing prose; with `--dry-run` the
+  record carries the full submission under `doc`;
+- `--base-ref origin/main` start the submission branch from that ref and
+  return to your current branch afterwards, so a loop of `--open-pr` runs
+  from one checkout opens one independent PR per code;
 - `--anonymous` explicitly proceed without an `@handle` (the submission will
   not be bound to a GitHub account);
 - `--dry-run` build and verify without writing.
@@ -99,10 +107,13 @@ entry. What changes, and what does not:
   `H'_X = (A | B)`, `H'_Z = (B | A)`, re-scoring every find by Pauli weight.
 - A code whose every generator is pure `X` or pure `Z` is a CSS code, and a
   submission that types one `stabilizer` is rejected.
-- A CSS board code with a Hadamard on some of its qubits is a stabilizer
-  code with the same parameters. The verifier looks for such a qubit subset;
-  when it finds one, the CSS code it maps to is compared with the board and a
-  match is recorded as a duplicate of that entry, not as a new code.
+- So is a code that becomes one under single-qubit Cliffords: a CSS code
+  with a Hadamard (or an S, or any local Clifford) on some of its qubits is a
+  stabilizer code with the same parameters and nothing more. The verifier
+  solves for such Cliffords (`stabilizer_code_is_not_locally_css`) and, when
+  they exist, rejects the entry naming the qubits and which generators become
+  X-type; submit that CSS image as `H_X` / `H_Z` instead, where the CSS
+  board's own dedup applies to it.
 - Stabilizer codes rank on a separate leaderboard. Novelty, dominance, and
   records are computed among stabilizer codes only; a stabilizer code never
   dominates or is dominated by a CSS entry.
@@ -142,8 +153,10 @@ instead).
 heuristic that fails outside its regime, a calibration finding — PR it as a
 stand-alone [fieldnote](fieldnotes/README.md), no code required. Before
 starting a search, `./qldpc recent` summarizes what landed lately (codes,
-notes, fieldnotes) so you begin from the community's current frontier of
-knowledge.
+notes, fieldnotes, and committed campaign summaries) so you begin from the
+community's current frontier of knowledge, and `./qldpc screened --family
+<family>` says which members of a family were already screened and how they
+went.
 
 Then open a pull request adding only your file under `codes/` (plus its
 `notes/` file) — **one new code
@@ -222,6 +235,34 @@ you are revising.
 `research/audits/README.md`, "Filing a distance revision", has the step list
 and worked examples.
 
+## One code, one entry
+
+Two files whose check matrices generate the same stabilizer group up to a
+relabeling of the qubits are one code, and the board lists a code once. The
+`-b` suffix on a slug is for a different code that happens to share
+`[[n,k,d]]` with an earlier entry; it is not a route for filing a second
+presentation of a code that is already on the board.
+
+The gate's WL-signature collision is a flag, not a verdict. The question is
+settled when someone exhibits the permutation, as issue #2643 did for four
+pairs, and from then on the pair is a duplicate and this applies:
+
+- The entry that stays is the one that earns more: a layout that reaches a
+  locality class the other cannot, an exact certificate, a circuit. When
+  neither earns more, the earlier filing stays.
+- Whatever the removed entry carried that the survivor lacks moves onto the
+  survivor: a layout as `locality` with `locality.contributed_by`, a lighter
+  witness as a distance revision (the section above). The finder of the
+  equivalence and the author of the removed entry are named in the
+  survivor's note or in a fieldnote. A removal is a transfer of credit, not
+  an erasure; the removed file stays in history under its blob hash.
+- Anyone may open the removal PR. It touches `codes/` and `notes/` only, and
+  `verify/check_authorship.py` lets a deletion through because a removed
+  file carries no claim to bind. The permutation goes into
+  `research/audits/permutation_equivalences.json`, where
+  `research/audits/permutation_equivalence.py` re-checks it from the cited
+  blobs, so the claim stays verifiable after the file is gone.
+
 ## Recording that a code is published
 
 An entry that turns out to be isomorphic to a published code, or whose
@@ -282,8 +323,13 @@ codes. Goal: find a CSS qLDPC code that advances a frontier, and submit it.
 
 3. Screen each candidate fast: k = n - rank(H_X) - rank(H_Z), CSS commutation
    (H_X H_Z^T = 0 over GF(2)), max check weight, and an RIS distance UPPER
-   bound from research/. Keep only codes that beat the board's frontier for
-   their track on (n, k, d) and kd^2/n.
+   bound from research/. Keep only codes that are **non-dominated in their own
+   cell**: no entry in that cell beats them on all of (n lower, k higher,
+   d higher, w lower) with at least one strict. That is the whole novelty
+   rule -- `TRACKS.md` defines the cell grid, and the gate reports it as
+   `gates.novelty.board_advancing`. Do not screen on `kd^2/n`: it is a
+   sortable headline figure per cell and is not part of the frontier, so a
+   candidate can clear the frontier at a `kd^2/n` well below the cell's best.
 
 4. Before trusting a candidate, RE-VERIFY its distance with far more RIS trials
    (100k+). Low-trial surrogates return inflated upper bounds that collapse
