@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           git clone -q https://github.com/arminbiere/kissat.git /tmp/kissat
           git -C /tmp/kissat checkout -q "$KISSAT_REF"
-          (cd /tmp/kissat && ./configure -q && make -s -j"$(nproc)")
+          (cd /tmp/kissat && ./configure >/dev/null && make -s -j"$(nproc)")
           git clone -q https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
           git -C /tmp/drat-trim checkout -q "$DRAT_TRIM_REF"
           (cd /tmp/drat-trim && make -s drat-trim)
