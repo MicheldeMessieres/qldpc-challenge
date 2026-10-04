@@ -1,0 +1,32 @@
+{
+  "bar": {
+    "kd2_over_n": 6,
+    "source": "the campaign's objective.target"
+  },
+  "campaign_id": "smoke-bb-72",
+  "curve_version": 1,
+  "families": [
+    {
+      "best_verified_kd2_over_n": null,
+      "family": "bivariate-bicycle",
+      "points": [
+        {
+          "screened_kd2_over_n": 6.0,
+          "trials_cumulative": 200,
+          "verdict": "duplicate",
+          "verified_best_kd2_over_n": null
+        }
+      ],
+      "reached_bar": false,
+      "trials_spent": 200,
+      "trials_to_bar": null
+    }
+  ],
+  "headline": {
+    "best_verified_kd2_over_n": null,
+    "reached_bar": false,
+    "screened_reached_bar_but_gate_did_not": true,
+    "trials_spent": 200,
+    "trials_to_bar": null
+  }
+}

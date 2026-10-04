@@ -1,0 +1,236 @@
+{
+  "bar": {
+    "kd2_over_n": null,
+    "source": null
+  },
+  "campaign_id": "sat-2dlocal-t2plus",
+  "curve_version": 1,
+  "families": [
+    {
+      "best_verified_kd2_over_n": 7.04,
+      "family": "local-sat-css",
+      "points": [
+        {
+          "screened_kd2_over_n": 4.48,
+          "trials_cumulative": 20000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 4.48
+        },
+        {
+          "screened_kd2_over_n": 5.0,
+          "trials_cumulative": 40000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 5.0
+        },
+        {
+          "screened_kd2_over_n": 3.375,
+          "trials_cumulative": 60000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 5.0
+        },
+        {
+          "screened_kd2_over_n": 7.0,
+          "trials_cumulative": 80000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 4.5,
+          "trials_cumulative": 100000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 4.444444444444445,
+          "trials_cumulative": 120000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 5.333333333333333,
+          "trials_cumulative": 140000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 3.5,
+          "trials_cumulative": 160000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 3.5918367346938775,
+          "trials_cumulative": 180000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 4.244897959183674,
+          "trials_cumulative": 200000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 3.489795918367347,
+          "trials_cumulative": 220000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 5.12,
+          "trials_cumulative": 240000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 3.6,
+          "trials_cumulative": 260000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.0
+        },
+        {
+          "screened_kd2_over_n": 7.04,
+          "trials_cumulative": 280000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 4.68,
+          "trials_cumulative": 300000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 2.5,
+          "trials_cumulative": 320000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 3.0,
+          "trials_cumulative": 340000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 3.09375,
+          "trials_cumulative": 360000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 3.375,
+          "trials_cumulative": 380000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 5.333333333333333,
+          "trials_cumulative": 400000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 3.75,
+          "trials_cumulative": 420000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 4.75,
+          "trials_cumulative": 440000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": 3.4444444444444446,
+          "trials_cumulative": 460000,
+          "verdict": "passed",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        },
+        {
+          "screened_kd2_over_n": null,
+          "trials_cumulative": 460000,
+          "verdict": "not_run",
+          "verified_best_kd2_over_n": 7.04
+        }
+      ],
+      "reached_bar": false,
+      "trials_spent": 460000,
+      "trials_to_bar": null
+    }
+  ],
+  "headline": {
+    "best_verified_kd2_over_n": 7.04,
+    "reached_bar": false,
+    "screened_reached_bar_but_gate_did_not": false,
+    "trials_spent": 460000,
+    "trials_to_bar": null
+  }
+}

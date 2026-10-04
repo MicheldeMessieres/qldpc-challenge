@@ -49,6 +49,7 @@ SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_SCHEMA_PATH = os.path.join(_ROOT, "schema",
                                    "campaign_summary.schema.json")
 SUMMARY_VERSION = 1
+CURVE_VERSION = 1
 JOURNAL_VERSION = 1
 CONTRACT_VERSION = 1
 MANIFEST_VERSION = 1
@@ -497,7 +498,8 @@ class Ledger:
         self._mark = (len(self.survivors), len(self.negative_results))
         return self._current
 
-    def record_screen(self, *, trials, d=None, backend=None, rung=None):
+    def record_screen(self, *, trials, d=None, backend=None, rung=None,
+                      n=None, k=None):
         """Record what the cheap screen read on the open experiment.
 
         ``d`` is the lightest logical weight the screen found, which is an
@@ -513,6 +515,11 @@ class Ledger:
         if int(trials) < 1:
             raise CampaignError("record_screen: trials must be at least 1")
         screened = {"trials": int(trials), "d": None if d is None else int(d)}
+        # The efficiency the reading implies, carried rather than left to be
+        # recomputed: a later session plotting the campaign should not have
+        # to guess which n the screen was reading against.
+        if d is not None and n and k:
+            screened["kd2_over_n"] = k * d * d / n
         if backend is not None:
             screened["backend"] = backend
         if rung is not None:
@@ -765,6 +772,14 @@ class Ledger:
         }
         self.survivors.append(row)
         self._current["survivors"] += 1
+        # The best verified efficiency this row bought, beside the screen's
+        # reading of the same member. The two disagree exactly when it
+        # matters, which is what the curve is for.
+        if row["n"]:
+            eff = row["k"] * row["d"] * row["d"] / row["n"]
+            prev = self._current.get("verified_kd2_over_n")
+            self._current["verified_kd2_over_n"] = (
+                eff if prev is None else max(prev, eff))
         if advanced_frontier:
             self.frontier_advances += 1
         return row
@@ -966,6 +981,117 @@ def write_manifest(manifest, path):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write("\n")
+    return path
+
+
+def _row_efficiency(exp):
+    """Return the screened and verified efficiencies a row implies.
+
+    Both are read off the row when it carries them, and derived from the
+    member's own parameters when it does not, so a summary backfilled from a
+    run that predates the field still plots. The verified value is derived
+    only for a row the gate passed: a screened reading is an upper bound on
+    the distance, and treating one as verified would put a number on the
+    curve that no gate ever accepted.
+    """
+    screened = exp.get("screened") or {}
+    params = exp.get("params") or {}
+
+    def _num(key):
+        v = params.get(key)
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) \
+            else None
+
+    n, k, d = _num("n"), _num("k"), screened.get("d")
+    derived = (k * d * d / n) if (n and k and d) else None
+    screened_eff = screened.get("kd2_over_n")
+    if screened_eff is None:
+        screened_eff = derived
+    verified = exp.get("verified_kd2_over_n")
+    if verified is None and exp.get("verdict") == "passed":
+        verified = derived
+    return screened_eff, verified
+
+
+def curve_from_summary(summary, *, bar=None, bar_source=None):
+    """Best-so-far verified efficiency against cumulative trials, per family.
+
+    Two series, because the failure this is for is the disagreement between
+    them: a screen that inflates at low depth reads above the bar while the
+    gate admits nothing near it. The verified series is best-so-far and
+    therefore monotone; the screened series is each row's own reading at the
+    depth it was taken, so a ladder settling downward shows as a descent
+    rather than being hidden by a running maximum.
+
+    Derived from committed rows. It measures nothing and runs nothing.
+    """
+    families, order = {}, []
+    for exp in summary.get("experiments") or []:
+        family = exp.get("family") or "other"
+        if family not in families:
+            families[family] = {"family": family, "points": [],
+                                "trials": 0, "best_verified": None,
+                                "trials_to_bar": None}
+            order.append(family)
+        f = families[family]
+        screened_eff, verified = _row_efficiency(exp)
+        f["trials"] += int((exp.get("screened") or {}).get("trials") or 0)
+        if verified is not None:
+            f["best_verified"] = (verified if f["best_verified"] is None
+                                  else max(f["best_verified"], verified))
+        if (bar is not None and f["trials_to_bar"] is None
+                and f["best_verified"] is not None
+                and f["best_verified"] >= bar):
+            f["trials_to_bar"] = f["trials"]
+        f["points"].append({
+            "trials_cumulative": f["trials"],
+            "screened_kd2_over_n": screened_eff,
+            "verified_best_kd2_over_n": f["best_verified"],
+            "verdict": exp.get("verdict"),
+        })
+
+    out = []
+    for family in order:
+        f = families[family]
+        out.append({"family": family, "points": f["points"],
+                    "trials_spent": f["trials"],
+                    "best_verified_kd2_over_n": f["best_verified"],
+                    "trials_to_bar": f["trials_to_bar"],
+                    "reached_bar": f["trials_to_bar"] is not None})
+
+    best = [f["best_verified_kd2_over_n"] for f in out
+            if f["best_verified_kd2_over_n"] is not None]
+    reached = [f["trials_to_bar"] for f in out
+               if f["trials_to_bar"] is not None]
+    screened_over_bar = bar is not None and any(
+        p["screened_kd2_over_n"] is not None
+        and p["screened_kd2_over_n"] >= bar
+        for f in out for p in f["points"])
+    return {
+        "curve_version": CURVE_VERSION,
+        "campaign_id": summary.get("campaign_id"),
+        "bar": {"kd2_over_n": bar, "source": bar_source},
+        "families": out,
+        "headline": {
+            "best_verified_kd2_over_n": max(best) if best else None,
+            "trials_spent": sum(f["trials_spent"] for f in out),
+            "trials_to_bar": min(reached) if reached else None,
+            "reached_bar": bool(reached),
+            # The 2026-09-20 shape: the screen read above the bar and the
+            # gate never did. Distinguishes a ladder that collapsed from one
+            # that never climbed.
+            "screened_reached_bar_but_gate_did_not": bool(
+                screened_over_bar and not reached),
+        },
+    }
+
+
+def write_curve(curve, path):
+    """Write a campaign curve, creating its directory."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(curve, f, indent=2, sort_keys=True)
         f.write("\n")
     return path
 
