@@ -83,9 +83,18 @@
         },
         "screened": {
           "type": "object",
-          "description": "What the cheap screen read, and at what depth. Depth is part of the reading: two distances read at different budgets are not comparable.",
-          "required": ["trials"],
+          "description": "What the cheap screen read, and at what depth. Depth is part of the reading: two distances read at different budgets are not comparable. A sampled reading must say how many trials it took; a structural or solver reading has no trial count, and records what it searched instead, so `trials` is required for the sampling backends and absent for the others rather than filled with a number nothing measured.",
           "additionalProperties": false,
+          "allOf": [
+            {
+              "if": { "properties": { "backend": { "enum": ["numpy", "fast", "gpu", "mixed"] } }, "required": ["backend"] },
+              "then": { "required": ["trials"] }
+            },
+            {
+              "if": { "not": { "required": ["backend"] } },
+              "then": { "required": ["trials"] }
+            }
+          ],
           "properties": {
             "d": {
               "type": ["integer", "null"],

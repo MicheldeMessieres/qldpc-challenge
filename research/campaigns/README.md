@@ -205,7 +205,7 @@ led.end_experiment()
 | Field | What it carries |
 |---|---|
 | `params` | the construction parameters that identify this family member, beside the resolved run parameters. A family name alone cannot say whether this member was tried |
-| `screened` | the lightest weight the screen found, the trial count it was read at, and which backend read it. The depth is part of the reading: NumPy iterations and fast-RIS samples are not comparable budgets |
+| `screened` | the lightest weight the screen found, the trial count it was read at, and which backend read it. The depth is part of the reading: NumPy iterations and fast-RIS samples are not comparable budgets. A sampled reading must carry its trial count; a structural or solver reading has none, and records what it searched instead, rather than borrowing a number from somewhere else |
 | `verdict` | `passed`, `refuted`, `held`, `duplicate`, `dominated`, or `not_run`. `not_run` is the ordinary case and the useful one: it says the member was screened and dropped before the gate |
 | `mode` | how the candidate was arrived at. The kit's samplers are rejection sampling with no memory between candidates, which is `novel_generation`; a survivor count cannot distinguish a budget spread across a family from one spent mutating a single lineage |
 

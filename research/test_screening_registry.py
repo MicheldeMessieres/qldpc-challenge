@@ -180,6 +180,25 @@ def test_write_summary_refuses_a_summary_that_does_not_validate(tmp_path):
     assert not (tmp_path / "summary.json").exists()
 
 
+def test_a_sampled_reading_must_say_how_deep_it_went():
+    """A trial count is what makes two readings comparable."""
+    base = {"summary_version": 1, "campaign_id": "depth-test",
+            "status": "completed", "experiments": []}
+    for screened in ({"d": 24, "backend": "numpy"}, {"d": 24}):
+        doc = dict(base, experiments=[{"family": "f", "screened": screened}])
+        with pytest.raises(CampaignError):
+            validate_summary(doc)
+
+
+def test_a_structural_reading_carries_no_trial_count():
+    """A search of one block's kernel took no samples, so it borrows none."""
+    doc = {"summary_version": 1, "campaign_id": "depth-test",
+           "status": "completed",
+           "experiments": [{"family": "f",
+                            "screened": {"d": 24, "backend": "structural"}}]}
+    validate_summary(doc)
+
+
 def test_a_row_cannot_carry_an_unknown_field():
     """Typos in a registry are worse than absences: they read as data."""
     led = Ledger(_campaign())
