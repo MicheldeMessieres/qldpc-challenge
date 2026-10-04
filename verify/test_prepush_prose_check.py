@@ -66,7 +66,7 @@ def _run(repo, env=None, body="/dev/null"):
     e.update(env or {})
     return subprocess.run(["sh", os.path.join(repo, "verify",
                                               "prepush_prose_check.sh"), body],
-                          cwd=repo, env=e, capture_output=True, text=True)
+                          cwd=repo, env=e, capture_output=True, text=True, check=False)
 
 
 def test_without_an_upstream_remote_a_fork_origin_is_refused(fork):
