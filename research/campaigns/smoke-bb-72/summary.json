@@ -1,4 +1,5 @@
 {
+  "aborted_experiments": 0,
   "authority": "candidates listed here passed verify/validate_candidate.py; nothing here is a board entry until a human reviews and submits it",
   "budget": {
     "consumed": {
@@ -14,6 +15,7 @@
   "campaign_id": "smoke-bb-72",
   "campaign_name": "Smoke campaign: one known BB code, one experiment",
   "contract_hash": null,
+  "errors": [],
   "experiments": [
     {
       "contract_hash": null,
@@ -29,6 +31,7 @@
       "screened": {
         "backend": "numpy",
         "d": 6,
+        "kd2_over_n": 6.0,
         "trials": 200
       },
       "seed": 0,
@@ -36,7 +39,7 @@
         "candidates_screened": 1,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 0.0020998404513885463
+        "walltime_hours": 0.026768882187500113
       },
       "survivors": 0,
       "verdict": "duplicate"
@@ -65,11 +68,11 @@
   "run_contract": null,
   "screen_quality": [],
   "snapshot": {
-    "branch": "research/screening-registry",
-    "diff_sha256": null,
-    "dirty": false,
-    "head": "47b4633adcaf9d1d05921eef256c9e942e2f6e78",
-    "untracked_count": 0
+    "branch": "research/ledger-crash-vs-negative",
+    "diff_sha256": "31c44590aacc4c19d6e1b4661f98395f768e4d28c24caef06f8f03970b7ddfb1",
+    "dirty": true,
+    "head": "701c74ecef182b55c655d456bf6583cc4811f072",
+    "untracked_count": 1
   },
   "status": "completed",
   "stopped_by": {

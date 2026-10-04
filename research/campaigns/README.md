@@ -112,6 +112,37 @@ so a closed family is learned from the summary rather than from the report.
 `abandoned` keeps everything a run produced. Stopping early throws nothing
 away.
 
+An experiment that screened nothing has to say which kind of nothing it was.
+Two broken sweeps in this repo read as clean negatives at summary level: one
+whose sampler raised on a malformed parameter and filed the exception text
+under `negative_results`, and one whose worker died on a deleted helper and
+recorded nothing. Both closed with zero screened, and at the summary neither
+was distinguishable from a search that ran and found nothing. So
+`end_experiment` refuses a zero that gives no reason. A crash is filed with
+`record_error(what, detail)`, which marks the experiment `aborted`, lands it
+under `errors` in the journal, the manifest, and the summary, and keeps it
+out of `negative_results`. A sampler that legitimately yields nothing at
+these parameters closes with `end_experiment(empty_ok=True)`. Any budget
+spend, a `record_screen` reading, a `record_verdict`, or a survivor counts as
+evidence that something ran and closes normally.
+
+```python
+led.start_experiment("bivariate-bicycle", seed=3)
+try:
+    cands = sample(l=3, m=3)
+except Exception as e:                    # the generator failed
+    led.record_error("sweep failed", f"{type(e).__name__}: {e}")
+    led.end_experiment()
+else:
+    if not cands:                         # nothing exists here
+        led.end_experiment(empty_ok=True)
+```
+
+An aborted experiment neither resets nor advances the `no_progress` streak,
+so a campaign cannot stop for lack of progress on the strength of a crash.
+`summary.json` reports `aborted_experiments` beside `experiments`, and the
+`errors` list carries the index of the experiment each one belongs to.
+
 The ledger is held in memory, so a kill loses it. Pass `journal=` and every
 experiment is appended to a JSONL file as it closes, which narrows the loss to
 the experiment in flight:
@@ -245,3 +276,38 @@ its source stated and nothing more: where a seed or a screening depth was
 never written down, the field is absent rather than guessed. The September
 2026 campaigns are backfilled this way, three of them generated from their
 own committed audit JSON rather than typed from the prose around it.
+
+### The curve
+
+`qldpc curve <id>` plots best-so-far verified efficiency against cumulative
+trials, per family, from the rows the summary already commits (issue #2735).
+It measures nothing and runs nothing.
+
+```
+qldpc curve sat-2dlocal-t2plus --cell local-2d-single/weight-6
+qldpc curve <id> --bar 30.48 --write     # also writes curve.json
+```
+
+Two series, because the disagreement between them is the point. The verified
+series is best-so-far over the rows the gate passed, so it is monotone. The
+screened series is each row's own reading at the depth it was taken, not a
+running maximum, so a ladder that settles downward shows as a descent rather
+than a flat line. The bar is the campaign's `objective.target` when it has
+one, the board's best in a named cell with `--cell`, or an explicit `--bar`.
+
+That is what separates the two failures the fieldnotes describe. A campaign
+whose screen cleared the bar while the gate admitted nothing there reports
+
+```
+never reached it, and the screen did: the ladder read above the bar and the
+gate admitted nothing there
+```
+
+and one whose screen never cleared it says so instead. The first is a
+screening trap and the second is an empty region, and they call for opposite
+responses: deepen the screen, or go somewhere else.
+
+`trials_to_bar` is reported beside the best score because on a Pareto board
+the two disagree, and the disagreement is the result: a family reaching the
+bar in 2M trials and a family reaching a better score in 30M are not the same
+outcome, and a manifest that reports only the best score reads them the same.

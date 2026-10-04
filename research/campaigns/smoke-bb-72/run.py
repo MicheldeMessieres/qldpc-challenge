@@ -22,6 +22,7 @@ for _p in (os.path.join(_ROOT, "research", "kit"), os.path.join(_ROOT, "verify")
 
 from bb import build_bb  # noqa: E402
 from campaign import Ledger, load_campaign, write_summary  # noqa: E402
+from css import compute_k  # noqa: E402
 from submit import make_submission  # noqa: E402
 from surrogate import distance_rand  # noqa: E402
 from validate_candidate import validate_candidate  # noqa: E402
@@ -44,7 +45,8 @@ def main(out=None, refute=False):
     # The screen's reading and the depth it was read at, on the row, so that
     # the next session can ask whether this member was already tried instead
     # of screening it again (issue #2726).
-    led.record_screen(trials=trials, d=d, backend="numpy")
+    led.record_screen(trials=trials, d=d, backend="numpy", n=n,
+                      k=compute_k(HX, HZ))
     print(f"  screened [[{n},?,{d}]] w={w} at {trials} trials")
 
     if not camp.in_scope(n=n, d=d, w=w):

@@ -56,6 +56,25 @@
     "survivors": { "type": "array" },
     "frontier_advances": { "type": "integer", "minimum": 0 },
     "negative_results": { "type": "array" },
+    "errors": {
+      "type": "array",
+      "description": "Crashes, kept apart from negative_results on purpose. A negative is a measurement and an error is the absence of one; a summary that files both under one heading reads a broken generator as a closed family. Each item names the experiment it aborted.",
+      "items": {
+        "type": "object",
+        "required": ["what", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string" },
+          "experiment": { "type": "integer", "minimum": 0, "description": "index into experiments of the row this aborted" }
+        }
+      }
+    },
+    "aborted_experiments": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many experiment rows carry aborted: true. Reported beside the experiment count so the two are never read as one number."
+    },
     "required_outputs": { "type": "array" },
     "report": { "type": ["string", "null"] },
     "authority": { "type": "string" }
@@ -111,6 +130,11 @@
               "enum": ["numpy", "fast", "gpu", "sat", "structural", "mixed", "unknown"],
               "description": "Which implementation produced the reading. NumPy iterations, fast-RIS samples, and GPU trials are not comparable screening budgets (AUTORESEARCH.md section 3), so the count alone does not identify the depth. sat and structural name a reading that did not come from sampling at all: a solver verdict, or a bound read off the construction."
             },
+            "kd2_over_n": {
+              "type": ["number", "null"],
+              "minimum": 0,
+              "description": "The efficiency this reading implies, k d^2 / n, when the member's n and k are known. Carried rather than recomputed because the reading is what it is: a later session plotting the campaign should not have to guess which n the screen was reading against."
+            },
             "rung": {
               "type": "integer",
               "minimum": 0,
@@ -128,6 +152,15 @@
           "enum": ["novel_generation", "cross_pollination", "refinement", "repair", "enumeration", "hand_built"],
           "description": "How the candidate was arrived at. The kit's samplers (sample_bb, sample_dihedral, sample_kasai_affine) are rejection sampling with no memory between candidates, which is novel_generation; enumeration is an exhaustive walk of a parameter box. Recorded because a survivor count cannot distinguish a budget spread across a family from one spent mutating a single lineage.",
           "default": "novel_generation"
+        },
+        "aborted": {
+          "type": "boolean",
+          "description": "True when the experiment crashed rather than completed. A crashed sweep and a sweep that ran and lost produce the same survivor count, so without this flag a summary reading N experiments, 0 survivors cannot say whether anything was measured. Set by Ledger.record_error, never by hand."
+        },
+        "verified_kd2_over_n": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "The best k d^2 / n among this row's gate-passed survivors. Separate from the screened reading because the two disagree exactly when it matters: a screen that inflates at low depth reads above the bar while the gate never admits anything near it."
         },
         "contract_hash": { "type": ["string", "null"] },
         "contract_deviations": { "type": "object" }

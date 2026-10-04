@@ -49,7 +49,8 @@ SCHEMA_PATH = os.path.join(_ROOT, "schema", "campaign.schema.json")
 SUMMARY_SCHEMA_PATH = os.path.join(_ROOT, "schema",
                                    "campaign_summary.schema.json")
 SUMMARY_VERSION = 1
-JOURNAL_VERSION = 1
+CURVE_VERSION = 1
+JOURNAL_VERSION = 2
 CONTRACT_VERSION = 1
 MANIFEST_VERSION = 1
 
@@ -453,10 +454,15 @@ class Ledger:
         self.experiments = []
         self.survivors = []
         self.negative_results = []
+        # Crashes, kept apart from negatives. A sweep that ran and found
+        # nothing and a sweep whose generator raised produce the same
+        # survivor count, and a summary that cannot tell them apart reports
+        # a clean double negative while having measured nothing (#2761).
+        self.errors = []
         self.frontier_advances = 0
         self._current = None
         self._exp_t0 = None
-        self._mark = (0, 0)
+        self._mark = (0, 0, 0)
         self._dry_streak = 0
 
     # -- experiments ------------------------------------------------------
@@ -494,10 +500,12 @@ class Ledger:
         if deviations:
             self._current["contract_deviations"] = deviations
         self._exp_t0 = time.monotonic()
-        self._mark = (len(self.survivors), len(self.negative_results))
+        self._mark = (len(self.survivors), len(self.negative_results),
+                      len(self.errors))
         return self._current
 
-    def record_screen(self, *, trials, d=None, backend=None, rung=None):
+    def record_screen(self, *, trials, d=None, backend=None, rung=None,
+                      n=None, k=None):
         """Record what the cheap screen read on the open experiment.
 
         ``d`` is the lightest logical weight the screen found, which is an
@@ -513,6 +521,11 @@ class Ledger:
         if int(trials) < 1:
             raise CampaignError("record_screen: trials must be at least 1")
         screened = {"trials": int(trials), "d": None if d is None else int(d)}
+        # The efficiency the reading implies, carried rather than left to be
+        # recomputed: a later session plotting the campaign should not have
+        # to guess which n the screen was reading against.
+        if d is not None and n and k:
+            screened["kd2_over_n"] = k * d * d / n
         if backend is not None:
             screened["backend"] = backend
         if rung is not None:
@@ -564,24 +577,57 @@ class Ledger:
             out.append(row)
         return out
 
-    def end_experiment(self):
+    def end_experiment(self, *, empty_ok=False):
         """Close the current run, fold it into the ledger, and journal it.
 
         The experiment's own wall time is measured here rather than reported,
         for the same reason the campaign's is: it is the only number a merged
         or replayed ledger can add up, and a cap nothing observes is advisory.
+
+        An experiment that screened nothing has to say which kind of nothing
+        it was. A generator that raised and a sampler that yields nothing at
+        these parameters both close with zero screened, and only one of them
+        measured anything, so a zero closes only through
+        :meth:`record_error` or an explicit ``empty_ok=True``. Filing the
+        crash as a negative and closing normally, which is what a driver
+        reaches for first, is exactly the path that is refused.
         """
         if self._current is None:
             raise CampaignError("end_experiment without start_experiment")
         exp = self._current
+        # Evidence that something ran: budget spent, a recorded screen
+        # reading, a gate verdict, or a survivor. A negative result is not
+        # on that list on purpose, because filing the crash as a negative is
+        # the pattern that hid both failures.
+        measured = (any(v > 0 for k, v in exp["spent"].items()
+                        if k != "walltime_hours")
+                    or exp.get("screened") or exp.get("verdict")
+                    or exp.get("survivors"))
+        if not exp.get("aborted") and not empty_ok and not measured:
+            raise CampaignError(
+                "end_experiment: this experiment screened zero candidates and "
+                "did not say why. If the generator failed, call "
+                "record_error(what, detail) so the summary separates it from "
+                "a result; if the sampler legitimately yields nothing at these "
+                "parameters, close with end_experiment(empty_ok=True). A zero "
+                "filed as a negative is indistinguishable from a search that "
+                "ran, which is how two broken sweeps read as clean negatives")
         elapsed = (time.monotonic() - self._exp_t0) / 3600
         exp["spent"]["walltime_hours"] = max(exp["spent"]["walltime_hours"],
                                              elapsed)
         self.experiments.append(exp)
-        self._dry_streak = 0 if exp["survivors"] else self._dry_streak + 1
-        si, ni = self._mark
+        # An aborted experiment measured nothing, so it neither resets nor
+        # advances the no-progress streak: a campaign cannot stop for lack of
+        # progress on the strength of a crash.
+        if exp.get("aborted"):
+            pass
+        elif exp["survivors"]:
+            self._dry_streak = 0
+        else:
+            self._dry_streak += 1
+        si, ni, ei = self._mark
         self._append_journal(exp, self.survivors[si:],
-                             self.negative_results[ni:])
+                             self.negative_results[ni:], self.errors[ei:])
         self._current = None
         self._exp_t0 = None
         # The boundary is where a manifest is worth writing: it is the point
@@ -592,7 +638,7 @@ class Ledger:
         return exp
 
     # -- the journal ------------------------------------------------------
-    def _append_journal(self, exp, survivors, negatives):
+    def _append_journal(self, exp, survivors, negatives, errors=()):
         """Append one experiment and what it produced, then force it to disk."""
         if not self.journal:
             return None
@@ -601,7 +647,8 @@ class Ledger:
                   "recorded_at": datetime.now(timezone.utc).isoformat(),
                   "experiment": exp,
                   "survivors": list(survivors),
-                  "negative_results": list(negatives)}
+                  "negative_results": list(negatives),
+                  "errors": list(errors)}
         parent = os.path.dirname(os.path.abspath(self.journal))
         os.makedirs(parent, exist_ok=True)
         with open(self.journal, "a", encoding="utf-8", newline="\n") as f:
@@ -652,6 +699,9 @@ class Ledger:
             self.experiments.append(exp)
             self.survivors.extend(rec.get("survivors") or [])
             self.negative_results.extend(rec.get("negative_results") or [])
+            # A version-1 record has no errors field; it predates the
+            # distinction and is read as having recorded none.
+            self.errors.extend(rec.get("errors") or [])
         self.spent = {f: sum(e["spent"].get(f, 0) for e in self.experiments)
                       for f in BUDGET_FIELDS}
         self._recount()
@@ -704,6 +754,10 @@ class Ledger:
             for neg in src.negative_results:
                 if neg not in out.negative_results:
                     out.negative_results.append(neg)
+        for src in (self, other):
+            for err in src.errors:
+                if err not in out.errors:
+                    out.errors.append(err)
         out._recount()
         return out
 
@@ -715,6 +769,8 @@ class Ledger:
                                   for e in self.experiments)
         streak = 0
         for exp in reversed(self.experiments):
+            if exp.get("aborted"):
+                continue
             if exp.get("survivors"):
                 break
             streak += 1
@@ -765,6 +821,14 @@ class Ledger:
         }
         self.survivors.append(row)
         self._current["survivors"] += 1
+        # The best verified efficiency this row bought, beside the screen's
+        # reading of the same member. The two disagree exactly when it
+        # matters, which is what the curve is for.
+        if row["n"]:
+            eff = row["k"] * row["d"] * row["d"] / row["n"]
+            prev = self._current.get("verified_kd2_over_n")
+            self._current["verified_kd2_over_n"] = (
+                eff if prev is None else max(prev, eff))
         if advanced_frontier:
             self.frontier_advances += 1
         return row
@@ -777,6 +841,21 @@ class Ledger:
         pays for it twice if it is not written down.
         """
         self.negative_results.append({"what": what, "detail": detail})
+
+    def record_error(self, what, detail):
+        """Record that the open experiment crashed, as distinct from losing.
+
+        Marks the experiment aborted and files the failure under ``errors``
+        rather than ``negative_results``. The difference is the whole point:
+        a negative is a measurement, an error is the absence of one, and a
+        summary that reports them under one heading reads a broken generator
+        as a closed family.
+        """
+        if self._current is None:
+            raise CampaignError("record_error without start_experiment")
+        self._current["aborted"] = True
+        self.errors.append({"what": what, "detail": detail,
+                            "experiment": len(self.experiments)})
 
     # -- stopping ---------------------------------------------------------
     def consumed(self):
@@ -884,6 +963,9 @@ class Ledger:
             # required content, so the manifest has to carry them or they are
             # lost with the staging directory.
             "negative_results": list(self.negative_results),
+            "errors": list(self.errors),
+            "aborted_experiments": sum(1 for e in self.experiments
+                                       if e.get("aborted")),
             "survivor_verdicts": [
                 {"n": s.get("n"), "k": s.get("k"), "d": s.get("d"),
                  "fingerprint": _verdict_fingerprint(s)}
@@ -944,6 +1026,13 @@ class Ledger:
             "survivors": self.survivors,
             "frontier_advances": self.frontier_advances,
             "negative_results": self.negative_results,
+            # Crashes beside, not among, the negatives. An experiment that
+            # aborted is counted here and flagged on its row, so "N
+            # experiments, 0 survivors" can be read as what was measured
+            # rather than what was attempted.
+            "errors": self.errors,
+            "aborted_experiments": sum(1 for e in self.experiments
+                                       if e.get("aborted")),
             "required_outputs": self.campaign.required_outputs,
             "report": report,
             "authority": "candidates listed here passed "
@@ -966,6 +1055,117 @@ def write_manifest(manifest, path):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write("\n")
+    return path
+
+
+def _row_efficiency(exp):
+    """Return the screened and verified efficiencies a row implies.
+
+    Both are read off the row when it carries them, and derived from the
+    member's own parameters when it does not, so a summary backfilled from a
+    run that predates the field still plots. The verified value is derived
+    only for a row the gate passed: a screened reading is an upper bound on
+    the distance, and treating one as verified would put a number on the
+    curve that no gate ever accepted.
+    """
+    screened = exp.get("screened") or {}
+    params = exp.get("params") or {}
+
+    def _num(key):
+        v = params.get(key)
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) \
+            else None
+
+    n, k, d = _num("n"), _num("k"), screened.get("d")
+    derived = (k * d * d / n) if (n and k and d) else None
+    screened_eff = screened.get("kd2_over_n")
+    if screened_eff is None:
+        screened_eff = derived
+    verified = exp.get("verified_kd2_over_n")
+    if verified is None and exp.get("verdict") == "passed":
+        verified = derived
+    return screened_eff, verified
+
+
+def curve_from_summary(summary, *, bar=None, bar_source=None):
+    """Best-so-far verified efficiency against cumulative trials, per family.
+
+    Two series, because the failure this is for is the disagreement between
+    them: a screen that inflates at low depth reads above the bar while the
+    gate admits nothing near it. The verified series is best-so-far and
+    therefore monotone; the screened series is each row's own reading at the
+    depth it was taken, so a ladder settling downward shows as a descent
+    rather than being hidden by a running maximum.
+
+    Derived from committed rows. It measures nothing and runs nothing.
+    """
+    families, order = {}, []
+    for exp in summary.get("experiments") or []:
+        family = exp.get("family") or "other"
+        if family not in families:
+            families[family] = {"family": family, "points": [],
+                                "trials": 0, "best_verified": None,
+                                "trials_to_bar": None}
+            order.append(family)
+        f = families[family]
+        screened_eff, verified = _row_efficiency(exp)
+        f["trials"] += int((exp.get("screened") or {}).get("trials") or 0)
+        if verified is not None:
+            f["best_verified"] = (verified if f["best_verified"] is None
+                                  else max(f["best_verified"], verified))
+        if (bar is not None and f["trials_to_bar"] is None
+                and f["best_verified"] is not None
+                and f["best_verified"] >= bar):
+            f["trials_to_bar"] = f["trials"]
+        f["points"].append({
+            "trials_cumulative": f["trials"],
+            "screened_kd2_over_n": screened_eff,
+            "verified_best_kd2_over_n": f["best_verified"],
+            "verdict": exp.get("verdict"),
+        })
+
+    out = []
+    for family in order:
+        f = families[family]
+        out.append({"family": family, "points": f["points"],
+                    "trials_spent": f["trials"],
+                    "best_verified_kd2_over_n": f["best_verified"],
+                    "trials_to_bar": f["trials_to_bar"],
+                    "reached_bar": f["trials_to_bar"] is not None})
+
+    best = [f["best_verified_kd2_over_n"] for f in out
+            if f["best_verified_kd2_over_n"] is not None]
+    reached = [f["trials_to_bar"] for f in out
+               if f["trials_to_bar"] is not None]
+    screened_over_bar = bar is not None and any(
+        p["screened_kd2_over_n"] is not None
+        and p["screened_kd2_over_n"] >= bar
+        for f in out for p in f["points"])
+    return {
+        "curve_version": CURVE_VERSION,
+        "campaign_id": summary.get("campaign_id"),
+        "bar": {"kd2_over_n": bar, "source": bar_source},
+        "families": out,
+        "headline": {
+            "best_verified_kd2_over_n": max(best) if best else None,
+            "trials_spent": sum(f["trials_spent"] for f in out),
+            "trials_to_bar": min(reached) if reached else None,
+            "reached_bar": bool(reached),
+            # The 2026-09-20 shape: the screen read above the bar and the
+            # gate never did. Distinguishes a ladder that collapsed from one
+            # that never climbed.
+            "screened_reached_bar_but_gate_did_not": bool(
+                screened_over_bar and not reached),
+        },
+    }
+
+
+def write_curve(curve, path):
+    """Write a campaign curve, creating its directory."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(curve, f, indent=2, sort_keys=True)
         f.write("\n")
     return path
 

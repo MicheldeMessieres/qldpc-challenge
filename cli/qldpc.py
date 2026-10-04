@@ -44,6 +44,7 @@ Input:
 import argparse
 import datetime
 import json
+import math
 import os
 import re
 import subprocess
@@ -57,6 +58,7 @@ _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, os.path.join(_ROOT, "verify"))
 sys.path.insert(0, os.path.join(_ROOT, "site"))
 sys.path.insert(0, os.path.join(_ROOT, "research"))
+sys.path.insert(0, os.path.join(_ROOT, "research", "kit"))
 
 import gf2  # noqa: E402
 import heuristic_distance as hd  # noqa: E402
@@ -64,6 +66,7 @@ import heuristic_distance as hd  # noqa: E402
 # Reuse the site's computed-cell + Pareto-frontier helpers so the PR body
 # states exactly what the board will show (no drift between the two).
 from build import LOCALITY_LABEL, WEIGHT_LABEL, cells, pareto  # noqa: E402
+from campaign import curve_from_summary, write_curve  # noqa: E402
 from check_authorship import HANDLE  # noqa: E402
 from qldpc_verify import is_css_up_to_local_clifford, verify  # noqa: E402
 
@@ -1339,12 +1342,17 @@ def cmd_recent(args):
         print("campaign summaries (committed research/campaigns/*/summary.json):")
     for c in shown:
         fams = f"  [{', '.join(c['families'])}]" if c["families"] else ""
+        # A crash is not a result, so it is shown apart from the negatives
+        # and only when there is one to show.
+        aborted = (f", {c['aborted_experiments']} aborted"
+                   if c["aborted_experiments"] else "")
         print(f"  {c['date']}  {c['path']}")
         print(f"      {c['campaign_id']}: {c['status']}, "
               f"{_plural(c['experiments'], 'experiment')}, "
               f"{_plural(c['survivors'], 'survivor')}, "
               f"{_plural(c['frontier_advances'], 'frontier advance')}, "
-              f"{_plural(c['negative_results'], 'negative result')}{fams}")
+              f"{_plural(c['negative_results'], 'negative result')}"
+              f"{aborted}{fams}")
     if lim is not None and len(camps) > lim:
         print(f"  ... {len(camps) - lim} more (--limit N, --full)")
 
@@ -1398,6 +1406,7 @@ def campaign_rows(since):
             "survivors": len(summ.get("survivors") or []),
             "frontier_advances": summ.get("frontier_advances") or 0,
             "negative_results": len(summ.get("negative_results") or []),
+            "aborted_experiments": summ.get("aborted_experiments") or 0,
             "budget_consumed": (summ.get("budget") or {}).get("consumed") or {},
             "report": summ.get("report") or "",
         }
@@ -1541,6 +1550,158 @@ def cmd_screened(args):
             print(f"screen quality, {q['family']}: Spearman "
                   f"{q['spearman']:+.2f} over "
                   f"{_plural(q.get('pairs') or 0, 'pair')} ({q['campaign_id']})")
+
+
+# ---------------------------------------------------------------------------
+# curve: best-so-far verified efficiency against trials spent (issue #2735)
+# ---------------------------------------------------------------------------
+# Two series on one axis, because the failure this exists to show is the
+# disagreement between them. A screen that inflates at low depth reads above
+# the cell bar while the gate admits nothing near it, which is the 2026-09-20
+# shape: 5.3M trials on a ladder whose deep rungs had already settled below
+# the bar. Derived from the rows a campaign already commits; it measures
+# nothing.
+
+def _cell_bar(cell_query):
+    """Best kd^2/n on the board in the named cell, using the site's own cells."""
+    entries = _load_board_entries()
+    if not entries:
+        return None, None
+    toks = [t for t in re.split(r"[/, ]+", cell_query.lower()) if t]
+    best, label = None, None
+    for e in entries:
+        for L, W in cells(e):
+            hay = (f"{L} {W} {LOCALITY_LABEL.get(L, L)} "
+                   f"{WEIGHT_LABEL.get(W, W)}").lower()
+            if not all(t in hay for t in toks):
+                continue
+            if best is None or (e.get("eff") or 0) > best:
+                best, label = e.get("eff") or 0, f"{L}/{W}"
+    return best, label
+
+
+def _plot(curve, width=58, height=14):
+    """Render the curve as text: '#' verified best-so-far, 'o' screened."""
+    pts = [(p["trials_cumulative"], p["screened_kd2_over_n"],
+            p["verified_best_kd2_over_n"])
+           for f in curve["families"] for p in f["points"]]
+    ys = [v for _, s, v in pts for v in (s, v) if v is not None]
+    bar = (curve.get("bar") or {}).get("kd2_over_n")
+    if bar is not None:
+        ys.append(bar)
+    xs = [x for x, _, _ in pts if x > 0]
+    if not ys or not xs:
+        return ["  (nothing to plot: no row carries both a reading and a "
+                "trial count)"]
+    lo_y, hi_y = min(ys), max(ys)
+    if hi_y == lo_y:
+        hi_y = lo_y + 1.0
+    lo_x, hi_x = math.log10(min(xs)), math.log10(max(xs))
+    if hi_x == lo_x:
+        hi_x += 1.0
+
+    grid = [[" "] * width for _ in range(height)]
+
+    def cell(x, y):
+        col = int(round((math.log10(x) - lo_x) / (hi_x - lo_x) * (width - 1)))
+        row = int(round((hi_y - y) / (hi_y - lo_y) * (height - 1)))
+        return max(0, min(height - 1, row)), max(0, min(width - 1, col))
+
+    if bar is not None:
+        r, _ = cell(max(xs), bar)
+        grid[r] = ["-"] * width
+    for x, s, v in pts:
+        if x <= 0:
+            continue
+        if s is not None:
+            r, c = cell(x, s)
+            grid[r][c] = "o"
+    for x, s, v in pts:
+        if x > 0 and v is not None:
+            r, c = cell(x, v)
+            grid[r][c] = "#"
+
+    out = []
+    for i, row in enumerate(grid):
+        label = f"{hi_y:8.2f}" if i == 0 else (
+            f"{lo_y:8.2f}" if i == height - 1 else " " * 8)
+        out.append(f"  {label} |{''.join(row)}")
+    out.append(" " * 10 + f"  +{'-' * width}")
+    out.append(" " * 10 + f"   {_si(min(xs)):<{width - 10}}"
+                          f"{_si(max(xs)):>10}")
+    out.append(" " * 10 + "   cumulative trials (log scale)")
+    return out
+
+
+def _si(v):
+    """Shorten a trial count so a reader takes it in at a glance."""
+    for cut, suffix in ((1e9, "B"), (1e6, "M"), (1e3, "k")):
+        if v >= cut:
+            return f"{v / cut:g}{suffix}"
+    return f"{v:g}"
+
+
+def cmd_curve(args):
+    """Plot best-so-far verified efficiency against trials spent, per family."""
+    path = os.path.join(_ROOT, "research", "campaigns", args.campaign,
+                        "summary.json")
+    if not os.path.exists(path):
+        raise SystemExit(f"no committed summary at "
+                         f"{os.path.relpath(path, _ROOT)}")
+    with open(path, encoding="utf-8") as fh:
+        summary = json.load(fh)
+
+    bar, source = args.bar, "--bar"
+    if bar is None:
+        camp = os.path.join(os.path.dirname(path), "campaign.json")
+        if os.path.exists(camp):
+            with open(camp, encoding="utf-8") as fh:
+                obj = (json.load(fh).get("campaign") or {}).get("objective")
+            if (obj or {}).get("target") is not None:
+                bar, source = obj["target"], "the campaign's objective.target"
+    if bar is None and args.cell:
+        bar, label = _cell_bar(args.cell)
+        source = f"the board's best in {label}" if label else None
+    if bar is None:
+        source = None
+
+    curve = curve_from_summary(summary, bar=bar, bar_source=source)
+    _result(args).update(curve=curve)
+
+    if args.write:
+        out = os.path.join(os.path.dirname(path), "curve.json")
+        write_curve(curve, out)
+        print(f"wrote {os.path.relpath(out, _ROOT)}")
+
+    h = curve["headline"]
+    print(f"{curve['campaign_id']}: best verified kd^2/n "
+          f"{_fmt(h['best_verified_kd2_over_n'])} over "
+          f"{_si(h['trials_spent'])} trials")
+    if bar is None:
+        print("  no bar: pass --bar, or --cell to take the board's best in a "
+              "cell, or give the campaign an objective.target")
+    else:
+        print(f"  bar {bar:g} ({source})")
+        if h["reached_bar"]:
+            print(f"  reached it after {_si(h['trials_to_bar'])} trials")
+        elif h["screened_reached_bar_but_gate_did_not"]:
+            print("  never reached it, and the screen did: the ladder read "
+                  "above the bar and the gate admitted nothing there")
+        else:
+            print("  never reached it, and neither did the screen")
+    for line in _plot(curve):
+        print(line)
+    print("  # best verified so far, o each screened reading, - the bar")
+    for f in curve["families"]:
+        print(f"  {f['family']}: {_fmt(f['best_verified_kd2_over_n'])} "
+              f"verified over {_si(f['trials_spent'])} trials"
+              + (f", bar at {_si(f['trials_to_bar'])}"
+                 if f["trials_to_bar"] is not None else ""))
+
+
+def _fmt(v):
+    """Format an efficiency, or say it is absent."""
+    return "none" if v is None else f"{v:.2f}"
 
 
 # ---------------------------------------------------------------------------
@@ -2043,6 +2204,23 @@ def main(argv=None):
                     help="print one JSON record on stdout instead of the "
                          "listing")
     sc.set_defaults(func=cmd_screened)
+
+    cv = sub.add_parser("curve",
+                        help="best-so-far verified efficiency against trials "
+                             "spent, per family, for one campaign")
+    cv.add_argument("campaign", help="campaign id, the directory under "
+                                     "research/campaigns/")
+    cv.add_argument("--bar", type=float, default=None,
+                    help="the reference kd^2/n to beat; defaults to the "
+                         "campaign's objective.target when it has one")
+    cv.add_argument("--cell", default="",
+                    help="take the bar from the board's best in this cell, "
+                         "e.g. 'unrestricted/weight-6'")
+    cv.add_argument("--write", action="store_true",
+                    help="also write research/campaigns/<id>/curve.json")
+    cv.add_argument("--json", action="store_true",
+                    help="print the curve as one JSON record on stdout")
+    cv.set_defaults(func=cmd_curve)
 
     rp = sub.add_parser("reproduce",
                         help="re-run one entry's evidence chain and write a "
