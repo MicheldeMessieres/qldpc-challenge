@@ -1,23 +1,26 @@
 {
-  "name": "[[42,18,3]] 2BGA",
   "d": 3,
-  "solver": "scipy/HiGHS MILP",
+  "d_exact": true,
+  "name": "[[42,18,3]] 2BGA",
   "sides": {
     "X": {
-      "value": 3,
       "exact": true,
-      "note": "no logical < 3 exists"
+      "note": "no logical < 3 exists",
+      "value": 3
     },
     "Z": {
-      "value": 3,
       "exact": true,
-      "note": "no logical < 3 exists"
+      "note": "no logical < 3 exists",
+      "value": 3
     }
   },
-  "d_exact": true,
+  "solver": "scipy/HiGHS MILP",
   "tlim_per_solve": 120,
   "verification": {
-    "level": "solver",
-    "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+    "artifact": "certs/proofs/42-18-3.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=30fe3e98635c84ffca16313225fffc80d0e9471d833ef65f8e78ec42d25873df;Z=eed2a65cc89a442101b9b34c09d8b63fd0e1bf0b6ff8064ef48a3e85bf50c501",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
 }

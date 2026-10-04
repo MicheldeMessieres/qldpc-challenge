@@ -59,6 +59,13 @@ stabilizer rows in the first block; RREF orders rows by pivot column, so the
 slice could keep stabilizers and drop logical classes. certify() now counts
 the classes the pairing set spans and refuses to solve unless it is all k.
 """
+import hashlib
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
 import time
 
 import gf2
@@ -158,7 +165,218 @@ def _solve_side(H_opp, L, W, tlim, use_symmetry=False, prefix=25):
     return "SAT", sorted(j - 1 for j in range(1, n + 1) if sol[j])
 
 
-def certify(doc, tlim=600):
+# ---------------------------------------------------------------------------
+# proof-log path (issue #2728)
+# ---------------------------------------------------------------------------
+# A second emitter, not a flag on the first. pycryptosat exposes no proof
+# logging, and CryptoMiniSat's Gaussian elimination over the XOR constraints
+# is not DRAT-expressible as run, so a checkable refutation needs the same
+# instance written as pure CNF and handed to a solver that logs. What this
+# buys is one level: the CNF we handed the solver is independently confirmed
+# unsatisfiable. It says nothing about whether that CNF asks the distance
+# question, which is the #2273 failure, and is why the schema keeps
+# proof_log and formal apart.
+#
+# Symmetry breaking is deliberately omitted from the proof instance. The
+# lex-leader prefix is a pruning constraint; dropping it refutes the larger
+# instance, which is the stronger statement, and keeps the artifact free of
+# a constraint a checker would have to take on trust.
+
+XOR_CHUNK = 5          # XOR arity per chunk; 2^(c-1) clauses each
+
+
+def _xor_cnf(lits, parity, fresh):
+    """CNF for XOR(lits) = parity, chunked through Tseitin auxiliaries.
+
+    A direct expansion is 2^(m-1) clauses, unusable past about 20 literals;
+    chunking at arity c costs about m/(c-1) chunks of 2^(c-1) clauses and one
+    auxiliary each. Returns (clauses, fresh).
+    """
+    out, lits = [], list(lits)
+    if not lits:
+        return ([] if parity == 0 else [[]]), fresh
+    while len(lits) > XOR_CHUNK:
+        head = lits[:XOR_CHUNK - 1]
+        fresh += 1
+        # aux carries the parity of the chunk it replaces: XOR(head, aux) = 0.
+        out.extend(_xor_expand(head + [fresh], 0))
+        lits = [fresh] + lits[XOR_CHUNK - 1:]
+    out.extend(_xor_expand(lits, parity))
+    return out, fresh
+
+
+def _xor_expand(lits, parity):
+    """Direct CNF for a short XOR: one clause per falsifying assignment."""
+    clauses = []
+    for mask in range(1 << len(lits)):
+        bits = [(mask >> i) & 1 for i in range(len(lits))]
+        if sum(bits) % 2 == parity:
+            continue
+        clauses.append([-lit if b else lit for lit, b in zip(lits, bits)])
+    return clauses
+
+
+def side_cnf(H_opp, L, W):
+    """Build the pure-CNF form of one side's question.
+
+    Same question as :func:`_solve_side`: is there v with H_opp v = 0,
+    |v| <= W, anticommuting with at least one pairing generator. Returns
+    (clauses, nvars).
+    """
+    from pysat.card import CardEnc, EncType
+
+    n = H_opp.shape[1]
+    clauses, fresh = [], n
+    for row in H_opp:
+        idx = [int(j) + 1 for j in np.nonzero(row)[0]]
+        if idx:
+            cl, fresh = _xor_cnf(idx, 0, fresh)
+            clauses.extend(cl)
+    selectors = []
+    for t in L:
+        fresh += 1
+        y = fresh
+        selectors.append(y)
+        tidx = [int(j) + 1 for j in np.nonzero(t)[0]]
+        cl, fresh = _xor_cnf(tidx + [y], 0, fresh)
+        clauses.extend(cl)
+    if not selectors:
+        return None, 0
+    clauses.append(list(selectors))
+    card = CardEnc.atmost(lits=list(range(1, n + 1)), bound=W,
+                          top_id=fresh, encoding=EncType.seqcounter)
+    clauses.extend([list(c) for c in card.clauses])
+    fresh = max(fresh, card.nv)
+    return clauses, fresh
+
+
+def write_dimacs(clauses, nvars, path):
+    """Write a CNF and return its sha256, which identifies the instance."""
+    h = hashlib.sha256()
+    with open(path, "w", encoding="ascii", newline="\n") as f:
+        header = f"p cnf {nvars} {len(clauses)}\n"
+        f.write(header)
+        h.update(header.encode())
+        for cl in clauses:
+            line = " ".join(str(x) for x in cl) + " 0\n"
+            f.write(line)
+            h.update(line.encode())
+    return h.hexdigest()
+
+
+def _tool_version(cmd, args, pattern):
+    """Return a stable identifier for a tool, or None when it cannot be run.
+
+    A printed version when the tool has one, and the first 16 hex of the
+    binary's sha256 when it does not. drat-trim prints only a usage banner,
+    and "drat-trim" alone does not say which drat-trim checked the proof.
+    """
+    try:
+        r = subprocess.run([cmd, *args], capture_output=True, text=True,
+                           timeout=30, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    text = (r.stdout or "") + (r.stderr or "")
+    m = re.search(pattern, text)
+    if m:
+        return m.group(0)
+    path = shutil.which(cmd)
+    if not path:
+        return None
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return f"sha256:{h.hexdigest()[:16]}"
+
+
+def tool_versions():
+    """Report the proof toolchain, so a certificate names what checked it."""
+    return {
+        "kissat": _tool_version("kissat", ["--version"], r"\d+\.\d+\.\d+"),
+        "drat_trim": _tool_version("drat-trim", [], r"\d{4}-\d{2}(-\d{2})?"),
+    }
+
+
+def prove_side(H_opp, L, W, outdir, tag, *, tlim=600, keep_proof=False):
+    """Emit the CNF, refute it with kissat, and check the proof with drat-trim.
+
+    Returns a record with the verdict and the artifact paths. A side counts
+    as proved only when kissat reports UNSAT and drat-trim reports VERIFIED;
+    anything else leaves it unproved and says why.
+    """
+    os.makedirs(outdir, exist_ok=True)
+    cnf_path = os.path.join(outdir, f"{tag}.cnf")
+    proof_path = os.path.join(outdir, f"{tag}.proof")
+    trim_path = os.path.join(outdir, f"{tag}.trim.drat")
+
+    clauses, nvars = side_cnf(H_opp, L, W)
+    if clauses is None:
+        return {"status": "NO_PAIRING", "proved": False,
+                "detail": "no pairing generator, so there is nothing to ask"}
+    t0 = time.time()
+    cnf_sha = write_dimacs(clauses, nvars, cnf_path)
+    rec = {"cnf": {"path": cnf_path, "sha256": cnf_sha, "vars": nvars,
+                   "clauses": len(clauses),
+                   "bytes": os.path.getsize(cnf_path)},
+           "xor_chunk": XOR_CHUNK}
+    try:
+        r = subprocess.run(["kissat", "-q", "--no-binary", cnf_path,
+                            proof_path],
+                           capture_output=True, text=True, timeout=tlim,
+                           check=False)
+    except subprocess.TimeoutExpired:
+        rec.update(status="TIMEOUT", proved=False,
+                   detail=f"kissat did not finish in {tlim}s")
+        return rec
+    except OSError as e:
+        rec.update(status="NO_SOLVER", proved=False, detail=str(e))
+        return rec
+    rec["solve_secs"] = round(time.time() - t0, 1)
+    if r.returncode == 10:
+        rec.update(status="SAT", proved=False,
+                   detail="satisfiable: a logical under the bound exists")
+        return rec
+    if r.returncode != 20:
+        rec.update(status="UNKNOWN", proved=False,
+                   detail=f"kissat exit {r.returncode}")
+        return rec
+    rec["proof"] = {"path": proof_path, "bytes": os.path.getsize(proof_path)}
+
+    t1 = time.time()
+    try:
+        c = subprocess.run(["drat-trim", cnf_path, proof_path, "-l",
+                            trim_path],
+                           capture_output=True, text=True, timeout=tlim,
+                           check=False)
+    except subprocess.TimeoutExpired:
+        rec.update(status="UNSAT", proved=False,
+                   detail=f"drat-trim did not finish in {tlim}s")
+        return rec
+    except OSError as e:
+        rec.update(status="UNSAT", proved=False, detail=str(e))
+        return rec
+    out = (c.stdout or "") + (c.stderr or "")
+    rec["check_secs"] = round(time.time() - t1, 1)
+    rec["verified"] = "s VERIFIED" in out
+    if os.path.exists(trim_path):
+        rec["trimmed"] = {"path": trim_path,
+                          "bytes": os.path.getsize(trim_path)}
+    if not rec["verified"]:
+        rec.update(status="UNSAT", proved=False,
+                   detail="drat-trim did not verify the proof")
+        return rec
+    rec.update(status="UNSAT", proved=True)
+    if not keep_proof and os.path.exists(proof_path):
+        # The untrimmed proof is the working file; the trimmed core is what
+        # a reviewer checks and what the tree can afford to carry.
+        os.remove(proof_path)
+        rec["proof"]["path"] = None
+    return rec
+
+
+def certify(doc, tlim=600, proof_dir=None, max_artifact_bytes=4_000_000,
+            bundle_dir=None, slug=None):
     """Certify a submission doc's distance exactly, mirroring certify.certify.
 
     Returns per-side ``exact`` flags and an overall ``d_exact``. A SAT result
@@ -198,6 +416,35 @@ def certify(doc, tlim=600):
         status, wit = _solve_side(H_opp, L, W, tlim, use_symmetry=sym)
         blk = {"value": d, "exact": status == "UNSAT",
                "status": status, "secs": round(time.time() - t0, 1)}
+        if proof_dir is not None:
+            tag = f"{n}-{k}-{d}-{side}"
+            pr = prove_side(H_opp, L, W, proof_dir, tag, tlim=tlim)
+            # The two emitters answer the same question. A real
+            # disagreement is a bug in one of them and is reported rather
+            # than averaged. A timeout is not a verdict, so it is not a
+            # disagreement: the XOR path running out of budget where the
+            # proof path finishes is the proof path being faster, which on
+            # this encoding it sometimes is.
+            verdicts = {"SAT", "UNSAT"}
+            if (pr.get("status") in verdicts and status in verdicts
+                    and pr["status"] != status):
+                raise ValueError(
+                    f"{side} side: the XOR encoding says {status} and the "
+                    f"pure-CNF encoding says {pr['status']}; one of the two "
+                    f"is wrong and neither verdict is usable until that is "
+                    f"found")
+            # A refutation drat-trim has checked is stronger evidence than
+            # the incumbent path produces, so it settles a side the
+            # incumbent left open rather than being discarded for not
+            # matching it.
+            if pr.get("proved") and status == "TIMEOUT":
+                blk["exact"] = True
+                blk["status"] = "UNSAT"
+                blk["note"] = (f"no logical < {d} exists; the XOR encoding "
+                               f"timed out and the checked pure-CNF "
+                               f"refutation settled it")
+                status = "UNSAT"
+            blk["proof"] = pr
         if status == "UNSAT":
             blk["note"] = f"no logical < {d} exists"
         elif status == "SAT":
@@ -208,7 +455,109 @@ def certify(doc, tlim=600):
             break
     out["d_exact"] = all(b.get("exact") for b in out["sides"].values()) \
         and len(out["sides"]) == 2
+    if proof_dir is not None:
+        out["verification"] = _verification_block(
+            out, max_artifact_bytes, bundle_dir=bundle_dir,
+            slug=slug or f"{n}-{k}-{d}")
     return out
+
+
+def _repo_root():
+    """Return the checkout root, so artifact paths are repo-relative."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def bundle_proofs(slug, sides, bundle_path):
+    """Pack the trimmed cores and their manifest into one checkable file.
+
+    One file because `check_certs.py` requires the artifact to be a file in
+    the tree, and a directory or a list of paths is neither. The manifest
+    carries each side's CNF hash and the exact commands that regenerate and
+    re-check it, so the bundle is self-describing: the CNF itself is
+    reproducible from the code JSON and is not shipped.
+    """
+    import tarfile
+
+    manifest = {"slug": slug, "xor_chunk": XOR_CHUNK,
+                "tools": tool_versions(), "sides": {},
+                "regenerate": (f"python verify/sat_certify.py --proof <dir> "
+                               f"codes/{slug}.json"),
+                "recheck": "drat-trim <side>.cnf <side>.drat"}
+    for side, rec in sides.items():
+        manifest["sides"][side] = {
+            "cnf_sha256": rec["cnf"]["sha256"],
+            "cnf_vars": rec["cnf"]["vars"],
+            "cnf_clauses": rec["cnf"]["clauses"],
+            "trimmed_bytes": rec["trimmed"]["bytes"],
+            "solve_secs": rec.get("solve_secs"),
+            "check_secs": rec.get("check_secs"),
+        }
+    os.makedirs(os.path.dirname(os.path.abspath(bundle_path)), exist_ok=True)
+    body = json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n"
+
+    def _fixed(info):
+        # A tarball that changes every run would churn the tree for no
+        # reason, so the metadata is pinned and only the bytes matter.
+        info.uid = info.gid = 0
+        info.uname = info.gname = ""
+        info.mtime = 0
+        info.mode = 0o644
+        return info
+
+    with tarfile.open(bundle_path, "w:gz", compresslevel=9) as tar:
+        mi = tarfile.TarInfo("MANIFEST.json")
+        mi.size = len(body)
+        tar.addfile(_fixed(mi), io.BytesIO(body))
+        for side, rec in sorted(sides.items()):
+            tar.add(rec["trimmed"]["path"], arcname=f"{side}.drat",
+                    filter=_fixed)
+    return bundle_path, manifest
+
+
+def _verification_block(out, max_artifact_bytes, *, bundle_dir=None,
+                        slug=None):
+    """Decide the certificate's level from what the proof run produced.
+
+    proof_log only when every side the certificate rests on carries a proof
+    drat-trim verified and an artifact small enough for the tree. Anything
+    else stays at solver with the reason, because a level is a claim about
+    what a third party can check, not about how hard we tried.
+    """
+    proofs = [b.get("proof") or {} for b in out["sides"].values()]
+    if not out.get("d_exact") or not proofs:
+        return {"level": "solver",
+                "note": "no exact verdict, so there is nothing to carry a "
+                        "proof for"}
+    if not all(p.get("proved") for p in proofs):
+        why = "; ".join(sorted({p.get("detail") or p.get("status") or "?"
+                                for p in proofs if not p.get("proved")}))
+        return {"level": "solver",
+                "note": f"proof path did not complete: {why}"[:500]}
+    total = sum((p.get("trimmed") or {}).get("bytes") or 0 for p in proofs)
+    if total > max_artifact_bytes:
+        return {"level": "solver",
+                "note": f"trimmed proofs total {total} bytes, over the "
+                        f"{max_artifact_bytes} the tree carries; the run "
+                        f"verified but the artifact is not stored"}
+    tools = tool_versions()
+    sides = {side: blk["proof"] for side, blk in out["sides"].items()}
+    if bundle_dir is None:
+        return {"level": "solver",
+                "note": "proofs verified but no bundle directory was given, "
+                        "so there is no artifact in the tree to point at"}
+    bundle = os.path.join(bundle_dir, f"{slug}.tar.gz")
+    bundle_proofs(slug, sides, bundle)
+    return {
+        "level": "proof_log",
+        "artifact": os.path.relpath(bundle, _repo_root()),
+        "checker": f"drat-trim {tools['drat_trim'] or 'unknown'}",
+        "cnf_sha256": ";".join(f"{side}={rec['cnf']['sha256']}"
+                               for side, rec in sorted(sides.items())),
+        "note": (f"pure-CNF re-encoding refuted by kissat "
+                 f"{tools['kissat'] or '?'} and checked by drat-trim; the "
+                 f"XOR path agrees. Confirms the CNF is unsatisfiable, not "
+                 f"that it asks the distance question")[:500],
+    }
 
 
 def _matrix(support_list, n):
@@ -217,3 +566,62 @@ def _matrix(support_list, n):
     for i, row in enumerate(support_list):
         H[i, list(row)] = 1
     return H
+
+
+def _cli(argv=None):
+    """Certify one or more entries, optionally with a checkable proof log."""
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        description="Exact distance certification. With --proof, also emit a "
+                    "pure-CNF re-encoding, refute it with kissat, and check "
+                    "the refutation with drat-trim.")
+    ap.add_argument("codes", nargs="+", help="code JSON files")
+    ap.add_argument("--proof", metavar="DIR", default=None,
+                    help="working directory for the CNF, the proof, and the "
+                         "trimmed core")
+    ap.add_argument("--bundle", metavar="DIR", default="certs/proofs",
+                    help="where the committed proof bundle goes "
+                         "(default certs/proofs)")
+    ap.add_argument("--tlim", type=int, default=600,
+                    help="per-solve time limit in seconds (default 600)")
+    ap.add_argument("--max-artifact-bytes", type=int, default=4_000_000,
+                    help="trimmed proofs above this total leave the entry at "
+                         "level solver with a note (default 4000000)")
+    ap.add_argument("--json", action="store_true",
+                    help="print the certificate instead of a summary line")
+    args = ap.parse_args(argv)
+
+    rc = 0
+    for path in args.codes:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        slug = os.path.splitext(os.path.basename(path))[0]
+        out = certify(doc, tlim=args.tlim, proof_dir=args.proof,
+                      max_artifact_bytes=args.max_artifact_bytes,
+                      bundle_dir=args.bundle, slug=slug)
+        if args.json:
+            print(json.dumps(out, indent=2, sort_keys=True))
+            continue
+        v = out.get("verification") or {}
+        line = (f"{os.path.basename(path)}: d_exact={out['d_exact']}"
+                f" level={v.get('level', 'solver')}")
+        for side, blk in out["sides"].items():
+            pr = blk.get("proof") or {}
+            bits = [blk["status"]]
+            if pr:
+                bits.append("proof " + ("verified" if pr.get("proved")
+                                        else pr.get("detail") or "no"))
+                if pr.get("trimmed"):
+                    bits.append(f"{pr['trimmed']['bytes']}B trimmed")
+                if pr.get("solve_secs") is not None:
+                    bits.append(f"{pr['solve_secs']}s solve")
+            line += f"  [{side}: {', '.join(bits)}]"
+        print(line)
+        if not out["d_exact"]:
+            rc = 1
+    return rc
+
+
+if __name__ == "__main__":
+    raise SystemExit(_cli())

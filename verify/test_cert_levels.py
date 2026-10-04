@@ -29,20 +29,39 @@ def test_every_committed_certificate_declares_a_level():
 
 
 def test_the_board_claims_no_level_it_cannot_evidence():
-    """Today every certificate is a solver verdict. That is the honest state.
+    """Every level the board claims has the artifact that level requires.
 
-    This is not a permanent assertion; it fails the day a stronger one lands,
-    which is the point at which someone should look at whether the artifact
-    really is in the tree.
+    Certificates are solver verdicts and, since #2728, proof_log entries
+    carrying a checked refutation. The tripwire that used to pin the set to
+    solver alone fired when that landed, which is what it was for; what is
+    pinned now is the thing worth pinning, that no entry claims a level
+    whose artifact is missing, and that formal has not appeared without the
+    replay recipe #2511 specifies for it.
     """
     import glob
-    levels = set()
+    levels = {}
     for p in glob.glob(os.path.join(_ROOT, "certs", "*.json")):
         with open(p, encoding="utf-8") as f:
-            levels.add((json.load(f).get("verification") or {}).get("level"))
-    assert levels == {"solver"}, (
-        f"levels present: {sorted(levels)}. If a stronger level landed, check "
-        "its artifact is committed and update this test deliberately.")
+            cert = json.load(f)
+        v = cert.get("verification") or {}
+        levels.setdefault(v.get("level"), []).append((p, v))
+    assert set(levels) <= {"solver", "proof_log", "formal"}, \
+        f"unknown level: {sorted(set(levels))}"
+    for level, rows in levels.items():
+        if level == "solver":
+            continue
+        for path, v in rows:
+            slug = os.path.basename(path)
+            art = os.path.join(_ROOT, v.get("artifact") or "")
+            assert v.get("artifact") and os.path.isfile(art), \
+                f"{slug}: level {level} with no artifact in the tree"
+            assert os.path.getsize(art) > 0, f"{slug}: empty artifact"
+            assert v.get("checker"), f"{slug}: level {level} with no checker"
+    for path, v in levels.get("formal", []):
+        assert v.get("replay") and v.get("checks_sha256"), (
+            f"{os.path.basename(path)}: a formal certificate needs the "
+            "replay recipe and the hash binding it to this code, since the "
+            "proof is a theorem rather than a file")
 
 
 @pytest.mark.parametrize("level", ["proof_log", "formal"])

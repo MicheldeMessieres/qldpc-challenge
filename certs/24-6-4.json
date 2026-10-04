@@ -1,22 +1,25 @@
 {
-  "name": "[[24,6,4]] weight-6 generalized bicycle (2BGA) code",
   "d": 4,
-  "solver": "scipy/HiGHS MILP",
+  "d_exact": true,
+  "name": "[[24,6,4]] weight-6 generalized bicycle (2BGA) code",
   "sides": {
     "X": {
-      "value": 4,
       "exact": true,
-      "note": "no logical < 4 exists"
+      "note": "no logical < 4 exists",
+      "value": 4
     },
     "Z": {
-      "value": 4,
       "exact": true,
-      "note": "no logical < 4 exists"
+      "note": "no logical < 4 exists",
+      "value": 4
     }
   },
-  "d_exact": true,
+  "solver": "scipy/HiGHS MILP",
   "verification": {
-    "level": "solver",
-    "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
+    "artifact": "certs/proofs/24-6-4.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=e60295d9d37cea9d51f4b94f81a7dcd2f9b2e8cee5bc86923e99ad94617cad34;Z=0d64b5bcf5c84e7e9f04ea3e0f43d1355b1c21f383a69183527b656bdf195562",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
 }

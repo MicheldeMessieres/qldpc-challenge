@@ -1,22 +1,25 @@
 {
- "name": "[[50,10,4]], 2D-local bilayer layout",
- "d": 4,
- "solver": "CryptoMiniSat 5.14 SAT",
- "sides": {
-  "X": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "d": 4,
+  "d_exact": true,
+  "name": "[[50,10,4]], 2D-local bilayer layout",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    }
   },
-  "Z": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "verification": {
+    "artifact": "certs/proofs/50-10-4.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=25eb91d3da0fcf1d02531bbf6a397f4babcab8ef479ee5083e889a8581280171;Z=5bccaf005b461060b9545ee2b02899fd209944fa33fca9262c836c76a264dd1c",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

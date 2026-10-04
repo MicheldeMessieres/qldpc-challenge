@@ -1,22 +1,25 @@
 {
- "name": "[[80,18,5]] planar hyperbolic {5,5} code",
- "d": 5,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "d": 5,
+  "d_exact": true,
+  "name": "[[80,18,5]] planar hyperbolic {5,5} code",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    }
   },
-  "Z": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/80-18-5.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=a4e475e6ce3005564e3ba3e47ed859162e8fccc13a1bb6c50d8a415c99e9fd45;Z=9c6e1ed88724b58e7205ba83e92c4416f0737d121c98cd8331639ddebb69d561",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

@@ -1,26 +1,29 @@
 {
- "name": "[[51,16,5]]",
- "d": 5,
- "solver": "CryptoMiniSat 5.14.7 SAT",
- "sides": {
-  "X": {
-   "value": 5,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 0.4,
-   "note": "no logical < 5 exists"
+  "d": 5,
+  "d_exact": true,
+  "name": "[[51,16,5]]",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "secs": 0.4,
+      "status": "UNSAT",
+      "value": 5
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 6 exists",
+      "secs": 0.6,
+      "status": "UNSAT",
+      "value": 6
+    }
   },
-  "Z": {
-   "value": 6,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 0.6,
-   "note": "no logical < 6 exists"
+  "solver": "CryptoMiniSat 5.14.7 SAT",
+  "verification": {
+    "artifact": "certs/proofs/51-16-5.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=03dd5183b0251010c69cebb50aa0de994e7272745e55e9dca37873f3b686df86;Z=ebbed8e4d8792ad4f087bc807d605f8bb34ea1a03eeb145930da104221972880",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

@@ -1,22 +1,25 @@
 {
- "name": "[[18,4,4]] twisted-torus BB code (arXiv:2503.03827)",
- "d": 4,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "d": 4,
+  "d_exact": true,
+  "name": "[[18,4,4]] twisted-torus BB code (arXiv:2503.03827)",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    }
   },
-  "Z": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/18-4-4.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=3312f6a9dbf0f190ad272f970199998e11d10cfff3632a013344f610ba3208ca;Z=9a7cc23998096a4530d910da7eb15dda2c7d3f90c97980286be6564867398225",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

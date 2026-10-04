@@ -1,22 +1,25 @@
 {
- "name": "[[19,1,5]] triangular 6.6.6 colour code, single-layer 2D-local layout",
- "d": 5,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "d": 5,
+  "d_exact": true,
+  "name": "[[19,1,5]] triangular 6.6.6 colour code, single-layer 2D-local layout",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    }
   },
-  "Z": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/19-1-5.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=d14f6c6696a4354f6e8fee3edbd39b305fc4a7434573d162c904dbe2d74e2414;Z=d14f6c6696a4354f6e8fee3edbd39b305fc4a7434573d162c904dbe2d74e2414",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

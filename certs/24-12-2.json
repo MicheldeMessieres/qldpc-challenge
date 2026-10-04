@@ -1,29 +1,32 @@
 {
- "name": "[[24,12,2]] 2BGA",
- "d": 2,
- "solver": "CryptoMiniSat 5.14 SAT",
- "encoding": "selector",
- "sides": {
-  "X": {
-   "value": 2,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 0.0,
-   "note": "no logical < 2 exists"
+  "d": 2,
+  "d_exact": true,
+  "encoding": "selector",
+  "name": "[[24,12,2]] 2BGA",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 2 exists",
+      "secs": 0.0,
+      "status": "UNSAT",
+      "value": 2
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 2 exists",
+      "secs": 0.0,
+      "status": "UNSAT",
+      "value": 2
+    }
   },
-  "Z": {
-   "value": 2,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 0.0,
-   "note": "no logical < 2 exists"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "symmetry": false,
+  "tlim_per_solve": 120,
+  "verification": {
+    "artifact": "certs/proofs/24-12-2.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=a69132c98cf4686e9f634ae444e4ca66c498d6c6aac547b41f588e11bb7e68d3;Z=b45458b397fcc909cb659a3607574369e69045a3d6798175ff541169a4d1cd16",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "tlim_per_solve": 120,
- "symmetry": false,
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

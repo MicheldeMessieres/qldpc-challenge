@@ -1,22 +1,25 @@
 {
- "name": "[[139,7,5]]",
- "d": 5,
- "solver": "CryptoMiniSat 5.14 SAT",
- "sides": {
-  "X": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "d": 5,
+  "d_exact": true,
+  "name": "[[139,7,5]]",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 5 exists",
+      "value": 5
+    }
   },
-  "Z": {
-   "value": 5,
-   "exact": true,
-   "note": "no logical < 5 exists"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "verification": {
+    "artifact": "certs/proofs/139-7-5.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=4633a67d56fe3151dc9f7c7e5064ba5fc665c26e71b113c96de3c7174048b0ee;Z=45622b61e652e79994126969bd10712d8add1b5bcba45c49fc30b64c54624628",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

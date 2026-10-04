@@ -1,22 +1,25 @@
 {
- "name": "[[48,10,6]]",
- "d": 6,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 6,
-   "exact": true,
-   "note": "no logical < 6 exists"
+  "d": 6,
+  "d_exact": true,
+  "name": "[[48,10,6]]",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 6 exists",
+      "value": 6
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 6 exists",
+      "value": 6
+    }
   },
-  "Z": {
-   "value": 6,
-   "exact": true,
-   "note": "no logical < 6 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/48-10-6.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=c74c8f5b8acdc2b7496c53fb1e6876082fbdc646bfe78d1d96e4da2efd47a208;Z=4f21a49514ca9fc0a9367f9c463ff0825d2fe47215ff77324b7da603c66f85c7",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

@@ -1,22 +1,25 @@
 {
- "name": "[[22,2,6]] GB code",
- "d": 6,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 6,
-   "exact": true,
-   "note": "no logical < 6 exists"
+  "d": 6,
+  "d_exact": true,
+  "name": "[[22,2,6]] GB code",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 6 exists",
+      "value": 6
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 6 exists",
+      "value": 6
+    }
   },
-  "Z": {
-   "value": 6,
-   "exact": true,
-   "note": "no logical < 6 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/22-2-6.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=9555278a4d3d441d1274dc3913f33092d73909ff50bb44548298d8eceff3e200;Z=5036b282c40996a980e92233d210dcc9d2b236e41b93bc3e189cf3fc97b74fed",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

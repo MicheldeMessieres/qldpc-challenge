@@ -1,22 +1,25 @@
 {
- "name": "[[30,8,4]]",
- "d": 4,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "d": 4,
+  "d_exact": true,
+  "name": "[[30,8,4]]",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 4 exists",
+      "value": 4
+    }
   },
-  "Z": {
-   "value": 4,
-   "exact": true,
-   "note": "no logical < 4 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "artifact": "certs/proofs/30-8-4.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=fba68eb22ba0d9a38a2454cc5df216ae6daa037060ee3a08dd15d696c52b5b0e;Z=ba9719f21da1dd9ca0b2155280eb43d87d617f4886d737c040e4e2c61c1cf3f3",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

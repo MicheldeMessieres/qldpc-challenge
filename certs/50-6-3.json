@@ -1,22 +1,25 @@
 {
- "name": "[[50,6,3]] SAT-found punctured rotated surface code",
- "d": 3,
- "solver": "CryptoMiniSat 5.14 SAT",
- "sides": {
-  "X": {
-   "value": 3,
-   "exact": true,
-   "note": "no logical < 3 exists"
+  "d": 3,
+  "d_exact": true,
+  "name": "[[50,6,3]] SAT-found punctured rotated surface code",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 3 exists",
+      "value": 3
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 3 exists",
+      "value": 3
+    }
   },
-  "Z": {
-   "value": 3,
-   "exact": true,
-   "note": "no logical < 3 exists"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "verification": {
+    "artifact": "certs/proofs/50-6-3.tar.gz",
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=ac87cde8db353cbdddb4252fde26bce237dfff230af54b29d2e12bae408a1025;Z=d7c4773517ee1026d107b27c6959de355f3be4b5c114b9082f88a731a012e0bc",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }
