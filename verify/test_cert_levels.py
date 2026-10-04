@@ -29,7 +29,7 @@ def test_every_committed_certificate_declares_a_level():
 
 
 def test_the_board_claims_no_level_it_cannot_evidence():
-    """Every level the board claims has the artifact that level requires.
+    """Every level the board claims has the evidence that level requires.
 
     Certificates are solver verdicts and, since #2728, proof_log entries
     carrying a checked refutation. The tripwire that used to pin the set to
@@ -52,10 +52,23 @@ def test_the_board_claims_no_level_it_cannot_evidence():
             continue
         for path, v in rows:
             slug = os.path.basename(path)
-            art = os.path.join(_ROOT, v.get("artifact") or "")
-            assert v.get("artifact") and os.path.isfile(art), \
-                f"{slug}: level {level} with no artifact in the tree"
-            assert os.path.getsize(art) > 0, f"{slug}: empty artifact"
+            # Evidence is a file in the tree or the recipe that re-derives
+            # the check. proof_log ships the recipe (PR #2754): the
+            # refutations are too large to commit and a committed blob is
+            # not something CI can audit, so the certificate carries the
+            # formula's hash and replay_proofs.py regenerates and re-checks
+            # it on a schedule.
+            if v.get("artifact"):
+                art = os.path.join(_ROOT, v["artifact"])
+                assert os.path.isfile(art), \
+                    f"{slug}: level {level} names an artifact not in the tree"
+                assert os.path.getsize(art) > 0, f"{slug}: empty artifact"
+            else:
+                assert v.get("replay"), \
+                    f"{slug}: level {level} with neither artifact nor replay"
+                if level == "proof_log":
+                    assert v.get("cnf_sha256"), \
+                        f"{slug}: replayed proof_log without cnf_sha256"
             assert v.get("checker"), f"{slug}: level {level} with no checker"
     for path, v in levels.get("formal", []):
         assert v.get("replay") and v.get("checks_sha256"), (
@@ -126,8 +139,10 @@ def test_an_artifact_outside_the_tree_is_refused(art):
 
 @pytest.mark.parametrize("field", ["artifact", "checker", "reference"])
 def test_solver_level_claims_no_check_it_did_not_run(field):
-    """A checker named on a bare solver verdict asserts a check that is not
-    there, exactly as an artifact would."""
+    """Refuse a checker named on a bare solver verdict.
+
+    It asserts a check that is not there, exactly as an artifact would.
+    """
     c = copy.deepcopy(BASE)
     c["verification"] = {"level": "solver", field: "drat-trim 2024-05"}
     assert C.evidence_problems("x", c)

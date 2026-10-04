@@ -16,10 +16,14 @@
   },
   "solver": "scipy/HiGHS MILP",
   "verification": {
-    "artifact": "certs/proofs/72-8-7.tar.gz",
     "checker": "drat-trim sha256:f58f63b0f76945d4",
     "cnf_sha256": "X=6792e82b6ee94eafed6554818783c375dc8a78451a43a8c58166d0331deca5f7;Z=69677f82a87f7a855b1d6793c5a29676508d18a0d849736c836f2e030f1beb22",
     "level": "proof_log",
-    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
+    "note": "pure-CNF re-encoding refuted by kissat and checked by drat-trim; the XOR path agrees. The formula is regenerated from this entry and re-checked by CI rather than stored: a refutation nobody opens is not evidence, and the trimmed cores run to 95.8 MB as text. Confirms the formula is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 72-8-7",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
 }

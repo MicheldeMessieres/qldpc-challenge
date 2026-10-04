@@ -51,6 +51,15 @@
           "type": "string",
           "description": "the tool and version that checked the artifact, e.g. 'drat-trim 2024-05' or 'Lean 4.x + mathlib'"
         },
+        "replay": {
+          "type": "object",
+          "description": "How a third party re-derives this check without trusting us, when there is no file worth attaching. For proof_log that is the command that regenerates the formula from this entry and the command that re-checks the refutation: the trimmed cores run to 95.8 MB as text, and a committed blob nobody opens is not better evidence than a command anyone can run. CI re-derives and re-checks on a schedule, so the claim is audited rather than asserted. Open-ended on purpose, since a formal certificate replays a build rather than a solver run.",
+          "properties": {
+            "emit": { "type": "string", "description": "the command that regenerates the formula from codes/<slug>.json" },
+            "check": { "type": "string", "description": "the command that re-checks the refutation" },
+            "emitter": { "type": "string", "description": "which encoder produced it, including the parameters that change the formula" }
+          }
+        },
         "cnf_sha256": {
           "type": "string",
           "description": "for proof_log: sha256 of the formula the artifact refutes, one per side joined as 'X=<hash>;Z=<hash>'. A refutation is of a specific instance, and without the instance's hash a reader cannot tell which formula the proof belongs to, so a re-emission that changed the encoding would be indistinguishable from the one that was checked. The formula itself is reproducible from the code JSON and is not stored."
@@ -64,7 +73,14 @@
       "allOf": [
         {
           "if": { "properties": { "level": { "enum": ["proof_log", "formal"] } } },
-          "then": { "required": ["level", "artifact", "checker"] }
+          "then": {
+            "required": ["level", "checker"],
+            "anyOf": [
+              { "required": ["artifact"] },
+              { "required": ["replay"] }
+            ],
+            "description": "A stronger level needs evidence a third party can act on: a file in the tree, or the recipe that re-derives the check. For proof_log the recipe is the better artifact, since the trimmed refutations run to 95.8 MB as text and a committed blob nobody opens is not evidence. For formal there is no file to attach at all, because the proof is a theorem in a development."
+          }
         }
       ]
     }

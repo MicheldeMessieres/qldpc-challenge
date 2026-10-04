@@ -71,7 +71,7 @@ def _inside_tree(art):
 
 
 def evidence_problems(slug, cert):
-    """Rules a schema cannot state: the artifact has to be there."""
+    """Rules a schema cannot state: the evidence has to be reachable."""
     out = []
     v = cert.get("verification") or {}
     level = v.get("level")
@@ -86,14 +86,30 @@ def evidence_problems(slug, cert):
                 out.append(f"{slug}: level 'solver' names a {field}; if "
                            "something was checked, claim the level it earns")
         return out
+    # A stronger level needs evidence a third party can act on. That can be
+    # a file in the tree, or it can be the instance plus the recipe that
+    # re-derives the check, which is what the proof tiers actually ship: a
+    # refutation of a formula regenerated from the entry, and a theorem in
+    # a development. A committed blob nobody opens is not better evidence
+    # than a command anyone can run, and for these proofs it is 95.8 MB of
+    # it, so the rule is "point at something checkable", not "attach a
+    # file".
     art = v.get("artifact")
-    if not art:
-        out.append(f"{slug}: level {level!r} with no artifact")
-    elif not _inside_tree(art):
+    replay = v.get("replay")
+    if art and not _inside_tree(art):
         out.append(f"{slug}: level {level!r} names {art}, which is not a file "
                    "committed in this tree")
+    if not art and not replay:
+        out.append(f"{slug}: level {level!r} with neither an artifact in the "
+                   "tree nor a replay recipe; one of the two has to be there "
+                   "or the level claims a check nobody can repeat")
     if not v.get("checker"):
         out.append(f"{slug}: level {level!r} with no checker recorded")
+    if level == "proof_log" and not art and not v.get("cnf_sha256"):
+        out.append(f"{slug}: level 'proof_log' replayed rather than stored "
+                   "needs cnf_sha256, since a regenerated formula that is "
+                   "not the one that was refuted proves nothing about this "
+                   "entry")
     return out
 
 

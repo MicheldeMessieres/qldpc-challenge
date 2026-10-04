@@ -16,10 +16,14 @@
   },
   "solver": "CryptoMiniSat 5.14 SAT",
   "verification": {
-    "artifact": "certs/proofs/64-16-6.tar.gz",
     "checker": "drat-trim sha256:f58f63b0f76945d4",
     "cnf_sha256": "X=494711946582dd241d250a12f8b61ec4001c0fc524d252193d838fe8dacb90f1;Z=f689bfeee75c4090d6167055a349acb9e3c1e08499a43894f860cd9971ff121c",
     "level": "proof_log",
-    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
+    "note": "pure-CNF re-encoding refuted by kissat and checked by drat-trim; the XOR path agrees. The formula is regenerated from this entry and re-checked by CI rather than stored: a refutation nobody opens is not evidence, and the trimmed cores run to 95.8 MB as text. Confirms the formula is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 64-16-6",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
 }

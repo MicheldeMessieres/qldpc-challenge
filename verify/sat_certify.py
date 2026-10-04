@@ -60,7 +60,6 @@ slice could keep stabilizers and drop logical classes. certify() now counts
 the classes the pairing set spans and refuses to solve unless it is all k.
 """
 import hashlib
-import io
 import json
 import os
 import re
@@ -369,14 +368,13 @@ def prove_side(H_opp, L, W, outdir, tag, *, tlim=600, keep_proof=False):
     rec.update(status="UNSAT", proved=True)
     if not keep_proof and os.path.exists(proof_path):
         # The untrimmed proof is the working file; the trimmed core is what
-        # a reviewer checks and what the tree can afford to carry.
+        # a reviewer would read, and its size is what the batch log records.
         os.remove(proof_path)
         rec["proof"]["path"] = None
     return rec
 
 
-def certify(doc, tlim=600, proof_dir=None, max_artifact_bytes=4_000_000,
-            bundle_dir=None, slug=None):
+def certify(doc, tlim=600, proof_dir=None, slug=None):
     """Certify a submission doc's distance exactly, mirroring certify.certify.
 
     Returns per-side ``exact`` flags and an overall ``d_exact``. A SAT result
@@ -457,71 +455,22 @@ def certify(doc, tlim=600, proof_dir=None, max_artifact_bytes=4_000_000,
         and len(out["sides"]) == 2
     if proof_dir is not None:
         out["verification"] = _verification_block(
-            out, max_artifact_bytes, bundle_dir=bundle_dir,
-            slug=slug or f"{n}-{k}-{d}")
+            out, slug=slug or f"{n}-{k}-{d}")
     return out
 
 
 def _repo_root():
-    """Return the checkout root, so artifact paths are repo-relative."""
+    """Return the checkout root, so paths are recorded repo-relative."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def bundle_proofs(slug, sides, bundle_path):
-    """Pack the trimmed cores and their manifest into one checkable file.
-
-    One file because `check_certs.py` requires the artifact to be a file in
-    the tree, and a directory or a list of paths is neither. The manifest
-    carries each side's CNF hash and the exact commands that regenerate and
-    re-check it, so the bundle is self-describing: the CNF itself is
-    reproducible from the code JSON and is not shipped.
-    """
-    import tarfile
-
-    manifest = {"slug": slug, "xor_chunk": XOR_CHUNK,
-                "tools": tool_versions(), "sides": {},
-                "regenerate": (f"python verify/sat_certify.py --proof <dir> "
-                               f"codes/{slug}.json"),
-                "recheck": "drat-trim <side>.cnf <side>.drat"}
-    for side, rec in sides.items():
-        manifest["sides"][side] = {
-            "cnf_sha256": rec["cnf"]["sha256"],
-            "cnf_vars": rec["cnf"]["vars"],
-            "cnf_clauses": rec["cnf"]["clauses"],
-            "trimmed_bytes": rec["trimmed"]["bytes"],
-            "solve_secs": rec.get("solve_secs"),
-            "check_secs": rec.get("check_secs"),
-        }
-    os.makedirs(os.path.dirname(os.path.abspath(bundle_path)), exist_ok=True)
-    body = json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n"
-
-    def _fixed(info):
-        # A tarball that changes every run would churn the tree for no
-        # reason, so the metadata is pinned and only the bytes matter.
-        info.uid = info.gid = 0
-        info.uname = info.gname = ""
-        info.mtime = 0
-        info.mode = 0o644
-        return info
-
-    with tarfile.open(bundle_path, "w:gz", compresslevel=9) as tar:
-        mi = tarfile.TarInfo("MANIFEST.json")
-        mi.size = len(body)
-        tar.addfile(_fixed(mi), io.BytesIO(body))
-        for side, rec in sorted(sides.items()):
-            tar.add(rec["trimmed"]["path"], arcname=f"{side}.drat",
-                    filter=_fixed)
-    return bundle_path, manifest
-
-
-def _verification_block(out, max_artifact_bytes, *, bundle_dir=None,
-                        slug=None):
+def _verification_block(out, *, slug=None):
     """Decide the certificate's level from what the proof run produced.
 
     proof_log only when every side the certificate rests on carries a proof
-    drat-trim verified and an artifact small enough for the tree. Anything
-    else stays at solver with the reason, because a level is a claim about
-    what a third party can check, not about how hard we tried.
+    drat-trim verified. Anything else stays at solver with the reason,
+    because a level is a claim about what a third party can check, not
+    about how hard we tried.
     """
     proofs = [b.get("proof") or {} for b in out["sides"].values()]
     if not out.get("d_exact") or not proofs:
@@ -533,26 +482,26 @@ def _verification_block(out, max_artifact_bytes, *, bundle_dir=None,
                                 for p in proofs if not p.get("proved")}))
         return {"level": "solver",
                 "note": f"proof path did not complete: {why}"[:500]}
-    total = sum((p.get("trimmed") or {}).get("bytes") or 0 for p in proofs)
-    if total > max_artifact_bytes:
-        return {"level": "solver",
-                "note": f"trimmed proofs total {total} bytes, over the "
-                        f"{max_artifact_bytes} the tree carries; the run "
-                        f"verified but the artifact is not stored"}
     tools = tool_versions()
     sides = {side: blk["proof"] for side, blk in out["sides"].items()}
-    if bundle_dir is None:
-        return {"level": "solver",
-                "note": "proofs verified but no bundle directory was given, "
-                        "so there is no artifact in the tree to point at"}
-    bundle = os.path.join(bundle_dir, f"{slug}.tar.gz")
-    bundle_proofs(slug, sides, bundle)
     return {
         "level": "proof_log",
-        "artifact": os.path.relpath(bundle, _repo_root()),
         "checker": f"drat-trim {tools['drat_trim'] or 'unknown'}",
         "cnf_sha256": ";".join(f"{side}={rec['cnf']['sha256']}"
                                for side, rec in sorted(sides.items())),
+        # The recipe rather than the refutation. The trimmed cores run to
+        # tens of megabytes apiece, nothing in CI can audit a committed
+        # blob, and a formula regenerated from this entry and re-checked is
+        # the same evidence without either problem. cnf_sha256 is what
+        # makes the regeneration honest: a formula that does not hash to
+        # the recorded value is not the one that was refuted.
+        "replay": {
+            "emit": f"python verify/replay_proofs.py {slug}",
+            "check": "kissat --no-binary <side>.cnf <side>.proof; "
+                     "drat-trim <side>.cnf <side>.proof",
+            "emitter": f"verify/sat_certify.py side_cnf, XOR chunk arity "
+                       f"{XOR_CHUNK}, no symmetry prefix",
+        },
         "note": (f"pure-CNF re-encoding refuted by kissat "
                  f"{tools['kissat'] or '?'} and checked by drat-trim; the "
                  f"XOR path agrees. Confirms the CNF is unsatisfiable, not "
@@ -580,14 +529,8 @@ def _cli(argv=None):
     ap.add_argument("--proof", metavar="DIR", default=None,
                     help="working directory for the CNF, the proof, and the "
                          "trimmed core")
-    ap.add_argument("--bundle", metavar="DIR", default="certs/proofs",
-                    help="where the committed proof bundle goes "
-                         "(default certs/proofs)")
     ap.add_argument("--tlim", type=int, default=600,
                     help="per-solve time limit in seconds (default 600)")
-    ap.add_argument("--max-artifact-bytes", type=int, default=4_000_000,
-                    help="trimmed proofs above this total leave the entry at "
-                         "level solver with a note (default 4000000)")
     ap.add_argument("--json", action="store_true",
                     help="print the certificate instead of a summary line")
     args = ap.parse_args(argv)
@@ -597,9 +540,7 @@ def _cli(argv=None):
         with open(path, encoding="utf-8") as f:
             doc = json.load(f)
         slug = os.path.splitext(os.path.basename(path))[0]
-        out = certify(doc, tlim=args.tlim, proof_dir=args.proof,
-                      max_artifact_bytes=args.max_artifact_bytes,
-                      bundle_dir=args.bundle, slug=slug)
+        out = certify(doc, tlim=args.tlim, proof_dir=args.proof, slug=slug)
         if args.json:
             print(json.dumps(out, indent=2, sort_keys=True))
             continue

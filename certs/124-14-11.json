@@ -1,29 +1,36 @@
 {
- "name": "[[124,14,11]] univariate bicycle UB(a,l=3)",
- "d": 11,
- "solver": "CryptoMiniSat 5.14.7 SAT",
- "encoding": "selector",
- "sides": {
-  "X": {
-   "value": 11,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 30.6,
-   "note": "no logical < 11 exists"
+  "d": 11,
+  "d_exact": true,
+  "encoding": "selector",
+  "name": "[[124,14,11]] univariate bicycle UB(a,l=3)",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 11 exists",
+      "secs": 30.6,
+      "status": "UNSAT",
+      "value": 11
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 11 exists",
+      "secs": 40.1,
+      "status": "UNSAT",
+      "value": 11
+    }
   },
-  "Z": {
-   "value": 11,
-   "exact": true,
-   "status": "UNSAT",
-   "secs": 40.1,
-   "note": "no logical < 11 exists"
+  "solver": "CryptoMiniSat 5.14.7 SAT",
+  "symmetry": true,
+  "tlim_per_solve": 1800,
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=493e6c2729f11bffb827d2703c0b34e8c74c6df5ffea56b63331b16729b4fffe;Z=aae3ad43766bc939dc229c635d0101d0c95c8f0c55851c916a21d081f22ce1a2",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 124-14-11",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "tlim_per_solve": 1800,
- "symmetry": true,
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

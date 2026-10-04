@@ -1,22 +1,29 @@
 {
- "name": "[[144,2,12]] trivariate bicycle (arXiv:2406.19151), 2D-local bilayer layout",
- "d": 12,
- "solver": "CryptoMiniSat 5.14 SAT",
- "sides": {
-  "X": {
-   "value": 12,
-   "exact": true,
-   "note": "no logical < 12 exists"
+  "d": 12,
+  "d_exact": true,
+  "name": "[[144,2,12]] trivariate bicycle (arXiv:2406.19151), 2D-local bilayer layout",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 12 exists",
+      "value": 12
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 12 exists",
+      "value": 12
+    }
   },
-  "Z": {
-   "value": 12,
-   "exact": true,
-   "note": "no logical < 12 exists"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=d8c94f33bb17ea88666a4c3441f81207bcd0b269977901df938496f18d564351;Z=8de3147fa6cd30ccc1ee2540c93ed2e59c1a6a11a3ef2a445d40c64a29a39974",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 144-2-12",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

@@ -1,22 +1,29 @@
 {
- "name": "[[90,8,10]] bivariate bicycle code",
- "d": 10,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 10,
-   "exact": true,
-   "note": "no logical < 10 exists"
+  "d": 10,
+  "d_exact": true,
+  "name": "[[90,8,10]] bivariate bicycle code",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 10 exists",
+      "value": 10
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 10 exists",
+      "value": 10
+    }
   },
-  "Z": {
-   "value": 10,
-   "exact": true,
-   "note": "no logical < 10 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=fc4592c7677cb251f68465e2ee8e0656c2b740e4b0d5667fe93f00fdd8c50fbe;Z=8e8d98fd409a40aa243b5371116a4e37488ae936eb47b9f76aaf5c180182aa33",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 90-8-10",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

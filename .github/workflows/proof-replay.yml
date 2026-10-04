@@ -1,0 +1,69 @@
+name: proof-replay
+
+permissions:
+  contents: read
+
+# The proof_log tier carries no refutation in the tree (PR #2754): a
+# certificate records the sha256 of the formula that was refuted and the
+# recipe to regenerate it, and this workflow is what makes that a claim
+# anyone can check rather than one we assert. It regenerates each side's
+# CNF from the code JSON, fails if the hash is not the recorded one, refutes
+# the formula again with kissat, and has drat-trim check the new proof.
+#
+# A pull request that touches the certificates or the emitter replays a
+# rotating subset of the quick entries. The weekly run replays all of them.
+on:
+  pull_request:
+    paths:
+      - "certs/**"
+      - "verify/sat_certify.py"
+      - "verify/replay_proofs.py"
+      - "verify/gf2.py"
+      - ".github/workflows/proof-replay.yml"
+  schedule:
+    - cron: "0 10 * * 1"
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "replay every proof_log certificate"
+        type: boolean
+        default: false
+
+concurrency:
+  group: proof-replay-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    # The full set is about 2.1 core-hours of solving and checking, 40 min
+    # of it on one entry (certs/proof_log_batch.jsonl records the per-entry
+    # times); the per-PR subset is seconds. The cap is for a hang.
+    timeout-minutes: 300
+    env:
+      PYTHONUNBUFFERED: "1"
+      # Pinned to a commit each, so a changed solver or checker is a
+      # deliberate edit here and not a drift in whatever apt ships.
+      KISSAT_REF: 8af8e56f174b778aef3aa45af9f739b2a5f492c2    # rel-4.0.4
+      DRAT_TRIM_REF: 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: build kissat and drat-trim
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/arminbiere/kissat.git /tmp/kissat
+          git -C /tmp/kissat checkout -q "$KISSAT_REF"
+          (cd /tmp/kissat && ./configure -q && make -s -j"$(nproc)")
+          git clone -q https://github.com/marijnheule/drat-trim.git /tmp/drat-trim
+          git -C /tmp/drat-trim checkout -q "$DRAT_TRIM_REF"
+          (cd /tmp/drat-trim && make -s drat-trim)
+          install -m 755 /tmp/kissat/build/kissat /usr/local/bin/kissat
+          install -m 755 /tmp/drat-trim/drat-trim /usr/local/bin/drat-trim
+          kissat --version
+      - name: replay a rotating subset
+        if: github.event_name == 'pull_request'
+        run: uv run --frozen --extra certify python verify/replay_proofs.py --sample 12 --seed ${{ github.event.pull_request.number }}
+      - name: replay every proof_log certificate
+        if: github.event_name != 'pull_request'
+        run: uv run --frozen --extra certify python verify/replay_proofs.py --all --tlim 1800

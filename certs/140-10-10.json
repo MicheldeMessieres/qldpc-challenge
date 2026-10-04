@@ -1,22 +1,29 @@
 {
- "name": "[[140,10,10]] 2BGA on metacyclic Z_35 |x Z_2 (arXiv:2306.16400)",
- "d": 10,
- "solver": "CryptoMiniSat 5.14 SAT",
- "sides": {
-  "X": {
-   "value": 10,
-   "exact": true,
-   "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+  "d": 10,
+  "d_exact": true,
+  "name": "[[140,10,10]] 2BGA on metacyclic Z_35 |x Z_2 (arXiv:2306.16400)",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)",
+      "value": 10
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)",
+      "value": 10
+    }
   },
-  "Z": {
-   "value": 10,
-   "exact": true,
-   "note": "no logical < 10 exists (CryptoMiniSat, XOR + sequential-counter cardinality)"
+  "solver": "CryptoMiniSat 5.14 SAT",
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=59e6f7b61a345c09764a7e178c878ebdd9e7ffadb4ac7417a78f3fe96d75143d;Z=9818ed8140fc8839317c30bb4ef029fee9336db5be4bbe3d70412853f1627b4f",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 140-10-10",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

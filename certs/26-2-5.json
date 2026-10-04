@@ -17,10 +17,14 @@
   "solver": "scipy/HiGHS cutoff IP",
   "tlim_per_solve": 180.0,
   "verification": {
-    "artifact": "certs/proofs/26-2-5.tar.gz",
     "checker": "drat-trim sha256:f58f63b0f76945d4",
     "cnf_sha256": "X=5188f9a1f94bdbd796c983994871fc3a294d015f6e64c184b1d4c0749b0fe83e;Z=931c3beecdeb64ba0d50bf507933b5d17dd1e5c36704f4a85b3bcc6764f40f56",
     "level": "proof_log",
-    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question"
+    "note": "pure-CNF re-encoding refuted by kissat and checked by drat-trim; the XOR path agrees. The formula is regenerated from this entry and re-checked by CI rather than stored: a refutation nobody opens is not evidence, and the trimmed cores run to 95.8 MB as text. Confirms the formula is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 26-2-5",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
 }

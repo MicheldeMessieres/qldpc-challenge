@@ -16,8 +16,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# server-side exact distance certification (verify/certify*.py)
-certify = ["scipy>=1.11"]
+# server-side exact distance certification (verify/certify*.py) and the
+# pure-CNF emitter behind the proof_log tier (verify/sat_certify.py)
+certify = ["scipy>=1.11", "python-sat>=1.8"]
 # research/ distance confirmation: exact_distance needs scipy (MILP), and
 # decoder_distance needs ldpc (BP+OSD). The constructors/surrogate/search and
 # submission packaging in research/ are numpy-only and need none of this.

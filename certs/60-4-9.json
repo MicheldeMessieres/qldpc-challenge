@@ -1,22 +1,29 @@
 {
- "name": "[[60,4,9]]",
- "d": 9,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 9,
-   "exact": true,
-   "note": "no logical < 9 exists"
+  "d": 9,
+  "d_exact": true,
+  "name": "[[60,4,9]]",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 9 exists",
+      "value": 9
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 9 exists",
+      "value": 9
+    }
   },
-  "Z": {
-   "value": 9,
-   "exact": true,
-   "note": "no logical < 9 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=29b0ba6d15a5a3e525398e2bdab369287487c15c139c60ae839dee90c60687ab;Z=28bd2a28e62c3ab9115c9cca5d02c093cf0bb364cbe9eaad3fa315d1644fb942",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 60-4-9",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

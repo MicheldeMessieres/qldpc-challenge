@@ -1,22 +1,29 @@
 {
- "name": "[[70,6,8]] twisted-torus BB code (arXiv:2503.03827)",
- "d": 8,
- "solver": "scipy/HiGHS MILP",
- "sides": {
-  "X": {
-   "value": 8,
-   "exact": true,
-   "note": "no logical < 8 exists"
+  "d": 8,
+  "d_exact": true,
+  "name": "[[70,6,8]] twisted-torus BB code (arXiv:2503.03827)",
+  "sides": {
+    "X": {
+      "exact": true,
+      "note": "no logical < 8 exists",
+      "value": 8
+    },
+    "Z": {
+      "exact": true,
+      "note": "no logical < 8 exists",
+      "value": 8
+    }
   },
-  "Z": {
-   "value": 8,
-   "exact": true,
-   "note": "no logical < 8 exists"
+  "solver": "scipy/HiGHS MILP",
+  "verification": {
+    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "cnf_sha256": "X=279a9afa7f9f90f7b7f98bf38c2847756ac695313c6e7123668f708e87a8dc1c;Z=049a98ed5333fd99084490c1312fe2f85388d240c9e3766f698320a0b9f41fe9",
+    "level": "proof_log",
+    "note": "pure-CNF re-encoding refuted by kissat 4.0.4 and checked by drat-trim; the XOR path agrees. Confirms the CNF is unsatisfiable, not that it asks the distance question",
+    "replay": {
+      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
+      "emit": "python verify/replay_proofs.py 70-6-8",
+      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+    }
   }
- },
- "d_exact": true,
- "verification": {
-  "level": "solver",
-  "note": "backfilled: a solver verdict with no proof object, which is what every certificate carried before #2511"
- }
 }

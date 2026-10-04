@@ -1081,6 +1081,7 @@ dependencies = [
 
 [package.optional-dependencies]
 certify = [
+    { name = "python-sat" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
@@ -1106,6 +1107,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "pycryptosat", marker = "extra == 'research'", specifier = ">=5.11" },
     { name = "pynauty", marker = "extra == 'research'", specifier = ">=2.8" },
+    { name = "python-sat", marker = "extra == 'certify'", specifier = ">=1.8" },
     { name = "python-sat", marker = "extra == 'research'", specifier = ">=1.8" },
     { name = "scipy", marker = "extra == 'certify'", specifier = ">=1.11" },
     { name = "scipy", marker = "extra == 'research'", specifier = ">=1.11" },
