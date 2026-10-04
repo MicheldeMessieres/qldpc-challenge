@@ -70,7 +70,7 @@ def _run(repo, env=None, body="/dev/null"):
 
 
 def test_without_an_upstream_remote_a_fork_origin_is_refused(fork):
-    """origin is the fork, so its main is not what CI diffs against."""
+    """Refuse a fork origin, since its main is not what CI diffs against."""
     r = _run(fork["fork"])
     assert r.returncode == 2, r.stderr
     assert "not unitaryfoundation/qldpc-challenge" in r.stderr
