@@ -153,6 +153,37 @@ so a closed family is learned from the summary rather than from the report.
 `abandoned` keeps everything a run produced. Stopping early throws nothing
 away.
 
+An experiment that screened nothing has to say which kind of nothing it was.
+Two broken sweeps in this repo read as clean negatives at summary level: one
+whose sampler raised on a malformed parameter and filed the exception text
+under `negative_results`, and one whose worker died on a deleted helper and
+recorded nothing. Both closed with zero screened, and at the summary neither
+was distinguishable from a search that ran and found nothing. So
+`end_experiment` refuses a zero that gives no reason. A crash is filed with
+`record_error(what, detail)`, which marks the experiment `aborted`, lands it
+under `errors` in the journal, the manifest, and the summary, and keeps it
+out of `negative_results`. A sampler that legitimately yields nothing at
+these parameters closes with `end_experiment(empty_ok=True)`. Any budget
+spend, a `record_screen` reading, a `record_verdict`, or a survivor counts as
+evidence that something ran and closes normally.
+
+```python
+led.start_experiment("bivariate-bicycle", seed=3)
+try:
+    cands = sample(l=3, m=3)
+except Exception as e:                    # the generator failed
+    led.record_error("sweep failed", f"{type(e).__name__}: {e}")
+    led.end_experiment()
+else:
+    if not cands:                         # nothing exists here
+        led.end_experiment(empty_ok=True)
+```
+
+An aborted experiment neither resets nor advances the `no_progress` streak,
+so a campaign cannot stop for lack of progress on the strength of a crash.
+`summary.json` reports `aborted_experiments` beside `experiments`, and the
+`errors` list carries the index of the experiment each one belongs to.
+
 The ledger is held in memory, so a kill loses it. Pass `journal=` and every
 experiment is appended to a JSONL file as it closes, which narrows the loss to
 the experiment in flight:

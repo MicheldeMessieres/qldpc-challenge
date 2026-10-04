@@ -247,7 +247,7 @@ def test_a_dry_spell_fires_no_progress():
     for _ in range(2):
         led.start_experiment("bivariate-bicycle")
         led.record_negative("wall", "every draw screened above the cap")
-        led.end_experiment()
+        led.end_experiment(empty_ok=True)
     kind, detail = led.stop_reason()
     assert kind == "no_progress" and "2 experiments" in detail
 
@@ -257,7 +257,7 @@ def test_a_survivor_resets_the_dry_spell():
         stopping=[{"type": "no_progress", "experiments": 2}])))
     led = Ledger(c)
     led.start_experiment("bivariate-bicycle")
-    led.end_experiment()                      # dry
+    led.end_experiment(empty_ok=True)                      # dry
     led.start_experiment("bivariate-bicycle")
     led.record_candidate(doc(), passed_verdict(advancing=False))
     led.end_experiment()                      # not dry
@@ -304,6 +304,7 @@ def test_the_target_cannot_be_reached_by_a_candidate_the_gate_refused():
         led.record_candidate(doc(n=72, k=12, d=6),          # kd^2/n = 6
                              {"passed": False, "labels": ["duplicate"]})
     led.record_negative("gate rejected", "duplicate of a board entry")
+    led.record_verdict("duplicate")
     led.end_experiment()
     assert led.best_score() is None
     assert led.stop_reason() is None
@@ -545,7 +546,7 @@ def test_several_journals_load_as_one_ledger(tmp_path):
 def test_a_ledger_with_no_journal_writes_nothing(tmp_path):
     led = Ledger(Campaign(validate_campaign(camp())))
     led.start_experiment("bivariate-bicycle", seed=1)
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
     assert list(tmp_path.iterdir()) == []
 
 
@@ -604,7 +605,7 @@ def test_an_experiment_row_records_the_depth_it_ran_at():
     c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
     led = Ledger(c)
     led.start_experiment("bivariate-bicycle", seed=51)
-    exp = led.end_experiment()
+    exp = led.end_experiment(empty_ok=True)
     assert exp["params"]["trials"] == 2000000
     assert exp["contract_hash"] == c.contract_hash
     assert "contract_deviations" not in exp
@@ -623,7 +624,7 @@ def test_an_override_is_applied_and_reported_as_a_deviation():
     c = Campaign(validate_campaign(camp(run_contract=CONTRACT)))
     led = Ledger(c)
     led.start_experiment("bivariate-bicycle", seed=51, trials=300)
-    exp = led.end_experiment()
+    exp = led.end_experiment(empty_ok=True)
     assert exp["params"]["trials"] == 300
     assert exp["contract_deviations"] == {
         "trials": {"contract": 2000000, "used": 300}}
@@ -648,7 +649,7 @@ def test_two_lanes_at_one_contract_are_comparable_by_a_string():
     for seed in (51, 52):
         led = Ledger(c)
         led.start_experiment("bivariate-bicycle", seed=seed)
-        rows.append(led.end_experiment())
+        rows.append(led.end_experiment(empty_ok=True))
     assert rows[0]["contract_hash"] == rows[1]["contract_hash"]
     assert rows[0]["params"] == rows[1]["params"]
 
@@ -698,7 +699,7 @@ def test_manifest_records_params_seeds_and_spend(tmp_path):
     led.spend(cpu_hours=0.25, candidates_screened=10)
     led.end_experiment()
     led.start_experiment(c.families[0], seed=52)
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
 
     man = led.manifest()
     assert man["manifest_version"] == MANIFEST_VERSION
@@ -721,10 +722,10 @@ def test_manifest_is_written_at_every_experiment_boundary(tmp_path):
     led = Ledger(c, manifest=str(path), params={"trials": 300})
     assert not path.exists()
     led.start_experiment(c.families[0], seed=1)
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
     assert json.load(open(path))["experiments"] == 1
     led.start_experiment(c.families[0], seed=2)
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
     assert json.load(open(path))["experiments"] == 2
 
 
@@ -733,7 +734,7 @@ def test_summary_identifies_its_own_run(tmp_path):
     c = Campaign(validate_campaign(camp()))
     led = Ledger(c, params={"trials": 5300000, "seeds": [7]})
     led.start_experiment(c.families[0], seed=7)
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
     s = led.summary()
     assert s["params"]["trials"] == 5300000
     assert s["snapshot"]["head"] == led.manifest()["snapshot"]["head"]
@@ -784,7 +785,7 @@ def test_the_manifest_carries_the_dead_ends(tmp_path):
     led.start_experiment("bivariate-bicycle", seed=1)
     led.record_negative("weight-6 at n=72", "ladder collapsed at rung 2")
     led.record_negative("Z_31 quotient", "no survivor below the bar")
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
 
     man = led.manifest()
     assert len(man["negative_results"]) == 2
@@ -800,7 +801,7 @@ def test_dead_ends_survive_a_write_and_reload(tmp_path):
     led = Ledger(c, manifest=str(path))
     led.start_experiment("bivariate-bicycle", seed=1)
     led.record_negative("closed route", "exhausted at P=113")
-    led.end_experiment()
+    led.end_experiment(empty_ok=True)
 
     on_disk = json.load(open(path, encoding="utf-8"))
     assert on_disk["negative_results"][0]["what"] == "closed route"

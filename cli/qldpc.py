@@ -1370,12 +1370,17 @@ def cmd_recent(args):
         print("campaign summaries (committed research/campaigns/*/summary.json):")
     for c in shown:
         fams = f"  [{', '.join(c['families'])}]" if c["families"] else ""
+        # A crash is not a result, so it is shown apart from the negatives
+        # and only when there is one to show.
+        aborted = (f", {c['aborted_experiments']} aborted"
+                   if c["aborted_experiments"] else "")
         print(f"  {c['date']}  {c['path']}")
         print(f"      {c['campaign_id']}: {c['status']}, "
               f"{_plural(c['experiments'], 'experiment')}, "
               f"{_plural(c['survivors'], 'survivor')}, "
               f"{_plural(c['frontier_advances'], 'frontier advance')}, "
-              f"{_plural(c['negative_results'], 'negative result')}{fams}")
+              f"{_plural(c['negative_results'], 'negative result')}"
+              f"{aborted}{fams}")
     if lim is not None and len(camps) > lim:
         print(f"  ... {len(camps) - lim} more (--limit N, --full)")
 
@@ -1429,6 +1434,7 @@ def campaign_rows(since):
             "survivors": len(summ.get("survivors") or []),
             "frontier_advances": summ.get("frontier_advances") or 0,
             "negative_results": len(summ.get("negative_results") or []),
+            "aborted_experiments": summ.get("aborted_experiments") or 0,
             "budget_consumed": (summ.get("budget") or {}).get("consumed") or {},
             "report": summ.get("report") or "",
         }
