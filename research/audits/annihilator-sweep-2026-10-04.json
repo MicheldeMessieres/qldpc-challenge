@@ -1,0 +1,3523 @@
+{
+  "attack": "single-block annihilator: kernel of one block of H = [A | B], information-set decoding inside the subspace; a vector in the subspace is a logical of the opposite type unless it lies in the row space of its own side",
+  "budget": {
+    "core_hours": 4.44,
+    "seed": 11,
+    "trials_per_subspace": 40000
+  },
+  "counts": {
+    "clean": 136,
+    "skipped": 53,
+    "tightened": 1
+  },
+  "dates": "2026-10-03",
+  "issue": 2706,
+  "parent_issue": 1851,
+  "results": [
+    {
+      "claimed_d": 28,
+      "claimed_sides": {
+        "X": 28,
+        "Z": 28
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 948,
+      "secs": 760.6,
+      "seed": 11,
+      "slug": "948-24-28",
+      "subspace_dims": {
+        "X-left": 85,
+        "X-right": 73,
+        "Z-left": 85,
+        "Z-right": 77
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 24,
+      "claimed_sides": {
+        "X": 24,
+        "Z": 24
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 944,
+      "secs": 651.5,
+      "seed": 11,
+      "slug": "944-32-24",
+      "subspace_dims": {
+        "X-left": 90,
+        "X-right": 74,
+        "Z-left": 90,
+        "Z-right": 78
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 936,
+      "secs": 413.0,
+      "seed": 11,
+      "slug": "936-48-12",
+      "subspace_dims": {
+        "X-left": 102,
+        "X-right": 89,
+        "Z-left": 99,
+        "Z-right": 100
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 36,
+      "claimed_sides": {
+        "X": 36,
+        "Z": 36
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 910,
+      "secs": 1210.3,
+      "seed": 11,
+      "slug": "910-12-36",
+      "subspace_dims": {
+        "X-left": 77,
+        "X-right": 71,
+        "Z-left": 77,
+        "Z-right": 71
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 36,
+      "claimed_sides": {
+        "X": 36,
+        "Z": 36
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 904,
+      "secs": 956.0,
+      "seed": 11,
+      "slug": "904-12-36",
+      "subspace_dims": {
+        "X-left": 75,
+        "X-right": 69,
+        "Z-left": 75,
+        "Z-right": 69
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 834,
+      "secs": 611.5,
+      "seed": 11,
+      "slug": "834-32-20",
+      "subspace_dims": {
+        "X-left": 81,
+        "X-right": 65,
+        "Z-left": 81,
+        "Z-right": 65
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 826,
+      "secs": 620.6,
+      "seed": 11,
+      "slug": "826-28-20",
+      "subspace_dims": {
+        "X-left": 81,
+        "X-right": 64,
+        "Z-left": 78,
+        "Z-right": 73
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 824,
+      "secs": 615.7,
+      "seed": 11,
+      "slug": "824-32-20",
+      "subspace_dims": {
+        "X-left": 81,
+        "X-right": 65,
+        "Z-left": 81,
+        "Z-right": 71
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 27,
+      "claimed_sides": {
+        "X": 29,
+        "Z": 27
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 794,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "794-18-27",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 6,
+        "Z-left": 12,
+        "Z-right": 12
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 782,
+      "secs": 439.7,
+      "seed": 11,
+      "slug": "782-36-12",
+      "subspace_dims": {
+        "X-left": 92,
+        "X-right": 80,
+        "Z-left": 110,
+        "Z-right": 110
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 24,
+      "claimed_sides": {
+        "X": 24,
+        "Z": 24
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 720,
+      "secs": 523.3,
+      "seed": 11,
+      "slug": "720-24-24",
+      "subspace_dims": {
+        "X-left": 72,
+        "X-right": 60,
+        "Z-left": 72,
+        "Z-right": 60
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 718,
+      "secs": 278.3,
+      "seed": 11,
+      "slug": "718-64-12",
+      "subspace_dims": {
+        "X-left": 98,
+        "X-right": 93,
+        "Z-left": 101,
+        "Z-right": 92
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 24,
+      "claimed_sides": {
+        "X": 24,
+        "Z": 24
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 708,
+      "secs": 481.4,
+      "seed": 11,
+      "slug": "708-24-24",
+      "subspace_dims": {
+        "X-left": 67,
+        "X-right": 55,
+        "Z-left": 67,
+        "Z-right": 55
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 98,
+      "claimed_sides": {
+        "X": 98,
+        "Z": 98
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 700,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "700-26-98",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 13,
+        "Z-left": 13,
+        "Z-right": 13
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 100,
+      "claimed_sides": {
+        "X": 100,
+        "Z": 100
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 700,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "700-26-100-b",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 13,
+        "Z-left": 13,
+        "Z-right": 13
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 100,
+      "claimed_sides": {
+        "X": 100,
+        "Z": 100
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 700,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "700-26-100",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 13,
+        "Z-left": 13,
+        "Z-right": 13
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 100,
+      "claimed_sides": {
+        "X": 100,
+        "Z": 100
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 700,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "700-20-100",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 13,
+        "Z-left": 13,
+        "Z-right": 13
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 54,
+      "claimed_sides": {
+        "X": 54,
+        "Z": 63
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.6,
+      "seed": 11,
+      "slug": "684-8-54",
+      "subspace_dims": {
+        "X-left": 20,
+        "X-right": 38,
+        "Z-left": 38,
+        "Z-right": 20
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 36,
+      "claimed_sides": {
+        "X": 36,
+        "Z": 36
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.9,
+      "seed": 11,
+      "slug": "684-20-36",
+      "subspace_dims": {
+        "X-left": 57,
+        "X-right": 55,
+        "Z-left": 55,
+        "Z-right": 57
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 54,
+      "claimed_sides": {
+        "X": 72,
+        "Z": 54
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.8,
+      "seed": 11,
+      "slug": "684-14-54",
+      "subspace_dims": {
+        "X-left": 55,
+        "X-right": 38,
+        "Z-left": 38,
+        "Z-right": 55
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 54,
+      "claimed_sides": {
+        "X": 57,
+        "Z": 54
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.6,
+      "seed": 11,
+      "slug": "684-12-54",
+      "subspace_dims": {
+        "X-left": 42,
+        "X-right": 22,
+        "Z-left": 22,
+        "Z-right": 42
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 51,
+      "claimed_sides": {
+        "X": 51,
+        "Z": 54
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.7,
+      "seed": 11,
+      "slug": "684-12-51",
+      "subspace_dims": {
+        "X-left": 38,
+        "X-right": 40,
+        "Z-left": 40,
+        "Z-right": 38
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 45,
+      "claimed_sides": {
+        "X": 45,
+        "Z": 45
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.6,
+      "seed": 11,
+      "slug": "684-12-45",
+      "subspace_dims": {
+        "X-left": 40,
+        "X-right": 38,
+        "Z-left": 38,
+        "Z-right": 40
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 90,
+      "claimed_sides": {
+        "X": 102,
+        "Z": 90
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 684,
+      "secs": 1.9,
+      "seed": 11,
+      "slug": "684-10-90",
+      "subspace_dims": {
+        "X-left": 37,
+        "X-right": 38,
+        "Z-left": 38,
+        "Z-right": 37
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 76,
+      "claimed_sides": {
+        "X": 78,
+        "Z": 76
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 674,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "674-170-76-c",
+      "subspace_dims": {
+        "X-left": 85,
+        "X-right": 85,
+        "Z-left": 85,
+        "Z-right": 85
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 76,
+      "claimed_sides": {
+        "X": 76,
+        "Z": 76
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 674,
+      "secs": 2.0,
+      "seed": 11,
+      "slug": "674-168-76",
+      "subspace_dims": {
+        "X-left": 84,
+        "X-right": 84,
+        "Z-left": 84,
+        "Z-right": 84
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 670,
+      "secs": 311.8,
+      "seed": 11,
+      "slug": "670-8-20",
+      "subspace_dims": {
+        "X-left": 9,
+        "X-right": 5,
+        "Z-left": 4,
+        "Z-right": 7
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 658,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "658-380-8",
+      "subspace_dims": {
+        "X-left": 190,
+        "X-right": 190,
+        "Z-left": 190,
+        "Z-right": 190
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 26,
+      "claimed_sides": {
+        "X": 26,
+        "Z": 77
+      },
+      "findings": [
+        {
+          "block": "left",
+          "claimed_side": 77,
+          "side": "Z",
+          "subspace_dim": 81,
+          "support": [
+            5,
+            10,
+            13,
+            25,
+            32,
+            42,
+            43,
+            44,
+            48,
+            50,
+            58,
+            61,
+            62,
+            67,
+            70,
+            81,
+            82,
+            99,
+            100,
+            101,
+            107,
+            118,
+            127,
+            138,
+            143,
+            145,
+            153,
+            164,
+            177,
+            183,
+            194,
+            195,
+            202,
+            203,
+            229,
+            238,
+            240,
+            248,
+            260,
+            271,
+            272,
+            286,
+            289,
+            297,
+            298,
+            305,
+            314,
+            317
+          ],
+          "weight": 48
+        },
+        {
+          "block": "right",
+          "claimed_side": 77,
+          "side": "Z",
+          "subspace_dim": 81,
+          "support": [
+            328,
+            333,
+            336,
+            348,
+            355,
+            365,
+            366,
+            367,
+            371,
+            373,
+            381,
+            384,
+            385,
+            390,
+            393,
+            404,
+            405,
+            422,
+            423,
+            424,
+            430,
+            441,
+            450,
+            461,
+            466,
+            468,
+            476,
+            487,
+            500,
+            506,
+            517,
+            518,
+            525,
+            526,
+            552,
+            561,
+            563,
+            571,
+            583,
+            594,
+            595,
+            609,
+            612,
+            620,
+            621,
+            628,
+            637,
+            640
+          ],
+          "weight": 48
+        }
+      ],
+      "lightest": 48,
+      "n": 646,
+      "secs": 2.0,
+      "seed": 11,
+      "slug": "646-162-26",
+      "subspace_dims": {
+        "X-left": 81,
+        "X-right": 81,
+        "Z-left": 81,
+        "Z-right": 81
+      },
+      "trials": 40000,
+      "verdict": "tightened"
+    },
+    {
+      "claimed_d": 30,
+      "claimed_sides": {
+        "X": 30,
+        "Z": 30
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 630,
+      "secs": 1.7,
+      "seed": 11,
+      "slug": "630-44-30",
+      "subspace_dims": {
+        "X-left": 22,
+        "X-right": 22,
+        "Z-left": 22,
+        "Z-right": 22
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 28,
+      "claimed_sides": {
+        "X": 28,
+        "Z": 28
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 630,
+      "secs": 506.2,
+      "seed": 11,
+      "slug": "630-36-28",
+      "subspace_dims": {
+        "X-left": 74,
+        "X-right": 56,
+        "Z-left": 74,
+        "Z-right": 56
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 72,
+      "claimed_sides": {
+        "X": 72,
+        "Z": 72
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 630,
+      "secs": 2.0,
+      "seed": 11,
+      "slug": "630-20-72",
+      "subspace_dims": {
+        "X-left": 10,
+        "X-right": 10,
+        "Z-left": 10,
+        "Z-right": 10
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 32,
+      "claimed_sides": {
+        "X": 32,
+        "Z": 32
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 628,
+      "secs": 600.8,
+      "seed": 11,
+      "slug": "628-24-32",
+      "subspace_dims": {
+        "X-left": 61,
+        "X-right": 53,
+        "Z-left": 61,
+        "Z-right": 52
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 70,
+      "claimed_sides": {
+        "X": 84,
+        "Z": 70
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 620,
+      "secs": 2.0,
+      "seed": 11,
+      "slug": "620-20-70",
+      "subspace_dims": {
+        "X-left": 51,
+        "X-right": 47,
+        "Z-left": 47,
+        "Z-right": 51
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 618,
+      "secs": 462.0,
+      "seed": 11,
+      "slug": "618-44-20",
+      "subspace_dims": {
+        "X-left": 72,
+        "X-right": 54,
+        "Z-left": 72,
+        "Z-right": 56
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 618,
+      "secs": 617.8,
+      "seed": 11,
+      "slug": "618-24-20",
+      "subspace_dims": {
+        "X-left": 60,
+        "X-right": 48,
+        "Z-left": 60,
+        "Z-right": 48
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 28,
+      "claimed_sides": {
+        "X": 28,
+        "Z": 28
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 612,
+      "secs": 504.4,
+      "seed": 11,
+      "slug": "612-36-28",
+      "subspace_dims": {
+        "X-left": 67,
+        "X-right": 49,
+        "Z-left": 67,
+        "Z-right": 49
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 15,
+      "claimed_sides": {
+        "X": 15,
+        "Z": 15
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 612,
+      "secs": 1022.9,
+      "seed": 11,
+      "slug": "612-13-15",
+      "subspace_dims": {
+        "X-left": 21,
+        "X-right": 15,
+        "Z-left": 10,
+        "Z-right": 29
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 610,
+      "secs": 369.9,
+      "seed": 11,
+      "slug": "610-40-20",
+      "subspace_dims": {
+        "X-left": 69,
+        "X-right": 55,
+        "Z-left": 69,
+        "Z-right": 59
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 610,
+      "secs": 443.5,
+      "seed": 11,
+      "slug": "610-20-20",
+      "subspace_dims": {
+        "X-left": 57,
+        "X-right": 47,
+        "Z-left": 57,
+        "Z-right": 47
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 574,
+      "secs": 171.0,
+      "seed": 11,
+      "slug": "574-56-20",
+      "subspace_dims": {
+        "X-left": 79,
+        "X-right": 53,
+        "Z-left": 69,
+        "Z-right": 71
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 564,
+      "secs": 1.8,
+      "seed": 11,
+      "slug": "564-286-8",
+      "subspace_dims": {
+        "X-left": 143,
+        "X-right": 143,
+        "Z-left": 143,
+        "Z-right": 143
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 560,
+      "secs": 1.8,
+      "seed": 11,
+      "slug": "560-286-12",
+      "subspace_dims": {
+        "X-left": 143,
+        "X-right": 143,
+        "Z-left": 143,
+        "Z-right": 143
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 548,
+      "secs": 316.1,
+      "seed": 11,
+      "slug": "548-24-16",
+      "subspace_dims": {
+        "X-left": 55,
+        "X-right": 43,
+        "Z-left": 55,
+        "Z-right": 43
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 14,
+      "claimed_sides": {
+        "X": 14,
+        "Z": 14
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 512,
+      "secs": 1.5,
+      "seed": 11,
+      "slug": "512-132-14",
+      "subspace_dims": {
+        "X-left": 66,
+        "X-right": 66,
+        "Z-left": 66,
+        "Z-right": 66
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 510,
+      "secs": 321.3,
+      "seed": 11,
+      "slug": "510-40-20",
+      "subspace_dims": {
+        "X-left": 68,
+        "X-right": 48,
+        "Z-left": 68,
+        "Z-right": 48
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 20,
+      "claimed_sides": {
+        "X": 20,
+        "Z": 20
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 490,
+      "secs": 281.2,
+      "seed": 11,
+      "slug": "490-40-20",
+      "subspace_dims": {
+        "X-left": 60,
+        "X-right": 40,
+        "Z-left": 60,
+        "Z-right": 42
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 18,
+      "claimed_sides": {
+        "X": 18,
+        "Z": 18
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 488,
+      "secs": 282.0,
+      "seed": 11,
+      "slug": "488-44-18",
+      "subspace_dims": {
+        "X-left": 63,
+        "X-right": 47,
+        "Z-left": 63,
+        "Z-right": 47
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 470,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "470-192-12",
+      "subspace_dims": {
+        "X-left": 96,
+        "X-right": 96,
+        "Z-left": 96,
+        "Z-right": 97
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 464,
+      "secs": 186.7,
+      "seed": 11,
+      "slug": "464-32-12",
+      "subspace_dims": {
+        "X-left": 54,
+        "X-right": 54,
+        "Z-left": 54,
+        "Z-right": 50
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 10,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 450,
+      "secs": 1.6,
+      "seed": 11,
+      "slug": "450-12-6",
+      "subspace_dims": {
+        "X-left": 11,
+        "X-right": 11,
+        "Z-left": 1,
+        "Z-right": 1
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 26,
+      "claimed_sides": {
+        "X": 26,
+        "Z": 30
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 450,
+      "secs": 1.5,
+      "seed": 11,
+      "slug": "450-12-26",
+      "subspace_dims": {
+        "X-left": 14,
+        "X-right": 14,
+        "Z-left": 14,
+        "Z-right": 14
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 450,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "450-100-4",
+      "subspace_dims": {
+        "X-left": 93,
+        "X-right": 87,
+        "Z-left": 93,
+        "Z-right": 87
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 18,
+      "claimed_sides": {
+        "X": 18,
+        "Z": 18
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 448,
+      "secs": 1.2,
+      "seed": 11,
+      "slug": "448-112-18",
+      "subspace_dims": {
+        "X-left": 56,
+        "X-right": 56,
+        "Z-left": 56,
+        "Z-right": 56
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 446,
+      "secs": 16.5,
+      "seed": 11,
+      "slug": "446-68-8",
+      "subspace_dims": {
+        "X-left": 74,
+        "X-right": 63,
+        "Z-left": 77,
+        "Z-right": 60
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 13,
+      "claimed_sides": {
+        "X": 13,
+        "Z": 13
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 446,
+      "secs": 397.5,
+      "seed": 11,
+      "slug": "446-13-13",
+      "subspace_dims": {
+        "X-left": 5,
+        "X-right": 8,
+        "Z-left": 18,
+        "Z-right": 23
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 432,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "432-96-4",
+      "subspace_dims": {
+        "X-left": 90,
+        "X-right": 80,
+        "Z-left": 90,
+        "Z-right": 80
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 14,
+      "claimed_sides": {
+        "X": 14,
+        "Z": 14
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 432,
+      "secs": 1.2,
+      "seed": 11,
+      "slug": "432-112-14",
+      "subspace_dims": {
+        "X-left": 56,
+        "X-right": 56,
+        "Z-left": 56,
+        "Z-right": 58
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 416,
+      "secs": 59.2,
+      "seed": 11,
+      "slug": "416-39-6",
+      "subspace_dims": {
+        "X-left": 66,
+        "X-right": 25,
+        "Z-left": 28,
+        "Z-right": 49
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 17,
+      "claimed_sides": {
+        "X": 17,
+        "Z": 17
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 416,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "416-104-17",
+      "subspace_dims": {
+        "X-left": 52,
+        "X-right": 52,
+        "Z-left": 52,
+        "Z-right": 52
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 414,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "414-92-4",
+      "subspace_dims": {
+        "X-left": 86,
+        "X-right": 80,
+        "Z-left": 86,
+        "Z-right": 80
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 414,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "414-136-8",
+      "subspace_dims": {
+        "X-left": 101,
+        "X-right": 98,
+        "Z-left": 101,
+        "Z-right": 98
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 396,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "396-88-4",
+      "subspace_dims": {
+        "X-left": 82,
+        "X-right": 74,
+        "Z-left": 82,
+        "Z-right": 74
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 11,
+      "claimed_sides": {
+        "X": 11,
+        "Z": 11
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 394,
+      "secs": 231.3,
+      "seed": 11,
+      "slug": "394-13-11",
+      "subspace_dims": {
+        "X-left": 10,
+        "X-right": 5,
+        "Z-left": 8,
+        "Z-right": 18
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 26,
+      "claimed_sides": {
+        "X": 26,
+        "Z": 26
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 390,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "390-68-26",
+      "subspace_dims": {
+        "X-left": 34,
+        "X-right": 47,
+        "Z-left": 47,
+        "Z-right": 34
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 10,
+      "claimed_sides": {
+        "X": 10,
+        "Z": 10
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 384,
+      "secs": 17.9,
+      "seed": 11,
+      "slug": "384-36-10",
+      "subspace_dims": {
+        "X-left": 54,
+        "X-right": 50,
+        "Z-left": 54,
+        "Z-right": 50
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 10,
+      "claimed_sides": {
+        "X": 10,
+        "Z": 10
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 382,
+      "secs": 21.4,
+      "seed": 11,
+      "slug": "382-36-10",
+      "subspace_dims": {
+        "X-left": 54,
+        "X-right": 50,
+        "Z-left": 54,
+        "Z-right": 50
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 378,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "378-84-4",
+      "subspace_dims": {
+        "X-left": 78,
+        "X-right": 72,
+        "Z-left": 78,
+        "Z-right": 72
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 376,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "376-98-8",
+      "subspace_dims": {
+        "X-left": 49,
+        "X-right": 49,
+        "Z-left": 49,
+        "Z-right": 49
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 376,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "376-190-4",
+      "subspace_dims": {
+        "X-left": 95,
+        "X-right": 95,
+        "Z-left": 95,
+        "Z-right": 95
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 11,
+      "claimed_sides": {
+        "X": 11,
+        "Z": 11
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 364,
+      "secs": 142.8,
+      "seed": 11,
+      "slug": "364-13-11",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 5,
+        "Z-left": 10,
+        "Z-right": 16
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 360,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "360-80-4",
+      "subspace_dims": {
+        "X-left": 75,
+        "X-right": 67,
+        "Z-left": 75,
+        "Z-right": 67
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 11,
+      "claimed_sides": {
+        "X": 11,
+        "Z": 11
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 356,
+      "secs": 74.6,
+      "seed": 11,
+      "slug": "356-13-11",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 6,
+        "Z-left": 10,
+        "Z-right": 13
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 352,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "352-88-16",
+      "subspace_dims": {
+        "X-left": 44,
+        "X-right": 44,
+        "Z-left": 44,
+        "Z-right": 44
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 348,
+      "secs": 47.2,
+      "seed": 11,
+      "slug": "348-24-12",
+      "subspace_dims": {
+        "X-left": 42,
+        "X-right": 42,
+        "Z-left": 42,
+        "Z-right": 38
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 342,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "342-76-4",
+      "subspace_dims": {
+        "X-left": 71,
+        "X-right": 65,
+        "Z-left": 71,
+        "Z-right": 65
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 338,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "338-8-16",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 4
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 336,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "336-88-12",
+      "subspace_dims": {
+        "X-left": 44,
+        "X-right": 44,
+        "Z-left": 44,
+        "Z-right": 44
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 330,
+      "secs": 4.9,
+      "seed": 11,
+      "slug": "330-60-6",
+      "subspace_dims": {
+        "X-left": 60,
+        "X-right": 55,
+        "Z-left": 63,
+        "Z-right": 52
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 324,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "324-72-4",
+      "subspace_dims": {
+        "X-left": 67,
+        "X-right": 60,
+        "Z-left": 67,
+        "Z-right": 60
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 14,
+      "claimed_sides": {
+        "X": 14,
+        "Z": 14
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 320,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "320-80-14",
+      "subspace_dims": {
+        "X-left": 40,
+        "X-right": 40,
+        "Z-left": 40,
+        "Z-right": 40
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 320,
+      "secs": 102.3,
+      "seed": 11,
+      "slug": "320-36-16",
+      "subspace_dims": {
+        "X-left": 51,
+        "X-right": 41,
+        "Z-left": 51,
+        "Z-right": 41
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 316,
+      "secs": 49.5,
+      "seed": 11,
+      "slug": "316-8-16",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 5,
+        "Z-left": 4,
+        "Z-right": 6
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 306,
+      "secs": 0.8,
+      "seed": 11,
+      "slug": "306-68-4",
+      "subspace_dims": {
+        "X-left": 63,
+        "X-right": 59,
+        "Z-left": 63,
+        "Z-right": 59
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 302,
+      "secs": 72.4,
+      "seed": 11,
+      "slug": "302-36-16",
+      "subspace_dims": {
+        "X-left": 44,
+        "X-right": 38,
+        "Z-left": 44,
+        "Z-right": 38
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 300,
+      "secs": 206.3,
+      "seed": 11,
+      "slug": "300-20-12",
+      "subspace_dims": {
+        "X-left": 34,
+        "X-right": 24,
+        "Z-left": 34,
+        "Z-right": 24
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 296,
+      "secs": 1.0,
+      "seed": 11,
+      "slug": "296-78-12",
+      "subspace_dims": {
+        "X-left": 39,
+        "X-right": 39,
+        "Z-left": 39,
+        "Z-right": 39
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 288,
+      "secs": 1.4,
+      "seed": 11,
+      "slug": "288-9-6",
+      "subspace_dims": {
+        "X-left": 8,
+        "X-right": 8,
+        "Z-left": 1,
+        "Z-right": 1
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 15,
+      "claimed_sides": {
+        "X": 15,
+        "Z": 15
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 288,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "288-8-15",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 4
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 288,
+      "secs": 1.0,
+      "seed": 11,
+      "slug": "288-76-12",
+      "subspace_dims": {
+        "X-left": 39,
+        "X-right": 40,
+        "Z-left": 39,
+        "Z-right": 39
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 288,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "288-64-4",
+      "subspace_dims": {
+        "X-left": 60,
+        "X-right": 52,
+        "Z-left": 60,
+        "Z-right": 54
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 282,
+      "slug": "282-143-6",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 15,
+      "claimed_sides": {
+        "X": 15,
+        "Z": 15
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 280,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "280-8-15",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 4
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 280,
+      "secs": 1.0,
+      "seed": 11,
+      "slug": "280-74-12",
+      "subspace_dims": {
+        "X-left": 37,
+        "X-right": 37,
+        "Z-left": 37,
+        "Z-right": 37
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 280,
+      "secs": 173.4,
+      "seed": 11,
+      "slug": "280-24-16",
+      "subspace_dims": {
+        "X-left": 39,
+        "X-right": 29,
+        "Z-left": 39,
+        "Z-right": 29
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 278,
+      "secs": 12.2,
+      "seed": 11,
+      "slug": "278-44-8",
+      "subspace_dims": {
+        "X-left": 47,
+        "X-right": 37,
+        "Z-left": 47,
+        "Z-right": 39
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 268,
+      "secs": 1.4,
+      "seed": 11,
+      "slug": "268-8-12",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 6,
+        "Z-left": 2,
+        "Z-right": 2
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 16,
+      "claimed_sides": {
+        "X": 16,
+        "Z": 16
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 268,
+      "secs": 158.7,
+      "seed": 11,
+      "slug": "268-24-16",
+      "subspace_dims": {
+        "X-left": 34,
+        "X-right": 25,
+        "Z-left": 34,
+        "Z-right": 25
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 264,
+      "secs": 1.0,
+      "seed": 11,
+      "slug": "264-70-12",
+      "subspace_dims": {
+        "X-left": 35,
+        "X-right": 35,
+        "Z-left": 35,
+        "Z-right": 35
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 260,
+      "secs": 49.3,
+      "seed": 11,
+      "slug": "260-58-6",
+      "subspace_dims": {
+        "X-left": 55,
+        "X-right": 30,
+        "Z-left": 30,
+        "Z-right": 29
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 256,
+      "secs": 0.7,
+      "seed": 11,
+      "slug": "256-194-4",
+      "subspace_dims": {
+        "X-left": 98,
+        "X-right": 98,
+        "Z-left": 98,
+        "Z-right": 98
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 256,
+      "slug": "256-16-8",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 256,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "256-154-6",
+      "subspace_dims": {
+        "X-left": 79,
+        "X-right": 79,
+        "Z-left": 79,
+        "Z-right": 79
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 256,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "256-150-8",
+      "subspace_dims": {
+        "X-left": 79,
+        "X-right": 79,
+        "Z-left": 79,
+        "Z-right": 79
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 250,
+      "secs": 10.8,
+      "seed": 11,
+      "slug": "250-40-8",
+      "subspace_dims": {
+        "X-left": 42,
+        "X-right": 34,
+        "Z-left": 42,
+        "Z-right": 38
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 248,
+      "secs": 1.0,
+      "seed": 11,
+      "slug": "248-66-12",
+      "subspace_dims": {
+        "X-left": 33,
+        "X-right": 33,
+        "Z-left": 33,
+        "Z-right": 33
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 11,
+      "claimed_sides": {
+        "X": 11,
+        "Z": 11
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 240,
+      "secs": 31.9,
+      "seed": 11,
+      "slug": "240-8-11",
+      "subspace_dims": {
+        "X-left": 5,
+        "X-right": 6,
+        "Z-left": 5,
+        "Z-right": 6
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 234,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "234-52-4",
+      "subspace_dims": {
+        "X-left": 48,
+        "X-right": 44,
+        "Z-left": 48,
+        "Z-right": 44
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 230,
+      "secs": 4.4,
+      "seed": 11,
+      "slug": "230-40-6",
+      "subspace_dims": {
+        "X-left": 41,
+        "X-right": 35,
+        "Z-left": 41,
+        "Z-right": 33
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 228,
+      "secs": 3.0,
+      "seed": 11,
+      "slug": "228-34-6",
+      "subspace_dims": {
+        "X-left": 46,
+        "X-right": 44,
+        "Z-left": 43,
+        "Z-right": 42
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 224,
+      "secs": 2.1,
+      "seed": 11,
+      "slug": "224-52-6",
+      "subspace_dims": {
+        "X-left": 48,
+        "X-right": 47,
+        "Z-left": 51,
+        "Z-right": 42
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 222,
+      "secs": 2.2,
+      "seed": 11,
+      "slug": "222-52-6",
+      "subspace_dims": {
+        "X-left": 47,
+        "X-right": 47,
+        "Z-left": 50,
+        "Z-right": 40
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 18,
+      "claimed_sides": {
+        "X": 18,
+        "Z": 18
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 216,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "216-4-18",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 4
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 210,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "210-56-8",
+      "subspace_dims": {
+        "X-left": 48,
+        "X-right": 46,
+        "Z-left": 47,
+        "Z-right": 46
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 190,
+      "secs": 16.3,
+      "seed": 11,
+      "slug": "190-20-8",
+      "subspace_dims": {
+        "X-left": 26,
+        "X-right": 22,
+        "Z-left": 26,
+        "Z-right": 20
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 188,
+      "slug": "188-95-3-b",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 188,
+      "slug": "188-95-3",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 188,
+      "slug": "188-49-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 178,
+      "slug": "178-2-20",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 9,
+      "claimed_sides": {
+        "X": 9,
+        "Z": 9
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 176,
+      "secs": 11.6,
+      "seed": 11,
+      "slug": "176-8-9",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 6
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 172,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "172-48-8",
+      "subspace_dims": {
+        "X-left": 43,
+        "X-right": 42,
+        "Z-left": 43,
+        "Z-right": 42
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 10,
+      "claimed_sides": {
+        "X": 10,
+        "Z": 10
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 168,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "168-12-10",
+      "subspace_dims": {
+        "X-left": 12,
+        "X-right": 6,
+        "Z-left": 6,
+        "Z-right": 12
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 154,
+      "secs": 9.7,
+      "seed": 11,
+      "slug": "154-8-8",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 7,
+        "Z-left": 3,
+        "Z-right": 3
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 12,
+      "claimed_sides": {
+        "X": 12,
+        "Z": 12
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 144,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "144-8-12",
+      "subspace_dims": {
+        "X-left": 12,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 12
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 144,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "144-44-4",
+      "subspace_dims": {
+        "X-left": 36,
+        "X-right": 28,
+        "Z-left": 32,
+        "Z-right": 32
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 144,
+      "slug": "144-10-16-b",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 142,
+      "slug": "142-2-18",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 134,
+      "slug": "134-2-17",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 8,
+      "claimed_sides": {
+        "X": 8,
+        "Z": 8
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 132,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "132-32-8",
+      "subspace_dims": {
+        "X-left": 29,
+        "X-right": 28,
+        "Z-left": 29,
+        "Z-right": 28
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 124,
+      "secs": 2.6,
+      "seed": 11,
+      "slug": "124-22-6",
+      "subspace_dims": {
+        "X-left": 22,
+        "X-right": 19,
+        "Z-left": 22,
+        "Z-right": 19
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 108,
+      "slug": "108-12-6",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 6,
+      "claimed_sides": {
+        "X": 6,
+        "Z": 6
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 102,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "102-8-6",
+      "subspace_dims": {
+        "X-left": 4,
+        "X-right": 4,
+        "Z-left": 4,
+        "Z-right": 4
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 10,
+      "claimed_sides": {
+        "X": 10,
+        "Z": 10
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 102,
+      "secs": 1.4,
+      "seed": 11,
+      "slug": "102-20-10",
+      "subspace_dims": {
+        "X-left": 11,
+        "X-right": 10,
+        "Z-left": 10,
+        "Z-right": 11
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 7,
+      "claimed_sides": {
+        "X": 7,
+        "Z": 7
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 100,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "100-30-7",
+      "subspace_dims": {
+        "X-left": 17,
+        "X-right": 18,
+        "Z-left": 21,
+        "Z-right": 19
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 96,
+      "slug": "96-10-12",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 3,
+      "claimed_sides": {
+        "X": 3,
+        "Z": 3
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 94,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "94-36-3",
+      "subspace_dims": {
+        "X-left": 18,
+        "X-right": 18,
+        "Z-left": 19,
+        "Z-right": 19
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 94,
+      "slug": "94-2-14",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 92,
+      "slug": "92-25-8",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 3,
+      "claimed_sides": {
+        "X": 3,
+        "Z": 3
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 90,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "90-35-3",
+      "subspace_dims": {
+        "X-left": 17,
+        "X-right": 17,
+        "Z-left": 19,
+        "Z-right": 19
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 82,
+      "slug": "82-2-14",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 74,
+      "slug": "74-2-13",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 72,
+      "secs": 1.4,
+      "seed": 11,
+      "slug": "72-24-4",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 13,
+        "Z-left": 12,
+        "Z-right": 12
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 66,
+      "slug": "66-6-9",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 66,
+      "slug": "66-4-12",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 66,
+      "slug": "66-12-14",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 64,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "64-34-4",
+      "subspace_dims": {
+        "X-left": 18,
+        "X-right": 18,
+        "Z-left": 18,
+        "Z-right": 18
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 62,
+      "slug": "62-20-10",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 62,
+      "slug": "62-2-12",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 62,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "62-12-4",
+      "subspace_dims": {
+        "X-left": 13,
+        "X-right": 14,
+        "Z-left": 14,
+        "Z-right": 14
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 58,
+      "slug": "58-2-11",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 56,
+      "slug": "56-8-7",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 52,
+      "slug": "52-15-7",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 50,
+      "slug": "50-6-8",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 50,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "50-22-4",
+      "subspace_dims": {
+        "X-left": 11,
+        "X-right": 11,
+        "Z-left": 11,
+        "Z-right": 11
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 50,
+      "secs": 1.2,
+      "seed": 11,
+      "slug": "50-16-4",
+      "subspace_dims": {
+        "X-left": 11,
+        "X-right": 8,
+        "Z-left": 8,
+        "Z-right": 10
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 48,
+      "slug": "48-7-7",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 48,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "48-11-4",
+      "subspace_dims": {
+        "X-left": 12,
+        "X-right": 10,
+        "Z-left": 11,
+        "Z-right": 11
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "claimed_d": 3,
+      "claimed_sides": {
+        "X": 3,
+        "Z": 3
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 46,
+      "secs": 1.3,
+      "seed": 11,
+      "slug": "46-20-3",
+      "subspace_dims": {
+        "X-left": 10,
+        "X-right": 10,
+        "Z-left": 10,
+        "Z-right": 10
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 46,
+      "slug": "46-2-11",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 46,
+      "slug": "46-2-10",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 3,
+      "claimed_sides": {
+        "X": 3,
+        "Z": 3
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 46,
+      "secs": 1.2,
+      "seed": 11,
+      "slug": "46-19-3",
+      "subspace_dims": {
+        "X-left": 9,
+        "X-right": 9,
+        "Z-left": 10,
+        "Z-right": 10
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 44,
+      "slug": "44-2-9",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 42,
+      "slug": "42-6-7-s",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 40,
+      "slug": "40-9-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 40,
+      "slug": "40-12-5",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 38,
+      "slug": "38-2-8",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 38,
+      "slug": "38-2-10",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 36,
+      "slug": "36-7-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 36,
+      "slug": "36-6-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 36,
+      "slug": "36-4-8",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 3,
+      "claimed_sides": {
+        "X": 3,
+        "Z": 3
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 36,
+      "secs": 1.2,
+      "seed": 11,
+      "slug": "36-19-3",
+      "subspace_dims": {
+        "X-left": 10,
+        "X-right": 10,
+        "Z-left": 9,
+        "Z-right": 9
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 34,
+      "slug": "34-2-9",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 34,
+      "slug": "34-2-7-s",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 32,
+      "slug": "32-4-7",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 30,
+      "slug": "30-7-5",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 28,
+      "slug": "28-4-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 28,
+      "slug": "28-3-6",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 26,
+      "secs": 1.1,
+      "seed": 11,
+      "slug": "26-8-4",
+      "subspace_dims": {
+        "X-left": 6,
+        "X-right": 6,
+        "Z-left": 6,
+        "Z-right": 6
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 26,
+      "slug": "26-2-8",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 20,
+      "slug": "20-4-5",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 20,
+      "slug": "20-3-5",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 20,
+      "slug": "20-2-6-s",
+      "verdict": "skipped"
+    },
+    {
+      "claimed_d": 4,
+      "claimed_sides": {
+        "X": 4,
+        "Z": 4
+      },
+      "findings": [],
+      "lightest": null,
+      "n": 18,
+      "secs": 0.9,
+      "seed": 11,
+      "slug": "18-4-4-b",
+      "subspace_dims": {
+        "X-left": 3,
+        "X-right": 3,
+        "Z-left": 3,
+        "Z-right": 3
+      },
+      "trials": 40000,
+      "verdict": "clean"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 18,
+      "slug": "18-3-5",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 18,
+      "slug": "18-2-5-s",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 18,
+      "slug": "18-1-6",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 14,
+      "slug": "14-3-3",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 12,
+      "slug": "12-4-4",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 10,
+      "slug": "10-2-4",
+      "verdict": "skipped"
+    },
+    {
+      "detail": "not CSS: checks are ['S'], so there is no two-block split to attack",
+      "n": 8,
+      "slug": "8-3-3",
+      "verdict": "skipped"
+    }
+  ],
+  "seconds_per_target": {
+    "10-2-4": null,
+    "100-30-7": 1.1,
+    "102-20-10": 1.4,
+    "102-8-6": 1.1,
+    "108-12-6": null,
+    "12-4-4": null,
+    "124-22-6": 2.6,
+    "132-32-8": 0.9,
+    "134-2-17": null,
+    "14-3-3": null,
+    "142-2-18": null,
+    "144-10-16-b": null,
+    "144-44-4": 0.9,
+    "144-8-12": 1.3,
+    "154-8-8": 9.7,
+    "168-12-10": 1.3,
+    "172-48-8": 0.9,
+    "176-8-9": 11.6,
+    "178-2-20": null,
+    "18-1-6": null,
+    "18-2-5-s": null,
+    "18-3-5": null,
+    "18-4-4-b": 0.9,
+    "188-49-6": null,
+    "188-95-3": null,
+    "188-95-3-b": null,
+    "190-20-8": 16.3,
+    "20-2-6-s": null,
+    "20-3-5": null,
+    "20-4-5": null,
+    "210-56-8": 0.9,
+    "216-4-18": 1.1,
+    "222-52-6": 2.2,
+    "224-52-6": 2.1,
+    "228-34-6": 3.0,
+    "230-40-6": 4.4,
+    "234-52-4": 0.9,
+    "240-8-11": 31.9,
+    "248-66-12": 1.0,
+    "250-40-8": 10.8,
+    "256-150-8": 0.9,
+    "256-154-6": 0.9,
+    "256-16-8": null,
+    "256-194-4": 0.7,
+    "26-2-8": null,
+    "26-8-4": 1.1,
+    "260-58-6": 49.3,
+    "264-70-12": 1.0,
+    "268-24-16": 158.7,
+    "268-8-12": 1.4,
+    "278-44-8": 12.2,
+    "28-3-6": null,
+    "28-4-6": null,
+    "280-24-16": 173.4,
+    "280-74-12": 1.0,
+    "280-8-15": 1.3,
+    "282-143-6": null,
+    "288-64-4": 0.9,
+    "288-76-12": 1.0,
+    "288-8-15": 1.3,
+    "288-9-6": 1.4,
+    "296-78-12": 1.0,
+    "30-7-5": null,
+    "300-20-12": 206.3,
+    "302-36-16": 72.4,
+    "306-68-4": 0.8,
+    "316-8-16": 49.5,
+    "32-4-7": null,
+    "320-36-16": 102.3,
+    "320-80-14": 1.1,
+    "324-72-4": 0.9,
+    "330-60-6": 4.9,
+    "336-88-12": 1.1,
+    "338-8-16": 1.3,
+    "34-2-7-s": null,
+    "34-2-9": null,
+    "342-76-4": 0.8,
+    "348-24-12": 47.2,
+    "352-88-16": 1.1,
+    "356-13-11": 74.6,
+    "36-19-3": 1.2,
+    "36-4-8": null,
+    "36-6-6": null,
+    "36-7-6": null,
+    "360-80-4": 0.8,
+    "364-13-11": 142.8,
+    "376-190-4": 0.9,
+    "376-98-8": 1.1,
+    "378-84-4": 0.8,
+    "38-2-10": null,
+    "38-2-8": null,
+    "382-36-10": 21.4,
+    "384-36-10": 17.9,
+    "390-68-26": 1.1,
+    "394-13-11": 231.3,
+    "396-88-4": 0.8,
+    "40-12-5": null,
+    "40-9-6": null,
+    "414-136-8": 0.9,
+    "414-92-4": 0.8,
+    "416-104-17": 1.1,
+    "416-39-6": 59.2,
+    "42-6-7-s": null,
+    "432-112-14": 1.2,
+    "432-96-4": 0.9,
+    "44-2-9": null,
+    "446-13-13": 397.5,
+    "446-68-8": 16.5,
+    "448-112-18": 1.2,
+    "450-100-4": 0.8,
+    "450-12-26": 1.5,
+    "450-12-6": 1.6,
+    "46-19-3": 1.2,
+    "46-2-10": null,
+    "46-2-11": null,
+    "46-20-3": 1.3,
+    "464-32-12": 186.7,
+    "470-192-12": 1.3,
+    "48-11-4": 1.3,
+    "48-7-7": null,
+    "488-44-18": 282.0,
+    "490-40-20": 281.2,
+    "50-16-4": 1.2,
+    "50-22-4": 1.3,
+    "50-6-8": null,
+    "510-40-20": 321.3,
+    "512-132-14": 1.5,
+    "52-15-7": null,
+    "548-24-16": 316.1,
+    "56-8-7": null,
+    "560-286-12": 1.8,
+    "564-286-8": 1.8,
+    "574-56-20": 171.0,
+    "58-2-11": null,
+    "610-20-20": 443.5,
+    "610-40-20": 369.9,
+    "612-13-15": 1022.9,
+    "612-36-28": 504.4,
+    "618-24-20": 617.8,
+    "618-44-20": 462.0,
+    "62-12-4": 1.3,
+    "62-2-12": null,
+    "62-20-10": null,
+    "620-20-70": 2.0,
+    "628-24-32": 600.8,
+    "630-20-72": 2.0,
+    "630-36-28": 506.2,
+    "630-44-30": 1.7,
+    "64-34-4": 1.1,
+    "646-162-26": 2.0,
+    "658-380-8": 2.1,
+    "66-12-14": null,
+    "66-4-12": null,
+    "66-6-9": null,
+    "670-8-20": 311.8,
+    "674-168-76": 2.0,
+    "674-170-76-c": 2.1,
+    "684-10-90": 1.9,
+    "684-12-45": 1.6,
+    "684-12-51": 1.7,
+    "684-12-54": 1.6,
+    "684-14-54": 1.8,
+    "684-20-36": 1.9,
+    "684-8-54": 1.6,
+    "700-20-100": 2.1,
+    "700-26-100": 2.1,
+    "700-26-100-b": 2.1,
+    "700-26-98": 2.1,
+    "708-24-24": 481.4,
+    "718-64-12": 278.3,
+    "72-24-4": 1.4,
+    "720-24-24": 523.3,
+    "74-2-13": null,
+    "782-36-12": 439.7,
+    "794-18-27": 2.1,
+    "8-3-3": null,
+    "82-2-14": null,
+    "824-32-20": 615.7,
+    "826-28-20": 620.6,
+    "834-32-20": 611.5,
+    "90-35-3": 1.1,
+    "904-12-36": 956.0,
+    "910-12-36": 1210.3,
+    "92-25-8": null,
+    "936-48-12": 413.0,
+    "94-2-14": null,
+    "94-36-3": 1.1,
+    "944-32-24": 651.5,
+    "948-24-28": 760.6,
+    "96-10-12": null
+  },
+  "selection": "every uncertified entry of even blocklength not already covered by a committed annihilator audit",
+  "targets_run": 190,
+  "tool": "research/kit/annihilator.py"
+}

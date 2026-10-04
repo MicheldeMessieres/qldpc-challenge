@@ -53,11 +53,18 @@
         },
         "replay": {
           "type": "object",
-          "description": "How a third party re-derives this check without trusting us, when there is no file worth attaching. For proof_log that is the command that regenerates the formula from this entry and the command that re-checks the refutation: the trimmed cores run to 95.8 MB as text, and a committed blob nobody opens is not better evidence than a command anyone can run. CI re-derives and re-checks on a schedule, so the claim is audited rather than asserted. Open-ended on purpose, since a formal certificate replays a build rather than a solver run.",
+          "description": "How a third party re-derives this check without trusting us, when there is no file worth attaching. One key, because it is one move -- point at something checkable -- but the shape is per level, so the two halves are kept apart rather than merged into a lowest common denominator. For proof_log it is the command that regenerates the formula from this entry and the command that re-checks the refutation: the trimmed cores run to 95.8 MB as text, and a committed blob nobody opens is not better evidence than a command anyone can run. CI re-derives and re-checks on a schedule, so the claim is audited rather than asserted. For formal it is the development that carries the theorem: a formal certificate is a theorem in a proof development rather than a file, so what the certificate carries is a recipe precise enough to re-derive it. The transportable object such a development does emit, a SAT query and its refutation, is proof_log: it confirms the formula is unsatisfiable and says nothing about whether the formula asks the distance question, which is the distinction level already draws. Closed to unknown keys so that a recipe naming a field this schema does not define is a visible error rather than a silently ignored claim.",
+          "additionalProperties": false,
           "properties": {
-            "emit": { "type": "string", "description": "the command that regenerates the formula from codes/<slug>.json" },
-            "check": { "type": "string", "description": "the command that re-checks the refutation" },
-            "emitter": { "type": "string", "description": "which encoder produced it, including the parameters that change the formula" }
+            "emit": { "type": "string", "description": "for proof_log: the command that regenerates the formula from codes/<slug>.json" },
+            "check": { "type": "string", "description": "for proof_log: the command that re-checks the refutation" },
+            "emitter": { "type": "string", "description": "for proof_log: which encoder produced it, including the parameters that change the formula" },
+            "repo": { "type": "string", "description": "for formal: the formal development, e.g. github.com/VerifiedQC/Lean-QEC" },
+            "commit": { "type": "string", "description": "for formal: the exact commit the theorem was checked at" },
+            "theorem": { "type": "string", "description": "for formal: the theorem name, e.g. BB72_dist_6" },
+            "build": { "type": "string", "description": "for formal: the command that reproduces the check, e.g. 'lake exe cache get && lake build'" },
+            "toolchain": { "type": "string", "description": "for formal: the toolchain, e.g. leanprover/lean4:v4.30.0-rc2" },
+            "mathlib": { "type": "string", "description": "for formal: the mathlib revision the development pins" }
           }
         },
         "cnf_sha256": {
@@ -67,6 +74,10 @@
         "reference": {
           "type": "string",
           "description": "for formal: the formalization the proof was produced against, e.g. 'arXiv:2605.16523'"
+        },
+        "checks_sha256": {
+          "type": "string",
+          "description": "for formal: sha256 of this entry's canonical (H_X, H_Z), binding the theorem to this code rather than to one that resembles it. A formal proof is about a code defined inside the development, and a perfect proof about a different matrix pair certifies nothing here. The only maintainable way to hold the binding is to generate the formal definition from codes/<slug>.json rather than transcribe it."
         },
         "note": { "type": "string", "maxLength": 500 }
       },
@@ -80,6 +91,17 @@
               { "required": ["replay"] }
             ],
             "description": "A stronger level needs evidence a third party can act on: a file in the tree, or the recipe that re-derives the check. For proof_log the recipe is the better artifact, since the trimmed refutations run to 95.8 MB as text and a committed blob nobody opens is not evidence. For formal there is no file to attach at all, because the proof is a theorem in a development."
+          }
+        },
+        {
+          "if": { "properties": { "level": { "enum": ["formal"] } }, "required": ["level"] },
+          "then": {
+            "properties": {
+              "replay": {
+                "required": ["repo", "commit", "theorem"],
+                "description": "A formal recipe names the development, not a solver run. Without the repository and the exact commit the theorem name is not resolvable, so the recipe would assert a checked proof without saying what was checked, which is the one thing this level exists to rule out."
+              }
+            }
           }
         }
       ]
