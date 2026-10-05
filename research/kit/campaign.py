@@ -30,6 +30,7 @@ the board real entries before:
     if led.stop_reason():                        # which condition fired
         json.dump(led.summary(), open(out, "w"), indent=2)
 """
+import copy
 import hashlib
 import json
 import os
@@ -240,6 +241,14 @@ def validate_campaign(obj):
     """
     if jsonschema is None:                       # pragma: no cover
         raise CampaignError("jsonschema is required to validate a campaign")
+    if isinstance(obj, dict) and "campaign" not in obj and "id" in obj:
+        # The common slip (issue #2780): the fields handed over bare. The
+        # schema's own message names a missing property rather than the
+        # mistake, so say what the shape is.
+        raise CampaignError(
+            "a campaign definition wraps its fields as {\"campaign\": {...}}; "
+            "this object has them at the top level. scaffold_campaign(...) "
+            "builds the wrapped form")
     try:
         jsonschema.Draft202012Validator(_schema()).validate(obj)
     except jsonschema.ValidationError as e:
@@ -309,13 +318,104 @@ def load_campaign(path):
     return camp
 
 
+def scaffold_campaign(id, name, *, budget, metric="kd2_over_n",
+                      direction="maximize", stopping=None, families=None,
+                      status="draft", **fields):
+    """Return a validated campaign definition with the required fields filled.
+
+    The seven required fields are ``schema_version``, ``id``, ``name``,
+    ``objective`` (``metric`` and ``direction``), ``budget``, and
+    ``stopping``. Everything but the budget has a default worth having:
+    the board's headline metric maximized, ``budget_exhausted`` as the one
+    stopping rule, status ``draft``. The budget has no default on purpose,
+    since a campaign with no budget is unbounded and that is the thing the
+    object exists to prevent; pass at least one of ``cpu_hours``,
+    ``gpu_hours``, ``walltime_hours``, ``candidates_screened``.
+
+    ``families`` fills ``methods.families``; any other top-level campaign
+    field (``constraints``, ``methods``, ``run_contract``, ``required_outputs``,
+    ``notes``, ``objective`` extras such as ``target``) is passed through
+    ``fields`` and validated with the rest, so a typo is rejected here rather
+    than when the file is first loaded.
+
+        spec = scaffold_campaign("gb-z341-probe", "GB over Z_341, one night",
+                                 budget={"cpu_hours": 8},
+                                 families=["generalized-bicycle"])
+        write_campaign(spec, "research/campaigns/gb-z341-probe/campaign.json")
+    """
+    c = {
+        "schema_version": 1,
+        "id": id,
+        "name": name,
+        "status": status,
+        "objective": {"metric": metric, "direction": direction},
+        "budget": dict(budget),
+        "stopping": list(stopping) if stopping is not None
+        else [{"type": "budget_exhausted"}],
+    }
+    if families is not None:
+        c["methods"] = {"families": list(families)}
+    for key, value in fields.items():
+        if key == "objective":
+            c["objective"].update(value)
+        elif key == "methods" and "methods" in c:
+            c["methods"].update(value)
+        else:
+            c[key] = value
+    return validate_campaign({"campaign": c})
+
+
+def write_campaign(campaign, path, *, overwrite=False):
+    """Write a campaign definition, validated, creating its directory.
+
+    ``campaign`` is a :class:`Campaign` or the wrapped dict
+    :func:`scaffold_campaign` returns. The file is the input side of the run
+    contract and other things key on it, so an existing one is refused
+    unless ``overwrite=True``: editing a committed definition is a decision,
+    not a side effect of re-running a scaffold. The directory name is held
+    to the campaign id the way :func:`load_campaign` holds it on the way in.
+    """
+    obj = campaign.to_dict() if isinstance(campaign, Campaign) else campaign
+    validate_campaign(obj)
+    path = os.path.abspath(path)
+    home = os.path.dirname(path)
+    if os.path.basename(os.path.dirname(home)) == "campaigns" \
+            and os.path.basename(home) != obj["campaign"]["id"]:
+        raise CampaignError(
+            f"{path}: campaign id {obj['campaign']['id']!r} is not the "
+            f"directory name {os.path.basename(home)!r}; load_campaign would "
+            "refuse this file for the same reason")
+    if os.path.exists(path) and not overwrite:
+        raise CampaignError(
+            f"{path} exists; pass overwrite=True to replace a committed "
+            "campaign definition")
+    os.makedirs(home, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(obj, f, indent=2, sort_keys=True)
+        f.write("\n")
+    return path
+
+
 class Campaign:
-    """A validated campaign definition."""
+    """A validated campaign definition.
+
+    ``path`` is where the definition was read from, and None for one built
+    in memory; a ledger works either way, since nothing in it reads the file
+    again. The in-memory route is for a run that does not yet want a
+    directory under ``research/campaigns/``: build the spec with
+    :func:`scaffold_campaign`, drive a :class:`Ledger` from it, and write the
+    summary; :func:`write_campaign` commits the definition when it is worth
+    keeping.
+    """
 
     def __init__(self, obj, path=None):
         self.obj = obj
         self.path = path
         self.c = obj["campaign"]
+
+    def to_dict(self):
+        """Return a copy of the wrapped definition, as it would be on disk."""
+        return copy.deepcopy(self.obj)
 
     # -- identity ---------------------------------------------------------
     @property

@@ -49,6 +49,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 import numpy as np
 
@@ -619,18 +620,45 @@ def write_pr_body(slug, body):
 # ----------------------------------------------------------------------------
 # frontier comparison (reuses the site's own cell + Pareto logic)
 # ----------------------------------------------------------------------------
-def _load_board_entries():
+def _load_board_entries(quiet=False):
     """The board's current entries as the site sees them (verified, earned
     distance). Returns [] if the site builder cannot be imported or the board
     is empty, so the frontier section degrades gracefully to a TODO.
+
+    This runs a structural verification pass over ``codes/`` and is the
+    single most expensive thing the CLI does. ``verify/qldpc_verify.py`` already
+    memoizes it -- per entry, on disk, keyed by the entry bytes and the
+    validator closure digest -- so a warm checkout measures ~2 s here while a
+    cold one takes minutes. The memo lives inside the checkout, which means a
+    freshly created git worktree starts cold. Either way it used to print
+    nothing until it finished, so ``targets`` looked hung; twice on a harness
+    with a 120 s limit before these two lines existed. They go to stderr, which
+    keeps stdout clean for ``--json``, and report the measured time rather than
+    an estimate, because warm-versus-cold is a hundredfold difference and the
+    reader cannot otherwise tell which one they are paying.
+
+    ``quiet`` suppresses them for library callers that do their own reporting.
     """
     try:
         from build import load_entries
-        return load_entries()
     except Exception as e:
         print(f"  note: could not load the current board for frontier "
               f"comparison ({e}); leaving the frontier section as a TODO")
         return []
+    if not quiet:
+        print("  loading the board (structural verification pass over codes/)...",
+              file=sys.stderr)
+    t0 = time.time()
+    try:
+        entries = load_entries()
+    except Exception as e:
+        print(f"  note: could not load the current board for frontier "
+              f"comparison ({e}); leaving the frontier section as a TODO")
+        return []
+    if not quiet:
+        print(f"  loaded {_plural(len(entries), 'entry', 'entries')} in "
+              f"{time.time() - t0:.1f}s", file=sys.stderr)
+    return entries
 
 
 def _entry_for(doc, report):
@@ -1485,6 +1513,38 @@ def _kv_pairs(items):
         yield k.strip(), v.strip()
 
 
+def _print_registry_coverage(rows, quality):
+    """Say how much of the registry is actually usable, once, at the end.
+
+    The per-row lines above are honest one at a time -- each says "depth not
+    recorded" rather than inventing a number -- but a reader who stops after the
+    first screenful cannot tell a well-populated registry from an empty one, and
+    the rows are printed campaign by campaign, so one large structural campaign
+    can fill the whole visible window with its depth-less rows. The aggregate is
+    the thing that answers "can I trust this to tell me what was already tried".
+
+    A row without a depth is not necessarily a gap: a structural or solver
+    reading has no trial count by nature, and a backfilled summary records why.
+    So this reports coverage and says what a depth-less row costs, rather than
+    calling the registry incomplete.
+    """
+    if not rows:
+        return
+    with_depth = sum(1 for r in rows if r["screened_d"] is not None)
+    with_trials = sum(1 for r in rows if r["trials"])
+    with_verdict = sum(1 for r in rows if r["verdict"])
+    print(f"  registry coverage: {with_depth} of {len(rows)} rows carry a screened "
+          f"weight ({with_trials} a trial count), {with_verdict} a verdict.")
+    if len(rows) - with_depth:
+        print("    a row with no depth cannot tell you whether the member is worth "
+              "retrying deeper or was screened hard and dropped; check that "
+              "campaign's backfilled note before paying for it again.")
+    if not quality:
+        print("    no screen-quality rows: nothing committed yet pairs a screened "
+              "distance with a gate verdict, so the screen's ordering is uncalibrated "
+              "against the gate for every family.")
+
+
 def cmd_screened(args):
     """Report whether this family at these parameters was already screened.
 
@@ -1533,6 +1593,7 @@ def cmd_screened(args):
         print(f"    {depth}{tail}")
     if lim is not None and len(rows) > lim:
         print(f"  ... {len(rows) - lim} more (--limit N, --full)")
+    _print_registry_coverage(rows, quality)
     for q in quality:
         if q.get("spearman") is None:
             print(f"screen quality, {q['family']}: undefined over "
