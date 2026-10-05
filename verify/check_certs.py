@@ -32,6 +32,7 @@ produced it.
 """
 import argparse
 import glob
+import hashlib
 import json
 import os
 import sys
@@ -68,6 +69,34 @@ def _inside_tree(art):
     if os.path.commonpath([full, root]) != root:
         return False
     return os.path.isfile(full)
+
+
+def checks_sha256(doc):
+    """Return the hash that binds a formal certificate to one code.
+
+    sha256 over the compact JSON of {"X": rows, "Z": rows} with every row's
+    support sorted and the rows of each side sorted, so the hash names the
+    stabilizer presentation (the set of check rows on the labeled qubits)
+    and nothing about file formatting or row order. A formal proof is about
+    a matrix pair defined inside a proof development; this is what ties
+    that pair to codes/<slug>.json, and a certificate whose hash is not this
+    entry's is a proof about some other code.
+    """
+    canon = {side: sorted(sorted(int(q) for q in row)
+                          for row in doc["checks"][side])
+             for side in ("X", "Z")}
+    blob = json.dumps(canon, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(blob.encode("ascii")).hexdigest()
+
+
+def _code_doc(slug):
+    """Return the board entry this certificate is about, or None."""
+    path = os.path.join(ROOT, "codes", f"{slug}.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
 
 
 def evidence_problems(slug, cert):
@@ -110,6 +139,22 @@ def evidence_problems(slug, cert):
                    "needs cnf_sha256, since a regenerated formula that is "
                    "not the one that was refuted proves nothing about this "
                    "entry")
+    if level == "formal":
+        # The binding is checked, not just present. The theorem is about a
+        # matrix pair inside the development; the hash says it is this
+        # entry's pair, and a stale or copied hash is the #2273-shaped bug
+        # this tier can still have.
+        want = v.get("checks_sha256")
+        doc = _code_doc(slug)
+        if doc is None:
+            out.append(f"{slug}: level 'formal' but codes/{slug}.json is not "
+                       "on the board, so there is nothing for the proof to "
+                       "be about")
+        elif want != checks_sha256(doc):
+            out.append(f"{slug}: level 'formal' checks_sha256 does not match "
+                       f"codes/{slug}.json (recorded {str(want)[:16]}, the "
+                       f"entry hashes to {checks_sha256(doc)[:16]}); the "
+                       "theorem is bound to some other matrix pair")
     return out
 
 
@@ -117,7 +162,17 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--level", action="store_true",
                     help="print the level mix and exit")
+    ap.add_argument("--checks-sha256", metavar="SLUG",
+                    help="print the binding hash of codes/<SLUG>.json for a "
+                         "formal certificate and exit")
     a = ap.parse_args(argv)
+    if a.checks_sha256:
+        doc = _code_doc(a.checks_sha256)
+        if doc is None:
+            print(f"codes/{a.checks_sha256}.json not found")
+            return 2
+        print(checks_sha256(doc))
+        return 0
 
     # Non-recursively, on purpose. certs/heuristic/ holds a different artifact
     # entirely (claimed_d / verdict / methods / seed) that this schema does not

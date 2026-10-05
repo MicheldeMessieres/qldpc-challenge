@@ -113,11 +113,15 @@ def test_an_unknown_level_is_refused():
 
 
 def test_a_well_formed_stronger_certificate_passes():
-    """The path has to work, or nobody will use it."""
+    """The path has to work, or nobody will use it.
+
+    An artifact in the tree carries proof_log; formal is bound to a board
+    entry by its hash and is exercised below with a real one.
+    """
     c = copy.deepcopy(BASE)
-    c["verification"] = {"level": "formal",
+    c["verification"] = {"level": "proof_log",
                          "artifact": "schema/cert.schema.json",
-                         "checker": "Lean 4 + mathlib",
+                         "checker": "drat-trim 2024-05",
                          "reference": "arXiv:2605.16523"}
     assert C.evidence_problems("x", c) == []
 
@@ -170,3 +174,47 @@ def test_the_cert_writer_stamps_a_level_the_checker_accepts(tmp_path,
         written = json.load(f)
     assert written["verification"] == {"level": "solver"}
     assert C.evidence_problems("98-6-7", written) == []
+
+
+# -- the formal tier's binding (issue #2511) ---------------------------------
+
+FORMAL_REPLAY = {"repo": "github.com/VerifiedQC/Lean-QEC", "commit": "e0b90148694c",
+                 "theorem": "BB72_dist_6", "build": "lake exe cache get && lake build",
+                 "toolchain": "leanprover/lean4:v4.30.0-rc2", "mathlib": "5450b53e5ddc"}
+
+
+def _formal(slug="72-12-6", **over):
+    c = copy.deepcopy(BASE)
+    with open(os.path.join(_ROOT, "codes", f"{slug}.json"), encoding="utf-8") as f:
+        doc = json.load(f)
+    c["verification"] = {"level": "formal", "checker": "Lean 4 v4.30.0-rc2",
+                         "replay": dict(FORMAL_REPLAY),
+                         "checks_sha256": C.checks_sha256(doc)}
+    c["verification"].update(over)
+    return c
+
+
+def test_the_binding_hash_names_the_presentation_not_the_file():
+    """Row order and support order inside a row do not change it; a row does."""
+    doc = {"checks": {"X": [[3, 1, 2], [0, 4]], "Z": [[5, 6]]}}
+    same = {"checks": {"X": [[0, 4], [1, 2, 3]], "Z": [[6, 5]]}}
+    other = {"checks": {"X": [[0, 4], [1, 2, 3]], "Z": [[6, 7]]}}
+    assert C.checks_sha256(doc) == C.checks_sha256(same)
+    assert C.checks_sha256(doc) != C.checks_sha256(other)
+    assert len(C.checks_sha256(doc)) == 64
+
+
+def test_a_formal_certificate_bound_to_its_code_passes():
+    assert C.evidence_problems("72-12-6", _formal()) == []
+
+
+def test_a_formal_certificate_bound_to_another_code_is_refused():
+    with open(os.path.join(_ROOT, "codes", "16-6-4.json"), encoding="utf-8") as f:
+        other = json.load(f)
+    probs = C.evidence_problems("72-12-6", _formal(checks_sha256=C.checks_sha256(other)))
+    assert probs and "some other matrix pair" in probs[0]
+
+
+def test_a_formal_certificate_for_an_absent_entry_is_refused():
+    probs = C.evidence_problems("999-1-1", _formal())
+    assert probs and "not on the board" in probs[0]
