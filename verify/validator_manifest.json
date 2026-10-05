@@ -3,7 +3,7 @@
   "files": {
     ".github/workflows/prose.yml": "29f78c591eba315576a68134bb5787debdf1d81c0c99710786953b98cf7dbfed",
     ".github/workflows/refute-weekly.yml": "885755550844b96202562607bc208d3ade890cee4d0b806332719cdf5112f22c",
-    ".github/workflows/verify.yml": "33a1f4acc3bdfb5fb84d3c0791da04f2e7069d8d7ed79c9ee198722420d2ba67",
+    ".github/workflows/verify.yml": "fcc8e9e42a31268599054f753163bbd075c93a1509cdfe3f34c3a2002b06353e",
     "Makefile": "30f2d73d7fc62cb05171a603d899bc27cd4f1b4bbdc3bf59bfdf98b8d8b4bc56",
     "pyproject.toml": "70f8d63de7dc61577561eb8f7b92e38907110cfc4ff6fc02473eceb5ad7f921f",
     "uv.lock": "9a9e47507c05f376002b77bd4f6d43325e7df145521b6a5fcc7f12709045732d",
