@@ -31,6 +31,7 @@ from css import compute_k, verify_css, rref
 from surrogate import distance_rand, prepare_distance_search
 from bb import build_bb
 from group_algebra import build_2bga, dihedral, metacyclic
+import gf2poly
 from products import (hypergraph_product, lifted_product, balanced_product,
                       sample_hypergraph_product, sample_lifted_product,
                       sample_balanced_product)
@@ -373,6 +374,73 @@ def sample_bb(num, *, l_range=(4, 12), m_range=(3, 10), weight=3, seed=0,
         tally["built"] += 1
         HX, HZ = build_bb(l, m, A, B)
         yield ({"family": "bb", "l": l, "m": m, "A": A, "B": B}, HX, HZ)
+
+
+def sample_cyclic_gb(num, *, m_range=(300, 345), weight=(12, 16),
+                     k_band=(120, 200), seed=0, trials_per_ideal=200,
+                     audit=None):
+    """Yield ``num`` cyclic generalized-bicycle candidates with k designed.
+
+    H_X = [circ(a) | circ(b)] over Z_m, the family every one of the board's 25
+    most efficient entries belongs to (issue #2778). For it
+    k = 2 deg gcd(a, b, x^m - 1), so a random pair of supports encodes k = 2
+    almost always: at check weight 12 on Z_315, Z_330, and Z_341, 150 of 180
+    random draws had k = 2 and none had k above 12, and the 2026-08-15
+    field note records the same at prime orders 251 to 347 and weights 8 to
+    14. The frontier entries fix a divisor g of x^m - 1 first and draw a and
+    b as sparse multiples of it, so this sampler does the same: an odd m from
+    ``m_range``, a divisor whose degree puts 2 deg g inside ``k_band``, and a
+    and b from the sparse multiples found by ``trials_per_ideal`` rounds of
+    the kit's Prange search. ``weight`` is the band for each of a and b, so
+    the check weight is their sum.
+
+    Reach: n = 2m, so the defaults cover n = 600 to 690 at check weight 24 to
+    32, which is where the frontier sits. A pair whose gcd is larger than g
+    (k above the band) is discarded, since that degeneracy is what makes a
+    random pair with large k have a tiny distance. Pass ``audit`` as a dict
+    to receive counts under ``sampled``, ``no_divisor``, ``no_words``,
+    ``k_outside`` and ``built``.
+
+    What this does not do is make the family cheap to win in: the entries at
+    the frontier came from long searches over many ideals and words per
+    ideal (``research/cyclic_gb.py`` is that stack, with sympy), and
+    ``research/literature/README.md`` is where the rest of the story is.
+    """
+    import random
+    rng = np.random.default_rng(seed)
+    prng = random.Random(seed)
+    tally = audit if audit is not None else {}
+    tally.update(sampled=0, no_divisor=0, no_words=0, k_outside=0, built=0)
+    odd = [m for m in range(m_range[0], m_range[1] + 1) if m % 2]
+    factors = {}
+    built = 0
+    while built < num:
+        tally["sampled"] += 1
+        m = int(rng.choice(odd))
+        if m not in factors:
+            factors[m] = gf2poly.factor_squarefree(gf2poly.x_pow_m_minus_1(m),
+                                                   prng)
+        g = gf2poly.designed_divisor(
+            factors[m], (k_band[0] // 2, k_band[1] // 2), prng)
+        if g is None:
+            tally["no_divisor"] += 1
+            continue
+        words = gf2poly.sparse_multiples(m, g, weight, rng,
+                                         trials=trials_per_ideal)
+        if len(words) < 2:
+            tally["no_words"] += 1
+            continue
+        i, j = rng.choice(len(words), size=2, replace=False)
+        a, b = list(words[i]), list(words[j])
+        k = gf2poly.designed_k(m, a, b)
+        if not k_band[0] <= k <= k_band[1]:
+            tally["k_outside"] += 1
+            continue
+        HX, HZ = gf2poly.cyclic_gb(m, a, b)
+        tally["built"] += 1
+        built += 1
+        yield ({"family": "cyclic-gb", "m": m, "g": hex(g), "a": a, "b": b,
+                "k": k}, HX, HZ)
 
 
 def sample_dihedral(num, *, m_range=(30, 80), weight=4, seed=0):

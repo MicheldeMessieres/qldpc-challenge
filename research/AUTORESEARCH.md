@@ -260,6 +260,33 @@ what can be claimed. To evaluate it, run one campaign with the gate and one
 without, and compare trials-spent-to-abandon against the flat-settled point
 (the 2026-09-20 metric) on the same families.
 
+### 3c. Above check weight 8: sample the ideal, not the support
+
+Every one of the board's 25 most efficient entries is a cyclic generalized-bicycle code,
+`H_X = [circ(a) | circ(b)]` over `Z_m` with `m` near 340 and check weight 12 to 32, and none of
+them came from random supports. For that family `k = 2 deg gcd(a, b, x^m - 1)`, so a random pair
+of supports has `gcd` 1 or `x + 1` and encodes `k = 0` or `2`: at check weight 12 on `Z_315`,
+`Z_330`, and `Z_341`, 150 of 180 random draws had `k = 2` and none had `k` above 12, and
+`fieldnotes/2026-08-15-dead-ends-and-leads.md` records the same at prime orders 251 to 347 and
+weights 8 to 14. Raising `weight=` on a rejection sampler therefore buys check weight and nothing
+else; the ceiling is not the weight, it is that random supports do not share a divisor.
+
+The frontier entries fix the divisor first. `sample_cyclic_gb` does that: an odd `m`, a divisor
+`g` of `x^m - 1` whose degree puts `2 deg g` inside `k_band`, and `a`, `b` drawn as sparse
+multiples of `g`, so `k` is designed rather than hoped for.
+
+```python
+from search import screen, sample_cyclic_gb
+records = screen(sample_cyclic_gb(200, m_range=(330, 345), weight=(12, 16), k_band=(120, 200),
+                                  seed=7), min_k=100, min_d=20, trials=2000, backend="fast")
+```
+
+The factorization of `x^m - 1` is done in `kit/gf2poly.py` over GF(2), so the kit stays
+numpy-only; `research/cyclic_gb.py` is the full designed-divisor search stack (ideal enumeration,
+fertile-ideal selection, deep confirmation) and needs sympy. Read it, and the construction strings
+of the `Z_341` and `Z_337` entries, before spending a large sweep here: the frontier codes came
+from many ideals and many words per ideal, not from one draw.
+
 ## 4. Package a submission
 
 `submit.py` turns `(HX, HZ)` plus a little provenance into a schema-valid submission. It
@@ -461,11 +488,12 @@ should not have to re-learn.
 | File | What it gives you |
 |---|---|
 | `kit/css.py` | `compute_k`, `verify_css`, and the re-exported GF(2) core (`rref`, `rank`, `kernel_basis`, `logical_basis`, ...) shared with the verifier |
+| `kit/gf2poly.py` | GF(2) polynomials as ints: `factor_squarefree` (x^m - 1 over GF(2), no sympy), `designed_divisor`, `sparse_multiples`, `cyclic_gb`, `designed_k`; the designed-divisor route behind `search.sample_cyclic_gb` (section 3c) |
 | `kit/bb.py` | `build_bb`, `poly_matrix`, `KNOWN` (known BB codes to start from) |
 | `kit/group_algebra.py` | `build_2bga` + group builders: `perm_group`, `cyclic_product`, `dihedral`, `metacyclic`, `sym`, `alt` |
 | `kit/coset.py` | `build_coset` + `subgroup_closure`, `left_cosets`, `normalizer` |
 | `kit/surrogate.py` | `distance_rand`, `lightest_logical` (witnesses), `mixed_volume` (k upper bound) |
-| `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` |
+| `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` (all capped at check weight 8 by default), `sample_cyclic_gb` (designed k, check weight 24 to 32; section 3c) |
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
 | `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once |
