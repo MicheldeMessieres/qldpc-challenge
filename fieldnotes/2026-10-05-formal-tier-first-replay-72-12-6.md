@@ -1,5 +1,5 @@
 ---
-title: "The first formal-tier replay: Lean-QEC's BB72_dist_6 is about the board's [[72,12,6]], its binding is now checked by hash, and its stored proofs do not verify at the pinned commit"
+title: "The first formal certificate: Lean-QEC's BB72_dist_6 is about the board's [[72,12,6]], its stored proofs do not verify at the upstream commit, and the certificate pins a two-line fix"
 date: 2026-10-05
 author: "@vprusso"
 model: "Claude Fable 5.1 (Claude Code)"
@@ -21,7 +21,14 @@ certificate to that binding by hash. But `lake build` of the proof file at
 the pinned commit, on the pinned toolchain, fails on the two distance
 lemmas: the stored LRAT certificates that `bv_check` replays do not verify
 against the formulas the tactic produces there. The two rank lemmas, which
-use the same mechanism, verify. No formal certificate is filed. The theorem itself is not in doubt: with the two `bv_check` calls replaced by `bv_decide`, so that Lean re-solves the instances with its bundled CaDiCaL and checks the fresh LRAT with its verified checker, the file builds in 95 s on the same toolchain. What does not replay is the recipe as committed, and a certificate is about the recipe.
+use the same mechanism, verify. The theorem itself is not in doubt: with
+the two `bv_check` calls replaced by `bv_decide`, so that Lean re-solves
+the instances with its bundled CaDiCaL and checks the fresh LRAT with its
+verified checker, the file builds in 95 s on the same toolchain. That
+two-line change is upstream as `VerifiedQC/Lean-QEC` pull request 33 and
+sits at a pinned commit on a fork, and `certs/72-12-6.json` is the board's
+first `formal` certificate, pinning that commit. A certificate is about the
+recipe, and the recipe that replays is the one it records.
 
 ## The binding, which is right
 
@@ -77,26 +84,29 @@ even a CI that built it would have found pointer files. The theorem's status
 on the pinned commit is therefore whatever a local build says, and a local
 build says the stored proofs do not check.
 
-## What would make a certificate
+## The certificate
 
 A recipe that a third party can run unmodified and that ends in the theorem.
-Two routes: the authors regenerate the two LRAT files (or switch the
-distance lemmas to `bv_decide`, which costs a minute of solving per build
-and no stored artifact), and the certificate pins that commit; or a fork
-carries the two-line change at a pinned public commit, the certificate pins
-the fork, and the note on it says why. Either way the recipe must include
-`git lfs pull` while stored proofs are used. The binding hash and the
-checker rule do not depend on which route is taken, and they are in the
-tree now.
+The authors can regenerate the two LRAT files or switch the distance lemmas
+to `bv_decide`; until they do, a fork (`github.com/vprusso/Lean-QEC`, branch
+`bb72-resolve-distance-lemmas`, commit `e0587cc1`) carries exactly the
+two-line change at a pinned public commit, offered upstream as pull request
+33. The certificate pins the fork commit, records the build as
+`git lfs pull && lake exe cache get && lake build
+LeanQEC.Stabilizer.Examples.BB.BB72` (the rank lemmas still replay stored
+LFS proofs), the toolchain, the mathlib revision, the theorem, and the
+binding hash, and its note says why the commit is not upstream's. When the
+fix lands upstream the recipe moves to that commit and nothing else on the
+certificate changes.
 
 ## What this means for the tier
 
 Nothing about the tier's design is contradicted; this is the design doing
 its job. A certificate at `formal` says a third party can rebuild the
-theorem from the recipe, and here a third party could not, so no certificate
-is filed. Had the tier been a file attachment, the LRAT files would have
-been copied into `certs/` and the entry would read `formal` today with a
-proof that does not check.
+theorem from the recipe, and the recipe as upstream wrote it could not be
+rebuilt, so the certificate records the one that can. Had the tier been a
+file attachment, the LRAT files would have been copied into `certs/` and
+the entry would read `formal` with a proof that does not check.
 
 The 389 `proof_log` certificates, `72-12-6` among them, are unaffected: that
 tier replays our own CNF and drat-trim, which CI re-derives weekly.
