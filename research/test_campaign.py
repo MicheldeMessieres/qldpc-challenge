@@ -804,3 +804,101 @@ def test_dead_ends_survive_a_write_and_reload(tmp_path):
 
     on_disk = json.load(open(path, encoding="utf-8"))
     assert on_disk["negative_results"][0]["what"] == "closed route"
+
+
+# -- writing a definition (issue #2780) --------------------------------------
+
+def test_a_scaffold_is_a_valid_campaign_with_the_defaults_filled():
+    from campaign import scaffold_campaign
+    spec = scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 2})
+    c = spec["campaign"]
+    assert c["schema_version"] == 1 and c["id"] == "gb-probe"
+    assert c["objective"] == {"metric": "kd2_over_n", "direction": "maximize"}
+    assert c["stopping"] == [{"type": "budget_exhausted"}]
+    assert c["status"] == "draft"
+    Campaign(spec)                                # constructible in memory
+
+
+def test_a_scaffold_has_no_default_budget():
+    """An unbounded campaign is the thing the object exists to prevent."""
+    from campaign import scaffold_campaign
+    with pytest.raises(TypeError):
+        scaffold_campaign("gb-probe", "GB probe")
+    with pytest.raises(CampaignError, match="budget"):
+        scaffold_campaign("gb-probe", "GB probe", budget={})
+
+
+def test_scaffold_fields_pass_through_and_are_validated():
+    from campaign import scaffold_campaign
+    spec = scaffold_campaign(
+        "gb-probe", "GB probe", budget={"candidates_screened": 50},
+        families=["generalized-bicycle"],
+        objective={"target": 20},
+        stopping=[{"type": "target_reached"}, {"type": "budget_exhausted"}],
+        constraints={"n": [600, 700]}, notes="one night")
+    c = spec["campaign"]
+    assert c["methods"] == {"families": ["generalized-bicycle"]}
+    assert c["objective"]["target"] == 20 and c["constraints"] == {"n": [600, 700]}
+    with pytest.raises(CampaignError):
+        scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 1},
+                          families=["not-a-family"])
+    with pytest.raises(CampaignError):
+        scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 1},
+                          stopping=[{"type": "target_reached"}])   # no target
+
+
+def test_a_bare_campaign_dict_is_told_about_the_wrapper():
+    with pytest.raises(CampaignError, match="wraps its fields"):
+        validate_campaign(copy.deepcopy(GOOD["campaign"]))
+
+
+def test_write_campaign_round_trips_through_load_campaign(tmp_path):
+    from campaign import scaffold_campaign, write_campaign
+    spec = scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 2},
+                             families=["generalized-bicycle"])
+    path = tmp_path / "campaigns" / "gb-probe" / "campaign.json"
+    assert write_campaign(spec, str(path)) == str(path)
+    back = load_campaign(str(path))
+    assert back.to_dict() == spec and back.path == str(path)
+    # A Campaign object writes the same bytes as its dict.
+    again = tmp_path / "again" / "campaign.json"
+    write_campaign(back, str(again))
+    assert again.read_text(encoding="utf-8") == path.read_text(encoding="utf-8")
+
+
+def test_write_campaign_refuses_to_overwrite_unless_told(tmp_path):
+    from campaign import scaffold_campaign, write_campaign
+    spec = scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 2})
+    path = str(tmp_path / "campaign.json")
+    write_campaign(spec, path)
+    with pytest.raises(CampaignError, match="overwrite=True"):
+        write_campaign(spec, path)
+    spec["campaign"]["name"] = "GB probe, revised"
+    write_campaign(spec, path, overwrite=True)
+    assert load_campaign(path).name == "GB probe, revised"
+
+
+def test_write_campaign_holds_the_directory_to_the_id(tmp_path):
+    from campaign import scaffold_campaign, write_campaign
+    spec = scaffold_campaign("gb-probe", "GB probe", budget={"cpu_hours": 2})
+    wrong = tmp_path / "campaigns" / "other-name" / "campaign.json"
+    with pytest.raises(CampaignError, match="directory name"):
+        write_campaign(spec, str(wrong))
+
+
+def test_an_in_memory_campaign_drives_a_ledger_to_a_summary(tmp_path):
+    """The documented route for a run that does not want a directory yet."""
+    from campaign import scaffold_campaign
+    led = Ledger(Campaign(scaffold_campaign(
+        "adhoc", "ad hoc", budget={"candidates_screened": 10},
+        families=["bivariate-bicycle"])))
+    led.start_experiment("bivariate-bicycle", seed=1, params={"l": 6})
+    led.record_screen(trials=1000, d=6, backend="numpy")
+    led.record_verdict("not_run")
+    led.end_experiment()
+    out = write_summary(led.summary(), str(tmp_path / "summary.json"))
+    with open(out, encoding="utf-8") as f:
+        summ = json.load(f)
+    assert summ["campaign_id"] == "adhoc"
+    assert summ["experiments"][0]["screened"] == {"trials": 1000, "d": 6,
+                                                  "backend": "numpy"}

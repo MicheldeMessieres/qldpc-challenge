@@ -37,6 +37,47 @@ if led.stop_reason():
 `research/campaigns/smoke-bb-72/run.py` is the same thing end to end, small
 enough to run in a test.
 
+## Starting one
+
+`campaign.json` is the one artifact here the kit could read but not write
+(issue #2780). `scaffold_campaign` fills the required fields with the
+defaults worth having, and `write_campaign` validates and writes it:
+
+```python
+from campaign import scaffold_campaign, write_campaign
+
+spec = scaffold_campaign("gb-z341-probe", "GB over Z_341, one night",
+                         budget={"cpu_hours": 8},
+                         families=["generalized-bicycle"],
+                         constraints={"n": [600, 700]})
+write_campaign(spec, "research/campaigns/<id>/campaign.json")   # <id> = "gb-z341-probe"
+```
+
+The defaults: `kd2_over_n` maximized, `budget_exhausted` as the one stopping
+rule, status `draft`. The budget has no default, because a campaign with
+none is unbounded. Anything else (`constraints`, `methods`, `run_contract`,
+`required_outputs`, `notes`, an `objective` `target`) passes through as a
+keyword and is validated with the rest. `write_campaign` refuses to replace
+an existing file unless told `overwrite=True`, and holds the directory name
+to the campaign id the way `load_campaign` does.
+
+A campaign does not need a file to drive a ledger. `Campaign(spec)` with no
+path works, so a run that does not yet want a directory still records what
+it screened:
+
+```python
+led = Ledger(Campaign(spec))
+led.start_experiment("generalized-bicycle", seed=1, params={"m": 341})
+led.record_screen(trials=1000, d=20, backend="numpy")
+led.record_verdict("not_run")
+led.end_experiment()
+write_summary(led.summary(), "research/campaigns/<id>/summary.json")
+```
+
+The definition is wrapped, `{"campaign": {...}}`; `validate_campaign` says
+so when handed the bare fields. Both the ledger and the writer need the
+`research` extra for `jsonschema`: `uv run --extra research python ...`.
+
 ## The run contract
 
 Depth, trials, and seeds passed as free-form argv leave no record of what a
