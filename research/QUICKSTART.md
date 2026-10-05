@@ -109,9 +109,9 @@ the member was screened and discarded before the gate.
 
 Three prerequisites, all real. The ledger validates against a JSON schema, so
 it needs the `research` extra — run it as
-`uv run --extra research python your_script.py`, not a bare `uv run python`
-used above. It needs a `campaign.json`, and there is no scaffold for one yet,
-so copy the smallest complete example —
+`uv run --extra research python your_script.py`, not a bare `uv run python`.
+It needs a `campaign.json`; `campaign.scaffold_campaign` builds one, or copy
+the smallest complete example —
 `research/campaigns/smoke-bb-72/run.py` — or
 [`campaigns/README.md`](campaigns/README.md), which documents the whole
 contract. And a `summary.json` is what makes the run visible to the next
