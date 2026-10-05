@@ -16,14 +16,19 @@
   },
   "solver": "scipy/HiGHS MILP",
   "verification": {
-    "checker": "drat-trim sha256:f58f63b0f76945d4",
+    "checker": "Lean 4 v4.30.0-rc2 with mathlib 5450b53e5ddc; bv_decide re-solves the two distance lemmas and checks the LRAT with Lean's verified checker, bv_check replays stored LRAT for the rank lemmas",
+    "checks_sha256": "9deb83c9d05295a286035d0460156d36c768617dfcfdb9e1578b65d9aa5868c0",
     "cnf_sha256": "X=91a98dcec67dca06872e9ce6fca421cd02d765727d2a3a42c96ff7402936430d;Z=4546191f0bedbe91badb72564e170e9158cd1d21ce7e870803be5eee39e55adb",
-    "level": "proof_log",
-    "note": "pure-CNF re-encoding refuted by kissat and checked by drat-trim; the XOR path agrees. The formula is regenerated from this entry and re-checked by CI rather than stored: a refutation nobody opens is not evidence, and the trimmed cores run to 95.8 MB as text. Confirms the formula is unsatisfiable, not that it asks the distance question",
+    "level": "formal",
+    "note": "BB72_dist_6 proves 6 <= distance of BB72_css, whose BB72_X and BB72_Z literals decode (row-major, bit i*72+j) to exactly this entry's rows on the same qubit labels; the entry's weight-6 witnesses give d <= 6. The pinned commit is VerifiedQC/Lean-QEC e0b90148 plus one change (their PR #33): the two distance lemmas use bv_decide, because the stored LRAT files at e0b90148 do not verify. Replayed 2026-10-05, 95 s. The reduction from code to SAT instance is proved in the development; cnf_sha256 keeps",
+    "reference": "arXiv:2605.16523",
     "replay": {
-      "check": "kissat --no-binary <side>.cnf <side>.proof; drat-trim <side>.cnf <side>.proof",
-      "emit": "python verify/replay_proofs.py 72-12-6",
-      "emitter": "verify/sat_certify.py side_cnf, XOR chunk arity 5, no symmetry prefix"
+      "build": "git lfs pull && lake exe cache get && lake build LeanQEC.Stabilizer.Examples.BB.BB72",
+      "commit": "e0587cc1ae08418a849ae5dbfc04d17b6053c63b",
+      "mathlib": "5450b53e5ddc",
+      "repo": "github.com/vprusso/Lean-QEC",
+      "theorem": "BB72_dist_6",
+      "toolchain": "leanprover/lean4:v4.30.0-rc2"
     }
   }
 }
