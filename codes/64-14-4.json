@@ -447,6 +447,8 @@
     "authors": [
       "@vprusso"
     ],
+    "origin": "submission",
+    "model": "Claude Fable 5.1 (Claude Code)",
     "construction": "SAT search (research/local_sat.py build_local_cnf, n_side=8, G=25, max_weight=8, t=3 detection, anchor radius 2.0, shared_t3 encoding, lazy exact detection, CaDiCaL 1.9.5 via python-sat) over 2D-local CSS codes on an 8x8 grid; each check is anchored at a grid site and acts within radius 2.0 of it, so the interaction radius is at most 4.0 by construction. Model index 0 of the enumeration; distance is a witness-backed upper bound.",
     "references": [],
     "date": "2026-10-04",
