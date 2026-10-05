@@ -248,6 +248,15 @@ Two principles drive the format:
     `--budget-*` flags or `--budget-json`. The site can show it on the detail
     page and the research log can aggregate it, so the cost of a
     frontier-advancing code becomes comparable across entries and over time.
+  - `clifford_relabel_of` (optional; issue #2802): the slug of a board entry
+    this code is a Clifford image of under a Clifford acting on blocks of
+    qubits. Such an image has the same `n`, `k`, and code space as its parent,
+    so its distance was bought with check weight and its `kd^2/n` is not a
+    construction result. The verifier checks the parent exists with the same
+    `n` and `k`, refuses `novelty: "new_parameters"` beside it, and the board
+    marks the entry. `clifford_block_size` (optional, integer >= 2) records
+    the block size. Only the single-qubit case is detected automatically;
+    declaring the block case is the submitter's duty.
 - `family` (optional): the construction family, a Layer-2 tag from a fixed
   vocabulary (`bivariate-bicycle`, `generalized-bicycle`, `2bga-coset`,
   `hypergraph-product`, `lifted-product`, `balanced-product`, `quantum-tanner`,

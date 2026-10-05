@@ -419,6 +419,16 @@
         "notes": {
           "type": "string"
         },
+        "clifford_relabel_of": {
+          "type": "string",
+          "pattern": "^[0-9]+-[0-9]+-[0-9]+(-[a-z0-9]+)?$",
+          "description": "optional (issue #2802): the slug of a board entry this code is a Clifford image of, under a Clifford acting on blocks of qubits. Such an image has the same n, k and code space as its parent, so its distance was bought with check weight and its kd^2/n is not a construction result; the verifier checks that the named entry exists with the same n and k, refuses novelty new_parameters alongside it, and the site marks the entry. Declaring it is the submitter's duty: multi-qubit Clifford equivalence is not tested, only the single-qubit case is (is_css_up_to_local_clifford)."
+        },
+        "clifford_block_size": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "optional, with clifford_relabel_of: the block size m of the block-local Clifford that produced this entry from its parent."
+        },
         "search_budget": {
           "type": "object",
           "description": "optional, self-reported (schema 0.3): what the search that produced this code cost. The verifier checks none of it (there is nothing trustless to check); it is recorded so the cost of a frontier-advancing code can be compared across entries and over time. Distinct from distance.X/Z.witness_provenance, which budgets the witness search for one operator, not the code search. All fields optional; report what you measured and leave the rest out.",

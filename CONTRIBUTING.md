@@ -117,6 +117,17 @@ entry. What changes, and what does not:
 - Stabilizer codes rank on a separate leaderboard. Novelty, dominance, and
   records are computed among stabilizer codes only; a stabilizer code never
   dominates or is dominated by a CSS entry.
+- A Clifford acting on blocks of two or more qubits maps a board entry to a
+  stabilizer code with the same `n`, `k`, and code space whose distance was
+  bought with check weight; the verifier cannot detect that case, only the
+  single-qubit one. If your code is such an image, declare it:
+  `provenance.clifford_relabel_of: "<parent slug>"` (and
+  `clifford_block_size` if you want the block size recorded). The verifier
+  checks the parent exists with the same `n` and `k` and refuses
+  `novelty: new_parameters` beside it; the board marks the entry so its
+  `kd^2/n` is read as a relabeling. Say the same in the note. An undeclared
+  relabeling that is found later is corrected as a provenance defect
+  (issue #2802).
 - Not yet available: the circuit tier, since the memory experiments are per
   basis, so `circuit` is not accepted on such an entry; and exact
   certification, since the certifier minimizes Hamming weight per side, so an

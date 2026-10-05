@@ -501,6 +501,48 @@ def main():
               qldpc_verify.file_size_error(f.name) != "")
 
     print(f"\n{'ALL PASS' if not _fail else 'FAILURES: ' + ', '.join(_fail)}")
+    print("Declared Clifford relabeling (issue #2802):")
+    # A declaration names a parent on the board with the same n and k; the
+    # fixture is [[72,6,6]] and codes/72-6-9.json is a different code at the
+    # same parameters, so it stands in for a parent.
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "72-6-9"
+    d["provenance"]["clifford_block_size"] = 2
+    r = rep(d)
+    check("declared relabeling of a same-(n,k) board entry passes",
+          r["ok"] and not ({"clifford_relabel_parent_on_board",
+                            "clifford_relabel_same_n_k",
+                            "clifford_relabel_is_not_itself",
+                            "clifford_relabel_not_new_parameters"}
+                           & failed_checks(r)))
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "72-12-6"
+    r = rep(d)
+    check("a parent with another k is refused",
+          not r["ok"] and "clifford_relabel_same_n_k" in failed_checks(r))
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "999-1-1"
+    r = rep(d)
+    check("a parent that is not on the board is refused",
+          not r["ok"] and "clifford_relabel_parent_on_board" in failed_checks(r))
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "72-6-9"
+    d["provenance"]["novelty"] = "new_parameters"
+    r = rep(d)
+    check("a relabeling cannot also claim new_parameters",
+          not r["ok"] and "clifford_relabel_not_new_parameters" in failed_checks(r))
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "72-6-6"
+    r = rep(d)
+    same_checks = json.load(open(os.path.join(ROOT, "codes", "72-6-6.json")))["checks"] == GOOD["checks"]
+    check("naming itself as parent is refused (or the fixture differs from the board entry)",
+          (not r["ok"] and "clifford_relabel_is_not_itself" in failed_checks(r)) or not same_checks)
+    d = copy.deepcopy(GOOD)
+    d["provenance"]["clifford_relabel_of"] = "not a slug"
+    r = rep(d)
+    check("a malformed parent slug fails the schema",
+          not r["ok"] and "schema_valid" in failed_checks(r))
+
     return 1 if _fail else 0
 
 

@@ -755,6 +755,7 @@ margin:2px 4px 2px 0;border-radius:999px;background:var(--soft);color:var(--mut)
 border:1px solid var(--ln);white-space:normal}}
 .tchip.loc{{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}}
 .tchip.mod{{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}}
+.tchip.relabel{{background:#fff7ed;color:#9a3412;border-color:#fdba74}}
 .tchip.stab{{background:#fdf4ff;color:#86198f;border-color:#f0abfc;
 vertical-align:middle;font-family:'Manrope',sans-serif}}
 .xboard{{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;
@@ -1756,6 +1757,10 @@ def load_entries():
             "weight_class": rep["computed"].get("weight_class", "weight-9plus"),
             "origin": doc["provenance"].get("origin", "submission"),
             "novelty": doc["provenance"].get("novelty", "unknown"),
+            # a declared block-Clifford image of another entry (issue #2802):
+            # same n, k and code space as the parent, d bought with w
+            "relabel_of": doc["provenance"].get("clifford_relabel_of"),
+            "relabel_m": doc["provenance"].get("clifford_block_size"),
             "authors": ", ".join(doc["provenance"]["authors"]),
             "authors_list": doc["provenance"]["authors"],
             # layout credit (issue #648): who retrofitted the layout, when the
@@ -2514,7 +2519,20 @@ def detail_page(e):
              + ('<span class="tchip stab" title="general (non-CSS) stabilizer '
                 'code: one Pauli-weight distance, ranked on the stabilizer '
                 'board">stabilizer</span>' if stab else '')
+             + (f'<span class="tchip relabel" title="declared Clifford relabeling '
+                f'of {html.escape(e["relabel_of"])}">relabel</span>'
+                if e.get("relabel_of") else '')
              + '</div>')
+    if e.get("relabel_of"):
+        par = html.escape(e["relabel_of"])
+        blocks = (f' on blocks of {int(e["relabel_m"])} qubits'
+                  if e.get("relabel_m") else '')
+        P.append(f'<div class=kv style="color:var(--mut)">declared Clifford '
+                 f'relabeling of <a href="{par}.html">{par}</a>{blocks}: the '
+                 'same n, k and code space as that entry under a Clifford that '
+                 'is not weight preserving, so the distance here was bought with '
+                 'check weight and kd^2/n is not a construction result '
+                 '(issue #2802)</div>')
 
     P.append('<div class=params>')
     params = [
@@ -4619,6 +4637,12 @@ def board_table(entries, records, lrec=frozenset()):
                        f'{m["count"]} modules, {m["cross_module_checks"]} '
                        f'cross-module checks, at most {m["max_ports"]} ports '
                        'per module">modular</span>')
+        if e.get("relabel_of"):
+            out.append('<span class="tchip relabel" title="declared Clifford '
+                       f'relabeling of {html.escape(e["relabel_of"])}: same n, k '
+                       'and code space as that entry, the distance bought with '
+                       'check weight; kd^2/n here is not a construction '
+                       'result">relabel</span>')
         return "".join(out)
 
     # the X/Z asymmetry column only exists where there are sides: the

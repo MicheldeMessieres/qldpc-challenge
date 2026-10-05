@@ -51,6 +51,17 @@ any of the six) belongs on the CSS board: the verifier finds the Cliffords
 and rejects the entry with its CSS image spelled out, so the stabilizer board
 holds only codes that are non-CSS under every local Clifford.
 
+A Clifford acting on blocks of two or more qubits is outside that test, and
+its image of a board entry is a stabilizer code with the same `n`, `k`, and
+code space whose distance was bought with check weight (issue #2802: an
+m = 4 image of `[[500,100,16]]` reads `w` 26, `d <= 37`, `kd^2/n` 274
+against the parent's 51). Block Clifford equivalence is not tested, so such
+an entry declares it: `provenance.clifford_relabel_of` names the parent,
+the verifier checks the parent exists with the same `n` and `k`, the entry
+cannot also claim `new_parameters`, and the board marks it so its `kd^2/n`
+is read as a relabeling and not as a construction result. An undeclared
+one that is found is a provenance defect, corrected like any other.
+
 A record whose only strict axis is `d` — the candidate ties an existing entry on
 n, k and w and raises nothing but the distance — is a different kind of claim
 from the rest of the frontier: both numbers are witness-backed *upper* bounds, so

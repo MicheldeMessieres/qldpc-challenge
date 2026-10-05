@@ -579,6 +579,18 @@ def resource_errors(doc):
     return errs
 
 
+
+def _board_code(slug):
+    """Return codes/<slug>.json from this checkout, or None if absent."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, "codes", f"{slug}.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def structure_errors(doc):
     """Return a list of human-readable structural problems, or [] if the doc
     conforms. Uses jsonschema when installed, else a minimal key/type check."""
@@ -1323,6 +1335,39 @@ def _verify_semantic(doc, report, record, refute=False, seed=None):
                novelty if novelty in _NOVELTY
                else f"'{novelty}' is not a known novelty status; use one of "
                f"{sorted(_NOVELTY)}")
+
+    # A declared Clifford relabeling (issue #2802). A Clifford on blocks of
+    # qubits maps a board entry to a code with the same n, k and code space
+    # whose d was bought with check weight; the single-qubit case is detected
+    # (is_css_up_to_local_clifford), the block case is not tractable, so it is
+    # declared. What is checked is what can be: the parent is on the board,
+    # it has the same n and k, it is not this entry, and the entry does not
+    # also claim new parameters it shares with its parent.
+    parent = (doc.get("provenance") or {}).get("clifford_relabel_of")
+    if parent is not None:
+        pdoc = _board_code(parent)
+        record("clifford_relabel_parent_on_board", pdoc is not None,
+               f"codes/{parent}.json" if pdoc is not None else
+               f"clifford_relabel_of names codes/{parent}.json, which is not "
+               "on the board; a relabeling of an entry that does not exist "
+               "declares nothing")
+        if pdoc is not None:
+            same = (pdoc.get("n") == doc.get("n") and pdoc.get("k") == doc.get("k"))
+            record("clifford_relabel_same_n_k", same,
+                   f"parent [[{pdoc.get('n')},{pdoc.get('k')}]], this "
+                   f"[[{doc.get('n')},{doc.get('k')}]]" + ("" if same else
+                   "; a Clifford image has its parent's n and k, so this is "
+                   "not a relabeling of that entry"))
+            self_ref = (pdoc.get("checks") == doc.get("checks"))
+            record("clifford_relabel_is_not_itself", not self_ref,
+                   "parent differs" if not self_ref else
+                   "the named parent has identical checks; a code is not a "
+                   "relabeling of itself")
+        record("clifford_relabel_not_new_parameters",
+               novelty != "new_parameters",
+               "novelty is not new_parameters" if novelty != "new_parameters"
+               else "a Clifford image shares its parent's [[n,k,d]] up to the "
+               "relabeling, so it cannot also claim new_parameters")
 
     # 6. distance witnesses (self-certifying upper bounds)
     dist = doc["distance"]
