@@ -1,0 +1,350 @@
+{
+ "144-16-12": {
+  "n": 144,
+  "delta": 8,
+  "delta_x": 8,
+  "delta_z": 8,
+  "overlapping_xz_pairs": 1080,
+  "generic": {
+   "cx_layers_per_round": 21,
+   "layers_per_round": 25.0,
+   "mechanisms": 20539,
+   "detectors": 432,
+   "observables": 16,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 8,
+   "parity_violations": 620,
+   "deterministic": false,
+   "error": "432 non-deterministic detectors"
+  },
+  "bb_terms": {
+   "l": 12,
+   "m": 6,
+   "A": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     5
+    ],
+    [
+     9,
+     1
+    ]
+   ],
+   "B": [
+    [
+     0,
+     0
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     4
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     11,
+     5
+    ]
+   ]
+  },
+  "bb_invariant_feasible_at_delta": false,
+  "interleaved": {
+   "cx_layers_per_round": 9,
+   "layers_per_round": 11.0,
+   "mechanisms": 21312,
+   "detectors": 432,
+   "observables": 16,
+   "verified": true,
+   "source": "bb-invariant-D9",
+   "depth": 9
+  },
+  "sat": {
+   "skipped": "see sat_d8.log"
+  }
+ },
+ "surface-d3-x16": {
+  "n": 144,
+  "delta": 4,
+  "delta_x": 4,
+  "delta_z": 4,
+  "overlapping_xz_pairs": 128,
+  "generic": {
+   "cx_layers_per_round": 9,
+   "layers_per_round": 13.0,
+   "mechanisms": 3518,
+   "detectors": 384,
+   "observables": 16,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 4,
+   "parity_violations": 64,
+   "deterministic": false,
+   "error": "288 non-deterministic detectors"
+  },
+  "interleaved": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 3504,
+   "detectors": 384,
+   "observables": 16,
+   "verified": true,
+   "source": "geometric",
+   "depth": 4
+  },
+  "sat": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 3342,
+   "detectors": 384,
+   "observables": 16,
+   "verified": true,
+   "depth": 4,
+   "solve_s": 0.0
+  }
+ },
+ "144-10-16": {
+  "n": 144,
+  "delta": 8,
+  "delta_x": 8,
+  "delta_z": 8,
+  "overlapping_xz_pairs": 1008,
+  "generic": {
+   "cx_layers_per_round": 20,
+   "layers_per_round": 24.0,
+   "mechanisms": 20526,
+   "detectors": 432,
+   "observables": 10,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 8,
+   "parity_violations": 554,
+   "deterministic": false,
+   "error": "432 non-deterministic detectors"
+  },
+  "bb_terms": {
+   "l": 12,
+   "m": 6,
+   "A": [
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "B": [
+    [
+     5,
+     0
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     6,
+     4
+    ],
+    [
+     9,
+     5
+    ]
+   ]
+  },
+  "bb_invariant_feasible_at_delta": true,
+  "interleaved": {
+   "cx_layers_per_round": 8,
+   "layers_per_round": 10.0,
+   "mechanisms": 21888,
+   "detectors": 432,
+   "observables": 10,
+   "verified": true,
+   "source": "bb-invariant-D8",
+   "depth": 8
+  },
+  "sat": {
+   "skipped": "see sat_d8.log"
+  }
+ },
+ "surface-d3-x10": {
+  "n": 90,
+  "delta": 4,
+  "delta_x": 4,
+  "delta_z": 4,
+  "overlapping_xz_pairs": 80,
+  "generic": {
+   "cx_layers_per_round": 9,
+   "layers_per_round": 13.0,
+   "mechanisms": 2124,
+   "detectors": 240,
+   "observables": 10,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 4,
+   "parity_violations": 40,
+   "deterministic": false,
+   "error": "180 non-deterministic detectors"
+  },
+  "interleaved": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 2190,
+   "detectors": 240,
+   "observables": 10,
+   "verified": true,
+   "source": "geometric",
+   "depth": 4
+  },
+  "sat": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 2091,
+   "detectors": 240,
+   "observables": 10,
+   "verified": true,
+   "depth": 4,
+   "solve_s": 0.0
+  }
+ },
+ "144-18-9": {
+  "n": 144,
+  "delta": 8,
+  "delta_x": 8,
+  "delta_z": 8,
+  "overlapping_xz_pairs": 1080,
+  "generic": {
+   "cx_layers_per_round": 19,
+   "layers_per_round": 23.0,
+   "mechanisms": 20549,
+   "detectors": 432,
+   "observables": 18,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 8,
+   "parity_violations": 586,
+   "deterministic": false,
+   "error": "432 non-deterministic detectors"
+  },
+  "bb_terms": {
+   "l": 12,
+   "m": 6,
+   "A": [
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     8,
+     0
+    ]
+   ],
+   "B": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     7,
+     1
+    ]
+   ]
+  },
+  "bb_invariant_feasible_at_delta": true,
+  "interleaved": {
+   "cx_layers_per_round": 8,
+   "layers_per_round": 10.0,
+   "mechanisms": 21888,
+   "detectors": 432,
+   "observables": 18,
+   "verified": true,
+   "source": "bb-invariant-D8",
+   "depth": 8
+  },
+  "sat": {
+   "skipped": "see sat_d8.log"
+  }
+ },
+ "surface-d3-x18": {
+  "n": 162,
+  "delta": 4,
+  "delta_x": 4,
+  "delta_z": 4,
+  "overlapping_xz_pairs": 144,
+  "generic": {
+   "cx_layers_per_round": 10,
+   "layers_per_round": 14.0,
+   "mechanisms": 3913,
+   "detectors": 432,
+   "observables": 18,
+   "verified": true
+  },
+  "konig_bare": {
+   "depth": 4,
+   "parity_violations": 72,
+   "deterministic": false,
+   "error": "324 non-deterministic detectors"
+  },
+  "interleaved": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 3942,
+   "detectors": 432,
+   "observables": 18,
+   "verified": true,
+   "source": "geometric",
+   "depth": 4
+  },
+  "sat": {
+   "cx_layers_per_round": 4,
+   "layers_per_round": 6.0,
+   "mechanisms": 3799,
+   "detectors": 432,
+   "observables": 18,
+   "verified": true,
+   "depth": 4,
+   "solve_s": 0.0
+  }
+ }
+}

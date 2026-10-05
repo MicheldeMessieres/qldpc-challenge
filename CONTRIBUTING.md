@@ -32,7 +32,9 @@ arrays or scipy sparse). The tool:
   patches, a generic sequential schedule otherwise), searches their detector
   error models for `d_circ` witnesses, and runs `verify/circuit_verify.py`
   on them; a code the generator cannot schedule within the tier's caps is
-  submitted without circuits and the reason is printed; and
+  submitted without circuits and the reason is printed (for an entry already
+  on the board, `research/circuit_backfill.py <slug>` runs the same path and
+  commits the tier with its own `contributed_by`); and
 - writes `codes/<n>-<k>-<d>.json` plus `circuits/<n>-<k>-<d>/` and prints
   the steps to open the PR.
 
