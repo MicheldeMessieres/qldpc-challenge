@@ -89,6 +89,11 @@ end the run. It cannot weaken the gate. Without one, nothing below changes.
    `passed: true`.
 6. **Stage** survivors for review; loop until the budget is spent, then report.
 
+Recording is not step 7, it is what happens *during* the loop: `kit/campaign.py`'s
+`record_screen` is the only thing that writes a screening depth, and without a `summary.json` at
+the end none of it reaches `codes/`-adjacent committed state, so the next session repeats the
+search. See [`campaigns/README.md`](campaigns/README.md) and the `kit/campaign.py` row below.
+
 To watch the whole loop run once (build → package → the real verifier in-process):
 
 ```
@@ -221,6 +226,31 @@ The `trials` value is backend-specific: NumPy iterations and fast RIS samples ar
 not comparable screening budgets. All screening values remain upper bounds, and
 finalists must still pass the validation gate.
 
+**Check a sampler's reach before you sweep it.** Each of the four samplers above carries its
+ceiling at the end of its docstring, and the binding one is usually the *check weight*, not `n`.
+Measured over 3000 draws each at their defaults:
+
+| sampler | max `n` | max check weight |
+|---|---|---|
+| `sample_bb` | 240 | 6 |
+| `sample_dihedral` | 320 | 8 |
+| `sample_metacyclic` | 320 | 8 |
+| `sample_kasai_affine` | 684 | 8 |
+
+Every one of the board's 25 most efficient entries has a check weight of at least 12, and they sit
+at `n` between 630 and 682. So the sweep above — `sample_bb` at 250 trials — cannot reach the
+efficiency frontier in any cell, and a large sweep of it will spend its budget producing records
+that are dominated on arrival. For the weight-6 `unrestricted` cell the frontier runs from `n`
+12 out to 960 with a best `kd²/n` of 30.48, and its *competitive* region starts around `n >= 400`,
+well past what `sample_bb` builds.
+
+Raise `weight=` on a 2BGA sampler to lift the check-weight cap, or widen `l_range`/`m_range` on
+`sample_bb`; `weight` is the number of monomials per side, so the check weight is `2 * weight`.
+`sample_kasai_affine` is the one sampler whose `n` already reaches the frontier's band, and it
+needs only `weight` raised to compete there. Which of these pays off is a research question, not a
+mechanical one — the recent high-weight entries came from targeted defining sets rather than
+rejection sampling, so read `fieldnotes/` for your family before spending a large sweep.
+
 ### 3b. Spend the ladder wisely: the escalation gate (optional)
 
 Deep confirmation is the bottleneck
@@ -297,6 +327,12 @@ of them the same filename, so the second write used to delete the first one's wi
 the same candidate is not a collision, and `unique_path` gives a second candidate with the same
 parameters its own name.
 
+`make_submission` runs the witness search itself and records it: each side's
+`witness_provenance` carries `found_by` (the authors as `@handles`, or `found_by=` when the
+operators came from someone else), the date, `found_at_samples` and `survived_samples` equal to
+`trials`, the tool, and the seed. That block is what a later refuter has to beat, and
+`verify/check_authorship.py` reads credit from it, so the document declares schema `0.2`.
+
 `family` is a filterable Layer-2 tag, never ranked. You do **not** declare which tracks you
 enter: the verifier computes primary-track membership (the weight and locality classes) from `H`
 and the layout. To enter the `2d-local-*` tracks, give the code a layout — pass
@@ -365,7 +401,7 @@ is an instrument artifact, not a distance difference. One of four decisions come
 | decision | meaning | do this next |
 |---|---|---|
 | `drop: ...` | your own claim came down at its own budget | drop the candidate; the ladder was right, the packaging would have been wrong |
-| `redirect: ...` | the board peer came down | persist the witness first (it is the most expensive object in the loop and the ledger will not take a verdict without `passed: true`), then file the peer's **distance revision**: a correction to that entry, not a new submission, per [Filing a distance revision](audits/README.md#filing-a-distance-revision) |
+| `redirect: ...` | the board peer came down | persist the witness first (it is the most expensive object in the loop), then file the peer's **distance revision**: a correction to that entry, not a new submission, per [Filing a distance revision](audits/README.md#filing-a-distance-revision) |
 | `credible: ...` | both claims held at matched depth | the gain survives; package it (step 4) |
 | `inconclusive: ...` | neither claim was reached | no information at all; go deeper or stop, and never report it as corroboration |
 
@@ -393,6 +429,18 @@ decoder_distance(HX, HZ, trials=200000)  # BP+OSD: independent upper-bound evide
 
 These need extra deps (`scipy`, `ldpc`): `uv run --with scipy --with ldpc python your_script.py`.
 The constructors, surrogate, search, and packaging stay numpy-only.
+
+**The `research` extra is a separate thing from those two.** Anything that touches a JSON schema —
+`kit/campaign.py` (`load_campaign`, `write_summary`) and `kit/census_css.py` — needs
+`jsonschema`, which ships in the `research` extra and not in the default one:
+
+```
+uv run --extra research python your_script.py
+```
+
+That is the same invocation CI uses for the test suite. Without it `load_campaign` fails with
+`CampaignError: jsonschema is required to validate a campaign`, which reads like a broken kit
+rather than a missing flag.
 
 ## Pitfalls (these are why the gate exists)
 
@@ -467,6 +515,7 @@ should not have to re-learn.
 | File | What it gives you |
 |---|---|
 | `kit/css.py` | `compute_k`, `verify_css`, and the re-exported GF(2) core (`rref`, `rank`, `kernel_basis`, `logical_basis`, ...) shared with the verifier |
+| `kit/campaign.py` | `Ledger`, `load_campaign`, `write_summary`, `write_manifest`: the campaign contract and the **screening registry**. `record_screen` is what writes a screening depth and `record_verdict` what says how it ended — the two calls that make a run visible to the next session. Needs the `research` extra (it validates against `schema/campaign.schema.json`); see [`campaigns/README.md`](campaigns/README.md) |
 | `kit/bb.py` | `build_bb`, `poly_matrix`, `KNOWN` (known BB codes to start from) |
 | `kit/group_algebra.py` | `build_2bga` + group builders: `perm_group`, `cyclic_product`, `dihedral`, `metacyclic`, `sym`, `alt` |
 | `kit/coset.py` | `build_coset` + `subgroup_closure`, `left_cosets`, `normalizer` |
@@ -478,6 +527,12 @@ should not have to re-learn.
 | `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap, through n = 8 with the nauty canonicalizer (pynauty, in the `research` extra; n <= 6 without it); exact distance uses the trusted SAT certifier |
+| `kit/products.py` | classical combining products: `hypergraph_product`, `lifted_product`, `balanced_product` + a sampler each; the lifted/balanced ones cover the multi-block protographs `kit/lp_protograph.py` specializes |
+| `kit/lp_protograph.py` | general lifted-product codes with matrix protographs, plus the SCE-paper protograph catalog (arXiv:2606.24808, Supplemental S7) |
+| `kit/annihilator.py` | the single-block annihilator attack on two-block CSS entries (issue #2706): write `H = [A \| B]` and search the kernel of either block alone for a low-weight vector. A way to re-price an existing entry, not a way to build one |
+| `kit/doubling.py` | free Z2 double-cover ("doubling") for bivariate bicycle codes: the `s=2` complement to `spectral.cover_k`, which handles odd covers only |
+| `kit/spectral.py` | spectral (Frobenius-orbit) screening for semisimple BB codes, from arXiv:2608.27565, restricted to the binary semisimple case: `cover_k` and the odd-cover machinery |
+| `kit/phantom.py` | the phantom-code construction of arXiv:2609.16542 — `build_phantom_outer` and the rest of the three consolidated pieces |
 | `local2d/planar.py` | fast greedy open-boundary builder, exact planar distance (scipy MILP), `grid_coordinates` for the bilayer layout |
 | `local2d/boundary_engine.py` | the general open-boundary construction (`build_planar`), `reduce_weights`, `graft_r1`/`graft_r1_safe` (qubit removal) |
 | `local2d/transfer.py` | `distance_slope`: predict d(L) scaling from (f, g) before building large lattices |

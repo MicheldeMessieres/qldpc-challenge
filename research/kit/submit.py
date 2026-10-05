@@ -22,6 +22,7 @@ import datetime
 import json
 import math
 import os
+import re
 import sys
 
 import numpy as np
@@ -71,10 +72,24 @@ def validate(doc):
             for e in sorted(v.iter_errors(doc), key=lambda e: list(e.path))]
 
 
+
+_HANDLE = re.compile(r"^@[A-Za-z0-9-]+$")
+
+
+def _handles(names):
+    """Return ``names`` as schema-valid ``@handles``, dropping what cannot be one."""
+    out = []
+    for name in names or ():
+        h = "@" + str(name).strip().lstrip("@")
+        if _HANDLE.match(h) and h not in out:
+            out.append(h)
+    return out
+
+
 def make_submission(HX, HZ, *, name, construction, authors, family=None,
                     references=None, notes=None, date=None, tracks=(),
                     confidence="upper_bound", coordinates=None, layers=None,
-                    trials=8000, seed=0):
+                    trials=8000, seed=0, found_by=None):
     """Build a submission dict for the CSS code (HX, HZ).
 
     Parameters
@@ -102,7 +117,20 @@ def make_submission(HX, HZ, *, name, construction, authors, family=None,
         DEPRECATED and ignored for ranking; retained only for backward
         compatibility. Track membership is computed by the verifier. Leave unset.
     trials, seed : int
-        Budget/seed for the witness search.
+        Budget/seed for the witness search. Both are recorded on each side's
+        ``witness_provenance`` (issue #2779): ``found_at_samples`` and
+        ``survived_samples`` are ``trials``, since the search runs its whole
+        budget and keeps the lightest operator it saw, so nothing lighter was
+        found in ``trials`` samples; ``seeds`` are the X and Z seeds.
+    found_by : optional list of str
+        ``@``-handles credited with the witnesses. Defaults to ``authors``,
+        which is right when this call ran the search, as it does: the budget
+        was spent under the caller's name. Pass it explicitly when the
+        operators came from somewhere else. Credit lives on the witness and
+        not in ``provenance.authors`` because refutation credit is per
+        operator (issue #611), and ``verify/check_authorship.py`` reads it
+        there. Handles that do not fit the schema's ``@name`` pattern are
+        dropped; with none left the block is omitted rather than invented.
 
     Returns
     -------
@@ -126,8 +154,20 @@ def make_submission(HX, HZ, *, name, construction, authors, family=None,
     assert commutes(zv, HX) and not in_rowspace(zv, HZ), "Z witness invalid"
     dval = min(wx, wz)
 
+    today = date or datetime.date.today().isoformat()
+    handles = _handles(found_by if found_by is not None else authors)
+
+    def _provenance(side_seed):
+        return {"found_by": handles, "date": today,
+                "found_at_samples": int(trials),
+                "survived_samples": int(trials),
+                "tool": "research/kit/surrogate.lightest_logical",
+                "seeds": [int(side_seed)]}
+
     doc = {
-        "schema_version": "0.1",
+        # 0.2 is the version that introduced witness_provenance; the schema
+        # refuses the block under 0.1 so the version stays meaningful.
+        "schema_version": "0.2" if handles else "0.1",
         "name": name,
         "code_type": "CSS",
         "n": int(n),
@@ -142,10 +182,13 @@ def make_submission(HX, HZ, *, name, construction, authors, family=None,
             "authors": list(authors),
             "construction": construction,
             "references": list(references) if references else [],
-            "date": date or datetime.date.today().isoformat(),
+            "date": today,
             "notes": notes or "",
         },
     }
+    if handles:
+        doc["distance"]["X"]["witness_provenance"] = _provenance(seed)
+        doc["distance"]["Z"]["witness_provenance"] = _provenance(seed + 1)
     if family is not None:
         doc["family"] = family            # Layer-2 tag (filterable, never ranked)
     if tracks:

@@ -117,3 +117,46 @@ def test_params_as_json_and_as_pairs_agree(registry):
 def test_a_malformed_param_is_refused(registry):
     with pytest.raises(SystemExit):
         _run(param=["ring"])
+
+
+def test_coverage_is_summarized(registry):
+    """The aggregate, so a reader can tell a populated registry from an empty one.
+
+    The per-row lines are honest one at a time, but they are printed campaign by
+    campaign, so one large depth-less campaign can fill the whole visible window
+    and make a well-populated registry look empty.
+    """
+    out, res = _run()
+    assert res["matches"] == 3
+    assert "registry coverage: 3 of 3 rows carry a screened weight" in out
+    assert "(3 a trial count), 3 a verdict" in out
+    assert "no screen-quality rows" not in out      # cyc-341 supplies quality
+
+
+def test_missing_depth_is_reported_as_what_it_costs(tmp_path, monkeypatch):
+    """A depth-less row is a gap in the anti-repeat check, and is labelled one."""
+    root = tmp_path / "research" / "campaigns" / "structural"
+    root.mkdir(parents=True)
+    rows = [{"family": "bivariate-bicycle", "params": {"l": 6},
+             "verdict": "not_run", "survivors": 0}]
+    (root / "summary.json").write_text(
+        json.dumps(_summary("structural", rows, [])), encoding="utf-8")
+    monkeypatch.setattr(qldpc, "_ROOT", str(tmp_path))
+
+    out, res = _run()
+    assert res["matches"] == 1
+    assert "registry coverage: 0 of 1 rows carry a screened weight" in out
+    assert "no depth cannot tell you whether the member is worth retrying" in out
+
+
+def test_absent_screen_quality_is_reported(registry):
+    """No Spearman row anywhere is worth saying, not leaving to inference."""
+    out, _ = _run(family="bivariate-bicycle")
+    assert "no screen-quality rows" in out
+    assert "uncalibrated" in out
+
+
+def test_coverage_is_absent_when_nothing_matched(registry):
+    """A miss must not also print a coverage line about zero rows."""
+    out, _ = _run(family="generalized-bicycle", param=["ring=Z_255"])
+    assert "registry coverage" not in out

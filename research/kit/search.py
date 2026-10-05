@@ -337,6 +337,13 @@ def sample_bb(num, *, l_range=(4, 12), m_range=(3, 10), weight=3, seed=0,
     have passed is discarded. Pass ``audit`` as a dict to receive counts under
     ``sampled``, ``rejected_n``, ``rejected_w`` and ``built``.
 
+    Reach at the defaults: n = 2lm, so l <= 12 and m <= 10 cap n at 240, and
+    weight=3 caps the check weight at 6. Raise ``l_range``/``m_range`` for
+    larger codes. The cap that matters for the board is the weight: every one of
+    the 25 most efficient entries on it has a check weight of at least 12, so
+    this sampler at its defaults explores the low-weight cells rather than
+    competing at the efficiency frontier.
+
     Deliberately absent: a k prefilter via ``surrogate.mixed_volume``. That is
     a heuristic here, not a bound. Measured against recomputed k on random
     candidates whose supports contain (0,0), true k exceeds it in about 2.6% of
@@ -377,7 +384,11 @@ def sample_bb(num, *, l_range=(4, 12), m_range=(3, 10), weight=3, seed=0,
 
 def sample_dihedral(num, *, m_range=(30, 80), weight=4, seed=0):
     """Yield ``num`` random 2BGA candidates on dihedral groups D_m
-    (order 2m, so n = 4m). Random supports of ``weight`` distinct elements."""
+    (order 2m, so n = 4m). Random supports of ``weight`` distinct elements.
+
+    Reach at the defaults: m <= 80 caps n at 320, and weight=4 caps the check
+    weight at 8. See ``sample_bb`` on why the weight cap is the binding one.
+    """
     rng = np.random.default_rng(seed)
     for _ in range(num):
         m = int(rng.integers(m_range[0], m_range[1] + 1))
@@ -392,7 +403,11 @@ def sample_dihedral(num, *, m_range=(30, 80), weight=4, seed=0):
 def sample_metacyclic(num, *, order_range=(60, 160), weight=4, seed=0):
     """Yield ``num`` random 2BGA candidates on metacyclic groups
     Z_n x| Z_k with r^k = 1 mod n (order n*k). This is the family line that
-    produced the board's [[294,8,19]]."""
+    produced the board's [[294,8,19]].
+
+    Reach at the defaults: order <= 160 caps n at 320, and weight=4 caps the
+    check weight at 8. See ``sample_bb`` on why the weight cap is the binding one.
+    """
     rng = np.random.default_rng(seed)
     valid_params = [(n, k, r)
                     for n in range(5, 60)
@@ -425,7 +440,13 @@ def sample_kasai_affine(num, *, q_range=(7, 19), weight=4, seed=0):
     """Yield ``num`` random generalized-bicycle candidates on affine groups
     Aff(F_q) for prime q (the structure of Kasai's affine-coset construction).
     Group order N = q(q-1), realized as the metacyclic group Z_q x| Z_{q-1}
-    with a primitive root acting; block size n = 2N."""
+    with a primitive root acting; block size n = 2N.
+
+    Reach at the defaults: q <= 19 gives N <= 342 and so n <= 684, which is the
+    only sampler here whose n reaches the band the efficiency frontier sits in.
+    weight=4 still caps the check weight at 8, against a frontier that is at
+    least 12 throughout, so raise ``weight`` to compete. See ``sample_bb``.
+    """
     rng = np.random.default_rng(seed)
     affine_groups = []
     for q in range(q_range[0], q_range[1] + 1):
