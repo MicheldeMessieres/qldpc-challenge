@@ -369,3 +369,90 @@ def test_a_shallow_run_neither_reads_nor_writes_the_cache(tmp_path):
                                       refute=False)
     assert seen == [False] and reused is False and verdict["passed"] is False
     assert c.get(candidate()) == REFUTED             # the deep answer survives
+
+
+# -- the verdict beside the candidate (issue #2781) -------------------------
+
+def test_the_verdict_lives_beside_the_candidate_under_its_own_suffix():
+    from coordination import verdict_path
+    assert verdict_path("/s/run/72-12-6.json") == "/s/run/72-12-6.verdict.json"
+    assert verdict_path("/s/run/72-12-6-b.json") == "/s/run/72-12-6-b.verdict.json"
+    # A verdict is never itself a candidate: the suffix is two extensions deep
+    # and the file has no `checks`, so a `*.json` glob that reads it fails the
+    # schema instead of gating it.
+    assert verdict_path("/s/run/72-12-6.verdict.json").endswith(".verdict.verdict.json")
+
+
+def test_gate_and_record_writes_the_full_verdict_next_to_the_candidate(tmp_path):
+    """The documented CLI prints and forgets; this keeps what the gate said."""
+    from coordination import gate_and_record, verdict_path
+    doc = candidate()
+    path = str(tmp_path / "4-2-2.json")
+    save_submission(doc, path)
+    calls = []
+
+    def fake_gate(d, *, seed=None, refute=True):
+        calls.append((seed, refute))
+        return stamped(passed=True)
+
+    verdict, out = gate_and_record(path, cache=cache_at(tmp_path),
+                                   validator=fake_gate, seed=7)
+    assert out == verdict_path(path) and os.path.exists(out)
+    with open(out, encoding="utf-8") as f:
+        on_disk = json.load(f)
+    # The whole verdict, not a slice, plus a record of when and by whom.
+    assert on_disk["passed"] is True and on_disk["gates"] == verdict["gates"]
+    assert on_disk["labels"] == verdict["labels"]
+    assert on_disk["recorded"]["candidate"] == "4-2-2.json"
+    assert on_disk["recorded"]["content_digest"] == content_digest(doc)
+    assert on_disk["recorded"]["refutation_reused"] is False
+    assert on_disk["recorded"]["run_id"] == run_id()
+    assert calls == [(7, True)]
+    # The returned verdict is the gate's own, without the bookkeeping block.
+    assert "recorded" not in verdict
+
+
+def test_gate_and_record_goes_through_the_refutation_cache(tmp_path):
+    """A refutation found once is reused and the record says so."""
+    from coordination import gate_and_record
+    doc = candidate()
+    path = str(tmp_path / "4-2-2.json")
+    save_submission(doc, path)
+    cache = cache_at(tmp_path)
+    cache.put(doc, stamped(passed=False, refute=REFUTED))
+
+    def gate_without_search(d, *, seed=None, refute=True):
+        assert refute is False, "a cached refutation must skip the search"
+        return stamped(passed=True)
+
+    verdict, out = gate_and_record(path, cache=cache, validator=gate_without_search)
+    assert verdict["passed"] is False
+    assert verdict["gates"]["refute"] == REFUTED
+    with open(out, encoding="utf-8") as f:
+        assert json.load(f)["recorded"]["refutation_reused"] is True
+
+
+def test_a_failed_gate_is_recorded_too(tmp_path):
+    """Negative verdicts are evidence as well; the file is written either way."""
+    from coordination import gate_and_record
+    path = str(tmp_path / "4-2-2.json")
+    save_submission(candidate(), path)
+    verdict, out = gate_and_record(
+        path, cache=cache_at(tmp_path),
+        validator=lambda d, *, seed=None, refute=True: stamped(passed=False))
+    assert verdict["passed"] is False and os.path.exists(out)
+
+
+def test_the_gate_cli_mode_exits_with_the_verdict(tmp_path, monkeypatch, capsys):
+    import coordination
+    path = str(tmp_path / "4-2-2.json")
+    save_submission(candidate(), path)
+    monkeypatch.setattr(coordination, "validate_cached",
+                        lambda doc, **kw: (stamped(passed=False), False))
+    rc = coordination._main(["gate", path])
+    assert rc == 1
+    out = capsys.readouterr()
+    assert json.loads(out.out)["passed"] is False
+    assert "verdict written to" in out.err
+    assert os.path.exists(coordination.verdict_path(path))
+    assert coordination._main(["gate"]) == 2

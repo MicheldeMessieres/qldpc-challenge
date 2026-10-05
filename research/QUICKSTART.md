@@ -54,11 +54,19 @@ print(path)
 ```
 
 ```bash
-uv run python verify/validate_candidate.py <the path it printed>
+uv run --extra research python research/kit/coordination.py gate <the path it printed>
 ```
 
 Exit 0 and `passed: true`, or it is not a find. The gate is the expensive step,
 so screen widely and spend it only on survivors.
+
+That command runs `verify/validate_candidate.py` unchanged and writes the
+verdict it returned to `<the path>.verdict.json`, beside the candidate.
+Running the gate script directly prints the same verdict and writes nothing,
+so the evidence for a find lives in a scrollback and is gone with the
+session; the witness in the candidate file is only half of what a reviewer
+needs. In code, `coordination.gate_and_record(path)` does the same and
+returns the verdict.
 
 Sweep a whole family with `search.py` instead of one code at a time. Repeat
 until the budget is spent, then report the survivors with their honest labels:

@@ -28,8 +28,14 @@ This module is outside the trust spine and cannot reach into it:
 
     from coordination import run_id, staging_dir, unique_path, validate_cached
     out = staging_dir()                        # research/candidates/<run_id>/
-    save_submission(doc, unique_path(os.path.join(out, "72-12-6.json"), doc))
+    path = unique_path(os.path.join(out, "72-12-6.json"), doc)
+    save_submission(doc, path)
     verdict, reused = validate_cached(doc)     # gate now, refutation reused
+    verdict, kept = gate_and_record(path)      # the same, verdict written beside the candidate
+
+* The verdict is kept beside the candidate. :func:`gate_and_record` writes
+  what the gate returned to ``<path>.verdict.json`` (issue #2781); the cache
+  above is a cache and that file is the record.
 """
 import errno
 import hashlib
@@ -399,9 +405,78 @@ def validate_cached(doc, *, cache=None, validator=None, seed=None, refute=True):
     return verdict, False
 
 
-if __name__ == "__main__":
+VERDICT_SUFFIX = ".verdict.json"
+
+
+def verdict_path(path):
+    """Return where the gate's verdict for the candidate at ``path`` is kept.
+
+    ``<stem>.verdict.json`` beside the candidate, so the two travel together
+    and a listing of a staging directory shows which candidates have been
+    gated. The suffix is two extensions deep so nothing that globs
+    ``*.json`` for candidates can mistake a verdict for one: a verdict has
+    no ``checks`` and fails the schema, and the name says what it is first.
+    """
+    base = path[:-len(".json")] if path.endswith(".json") else path
+    return base + VERDICT_SUFFIX
+
+
+def gate_and_record(path, *, seed=None, refute=True, cache=None,
+                    validator=None):
+    """Run the gate on the candidate at ``path`` and keep the verdict beside it.
+
+    Returns ``(verdict, out_path)``. The verdict is the gate's own, obtained
+    through :func:`validate_cached` so a refutation already found for this
+    candidate is reused, and it is written in full to :func:`verdict_path`
+    with the run id and time stamped on. That file is the artifact
+    ``AUTORESEARCH.md`` asks for next to every staged candidate (issue
+    #2781): the documented ``python verify/validate_candidate.py <path>``
+    prints the verdict and writes nothing, so a verdict that was only ever
+    on stdout is gone when the session is, which is the same loss as a
+    dropped witness. The cache under ``.verdicts/`` is not that artifact:
+    it keeps one slice, by digest, and may be emptied at any time.
+
+    ``verify/`` is untouched. This is a caller that persists what the gate
+    returned, not a change to what it returns.
+    """
+    with open(path, encoding="utf-8") as f:
+        doc = json.load(f)
+    verdict, reused = validate_cached(doc, cache=cache, validator=validator,
+                                      seed=seed, refute=refute)
+    out = verdict_path(path)
+    record = dict(verdict)
+    record["recorded"] = {
+        "candidate": os.path.basename(path),
+        "content_digest": content_digest(doc),
+        "refutation_reused": bool(reused),
+        "run_id": run_id(),
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _write_atomic(out, record)
+    return verdict, out
+
+
+def _main(argv):
+    """Run the module as a command.
+
+    With no arguments it prints this run's identity. ``gate <path>`` gates a
+    staged candidate and writes the verdict beside it, exit 0 iff passed.
+    """
+    if argv and argv[0] == "gate":
+        if len(argv) != 2:
+            print("usage: python research/kit/coordination.py gate <candidate.json>")
+            return 2
+        verdict, out = gate_and_record(argv[1])
+        print(json.dumps(verdict, indent=2))
+        print(f"verdict written to {out}", file=sys.stderr)
+        return 0 if verdict.get("passed") else 1
     _cache = VerdictCache()
     print(f"run_id       {run_id()}")
     print(f"staging      {staging_dir(create=False)}")
     print(f"verdicts     {_cache.root}")
     print(f"validator    {_cache.validator()[:16]}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(_main(sys.argv[1:]))

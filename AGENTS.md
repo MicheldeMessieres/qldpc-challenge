@@ -41,6 +41,9 @@ whole file.
 The two rules, here so they are never missed:
 
 **No code is a "find" until `verify/validate_candidate.py` returns `passed: true` for it.**
+Run it as `uv run --extra research python research/kit/coordination.py gate <path>`, which
+calls the gate unchanged and writes its verdict to `<path>.verdict.json` beside the candidate;
+the gate script alone prints the verdict and keeps nothing.
 Never write your own distance/quality check or edit anything under `verify/` (the trusted,
 CI-hash-pinned stack). In unattended autoresearch, stage candidates for human review; the
 contributor-driven workflow above is allowed to promote a validated candidate into `codes/`

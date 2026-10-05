@@ -39,8 +39,12 @@ imports its siblings by bare name (`from bb import build_bb`).
   thought — that is the surrogate fooling you, not a gate bug.
 
 ```
-uv run python verify/validate_candidate.py candidate.json   # exit 0 iff passed
+uv run --extra research python research/kit/coordination.py gate candidate.json   # exit 0 iff passed
 ```
+
+That is `verify/validate_candidate.py` run unchanged, with its verdict also written to
+`candidate.verdict.json` beside the candidate. Calling the gate script directly gives the same
+verdict on stdout and keeps nothing (issue #2781).
 
 or in-process (add `verify/` to the path first):
 `import sys; sys.path.insert(0, "verify"); from validate_candidate import validate_candidate`.
@@ -309,8 +313,9 @@ The random distance search inside the gate is the expensive part, so do not pay 
 same answer:
 
 ```python
-from coordination import validate_cached
+from coordination import validate_cached, gate_and_record
 verdict, reused = validate_cached(doc)         # gate now, refutation reused
+verdict, out = gate_and_record(path)           # the same, from a staged file, verdict kept beside it
 ```
 
 `validate_cached` calls `verify/validate_candidate.py` exactly as you would, every time. What it
@@ -448,8 +453,9 @@ should not have to re-learn.
   in a drafted `fieldnotes/` entry in either mode. Record the ladder as rungs rather
   than as prose.
 - Write each surviving candidate's **submission JSON + its full validator verdict** to a staging
-  folder (`coordination.staging_dir()` gives this run its own one under the staging root),
-  and print a short ranked summary:
+  folder (`coordination.staging_dir()` gives this run its own one under the staging root;
+  `coordination.gate_and_record(path)` writes the verdict as `<path>.verdict.json`, which is
+  the artifact this bullet asks for), and print a short ranked summary:
   `[[n,k,d]]`, cell, efficiency `kd²/n`, board-advancing?, and the honest labels.
 - **Persist any new constructor code you wrote** and a brief decision journal, so the run is
   reproducible and a good `sample_<family>` can later graduate into `research/`.
