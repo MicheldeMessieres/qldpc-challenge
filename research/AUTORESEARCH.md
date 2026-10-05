@@ -293,6 +293,12 @@ of them the same filename, so the second write used to delete the first one's wi
 the same candidate is not a collision, and `unique_path` gives a second candidate with the same
 parameters its own name.
 
+`make_submission` runs the witness search itself and records it: each side's
+`witness_provenance` carries `found_by` (the authors as `@handles`, or `found_by=` when the
+operators came from someone else), the date, `found_at_samples` and `survived_samples` equal to
+`trials`, the tool, and the seed. That block is what a later refuter has to beat, and
+`verify/check_authorship.py` reads credit from it, so the document declares schema `0.2`.
+
 `family` is a filterable Layer-2 tag, never ranked. You do **not** declare which tracks you
 enter: the verifier computes primary-track membership (the weight and locality classes) from `H`
 and the layout. To enter the `2d-local-*` tracks, give the code a layout — pass
