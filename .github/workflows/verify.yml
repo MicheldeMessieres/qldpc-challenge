@@ -104,7 +104,8 @@ jobs:
       # what a verdict was about. A run that passes saves its receipts under
       # that digest, and a later run on this PR whose digest matches skips the
       # expensive steps and re-uploads the saved receipts as its own, so a
-      # notes-only push costs minutes rather than the hour the gate takes.
+      # notes-only push costs minutes rather than the hour the gate takes. This
+      # comment-only edit is the live test of that path (issue #2615).
       # Three things keep this honest. Only a passing run saves, so a failure
       # is always re-run and a refutation can never be skipped past. The
       # digest covers the trusted tree too, so a base-branch verifier change
