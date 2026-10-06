@@ -1,4 +1,4 @@
-# Submission format (v0.1 to v0.4)
+# Submission format (v0.1 to v0.5)
 
 A submission is one JSON file describing one qLDPC code, placed under
 `codes/`: a CSS code given by its X and Z checks, or (since 0.4) a general
@@ -26,10 +26,11 @@ Two principles drive the format:
 
 ## Fields
 
-- `schema_version`: `"0.1"`, `"0.2"`, `"0.3"`, or `"0.4"` (0.2 added the
+- `schema_version`: `"0.1"`, `"0.2"`, `"0.3"`, `"0.4"`, or `"0.5"` (0.2 added the
   optional `witness_provenance` block, 0.3 the optional
   `provenance.search_budget` and `locality.modules` blocks, 0.4 the
-  `stabilizer` code type; older files remain valid unchanged).
+  `stabilizer` code type, 0.5 the list-of-points form of `circuit.ler`;
+  older files remain valid unchanged).
 - `name`: human-readable, e.g. `"[[72,6,6]] generalized weight-6 planar BB code"`.
 - `code_type`: `"CSS"` or `"stabilizer"` (0.4). The fields below describe a
   CSS entry; a stabilizer entry replaces `checks.X`/`checks.Z` with
@@ -145,10 +146,23 @@ Two principles drive the format:
       the issue) are not part of this field.
   - `ler` (optional): the measured logical-error-rate tier, on
     the same committed circuits. `d_circ` is a floor; this is the rate a
-    simulation actually sees, prefactors included. Per basis (`ler.X`,
-    `ler.Z`):
-    - `p`: the physical rate; fixed at the canonical `0.001` so rates are
-      comparable across entries.
+    simulation actually sees, prefactors included. Since 0.5 each basis
+    (`ler.X`, `ler.Z`) is a list of points, one per physical rate, so an
+    entry carries a curve rather than one number (issue #1278); a 0.4 or
+    earlier entry may still carry the single object at `p = 0.001`. Each
+    point:
+    - `p`: the physical rate of the canonical noise recipe, one of
+      `0.01`, `0.005`, `0.002`, `0.001`. The committed circuit is at
+      `0.001`; the circuit at another rate is the same recipe re-applied
+      to the noiseless skeleton (`verify/ler_measure.py` does this). Rates
+      are a fixed grid so entries are compared at equal `p`; the site never
+      compares rates measured at different `p`. Rates must be distinct
+      within a basis. A point whose per-shot failure fraction exceeds 1/2
+      is saturated (the per-round conversion clamps at 1/2 whatever the
+      circuit does) and is rejected: measure at a lower `p` instead. Which
+      rates are informative depends on the code; the small early entries
+      saturate at `0.01`, and the board's best codes return no failures at
+      `0.001` in any affordable sample, which is what the grid is for.
     - `shots`, `failures`, `seed`: the measurement. The stim sampler is
       seeded, so (shots, seed, stim version) determine the sample; a shot
       fails when the pinned decoder's predicted observable flips disagree
@@ -175,26 +189,33 @@ Two principles drive the format:
       conversion, and its Wilson 95% interval; both must recompute exactly
       from `failures`/`shots`/`rounds`.
     - Verification (`verify/ler_verify.py`) re-measures with an independent
-      seed and rejects a claim outside sampling error. The replica is sized
+      seed and rejects a point outside sampling error. The replica is sized
       to discriminate (a target expected-failure count, not a fixed shot
-      count), under a wall budget per basis; when the budget cannot afford
-      a replica that would catch a factor-2 under-report, the claim fails
-      as unverifiable within budget instead of merging weakly checked. The
-      tier's statistical meaning wins over gate cost by design: the budget
-      bounds what may merge, never how honestly it is checked. Two honest
-      limits of that guarantee: the printed detection factor is the
+      count): when it cannot catch a factor-2 under-report with power, the
+      point is unverifiable at that budget. At PR time the gate tries the
+      points from the highest rate down inside 120 s per basis; the first
+      point is the cheapest, since failures are most common there. A point
+      the budget cannot check is deferred, with every lower point, to the
+      weekly post-merge replication (`verify/ler_replicate.py`, 30 minutes
+      per point across three seeds), whose verdict per point lands as a
+      receipt under `receipts/ler/<slug>.json` and shows on the entry page
+      as verified, failed, or unverifiable, with `pending` until it lands;
+      a failed or unverifiable point does not count, and the frontier is
+      computed per `p` over verified points only. At least one point must
+      verify at PR time or the claim fails as unverifiable within budget,
+      so the tier's statistical meaning still wins over gate cost, and the
+      cost of claiming a low-rate point moves off the PR and onto the
+      weekly run. Two honest limits: the printed detection factor is the
       50%-power point of the difference statistic, so under-reports
       between it and the factor-2 admissibility bound sit in a gray zone
       where a lucky draw can survive (admissibility itself demands ~98%
-      power at factor 2, so the zone is bounded); and the per-shot decode cost sets
-      what the tier can admit at all -- at the pinned decoder's current
-      speed, d = 5 memory circuits verify within budget and the d = 7 and
-      d = 9 seeds do not (their honest claims alone would cost hours), so
-      they fail closed until the decode loop gets faster. Statistical
-      rather than bit-exact because BP is float arithmetic and cross-
-      platform exactness is not a promise the board can keep; the gaming
-      direction -- claiming a lower rate than the circuit earns -- is
-      exactly what re-measurement detects.
+      power at factor 2, so the zone is bounded); and the tier is
+      decode-bound, so what the budgets admit is set by the pinned
+      decoder's speed on the entry's DEM, measured per entry rather than
+      read off d. Statistical rather than bit-exact because BP is float
+      arithmetic and cross-platform exactness is not a promise the board
+      can keep; the gaming direction -- claiming a lower rate than the
+      circuit earns -- is exactly what re-measurement detects.
 - `locality` (optional): provide a layout and the verifier derives the locality
   class (`local-2d-single`, `local-2d-bilayer`, or `unrestricted`); omit it and
   the code is `unrestricted`.

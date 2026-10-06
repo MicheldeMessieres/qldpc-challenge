@@ -10,6 +10,7 @@ on:
       - ".github/workflows/site.yml"
       - "codes/**"
       - "certs/**"
+      - "receipts/**"
       - "site/**"
       - "verify/**"
       - "refs.bib"

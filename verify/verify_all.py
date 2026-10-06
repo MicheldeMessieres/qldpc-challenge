@@ -51,7 +51,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from qldpc_verify import board_reports
 from circuit_verify import verify_circuit
 from gate_changed import changed_codes as changed_code_paths
-from ler_verify import verify_ler
+from ler_verify import summary_rate, verify_ler
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -129,9 +129,7 @@ def main(argv=None):
                 if lrep.get("skipped"):
                     pass
                 elif lrep["ok"]:
-                    lers = [doc["circuit"]["ler"][s]["ler_per_round"]
-                            for s in ("X", "Z")]
-                    circ += f", ler/round<={max(lers):.3g}"
+                    circ += f", ler/round<={summary_rate(doc):.3g} at the gate point"
                 else:
                     rep["ok"] = False
                     rep["checks"] += [c for c in lrep["checks"]
