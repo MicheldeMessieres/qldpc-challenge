@@ -420,43 +420,62 @@ def ris_dem(H, L, trials, seed=0, pair_top=24, max_seconds=None, threads=4):
             if deadline and time.monotonic() > deadline:
                 break
         return best, wit
-    K = _kernel_basis(H)
-    m = K.shape[1]
-    if K.shape[0] == 0:
+    # Reference loop: Prange's information-set search on H itself (issue
+    # #2797). A random column order is reduced on the r x m check matrix; its
+    # pivot columns P and free columns F give the systematic kernel basis
+    # e_j + sum_{i : R[i][j]} e_{P[i]} (j in F), whose weights are 1 plus the
+    # column weights of R and whose observable signatures are
+    # L[:, j] + sum_i R[i][j] L[:, P[i]]. Same candidates as reducing a kernel
+    # basis in permuted order, at r^2 m instead of (m - r)^2 m per trial.
+    H8 = np.asarray(H, dtype=np.uint8)
+    L8 = np.asarray(L, dtype=np.uint8)
+    m = H8.shape[1]
+    if m == 0 or L8.shape[0] == 0:
         return None, None
-    LT = np.asarray(L, dtype=np.int8).T
     rng = np.random.default_rng(seed)
-    best, best_v = m + 1, None
+    best, best_sup = m + 1, None
     deadline = (time.monotonic() + max_seconds) if max_seconds else None
-
-    def consider(v, perm):
-        nonlocal best, best_v
-        w = int(v.sum())
-        if 0 < w < best:
-            inv = np.empty(m, dtype=np.int64)
-            inv[perm] = np.arange(m)
-            best, best_v = w, v[inv].copy()
 
     for _ in range(trials):
         if deadline and time.monotonic() > deadline:
             break
         perm = rng.permutation(m)
-        R = _rref(K[:, perm])
-        sig = (R @ LT[perm]) % 2
-        live = np.flatnonzero(sig.any(axis=1))
-        if not live.size:
+        R, piv = gf2.rref(H8[:, perm])
+        piv = np.asarray(piv, dtype=np.int64)
+        free_mask = np.ones(m, dtype=bool)
+        free_mask[piv] = False
+        free = np.flatnonzero(free_mask)
+        if not free.size:
             continue
-        w = R[live].sum(axis=1)
-        consider(R[live[int(np.argmin(w))]], perm)
-        order = live[np.argsort(w)][:pair_top]
+        A = np.asarray(R, dtype=np.uint8)[:, free]        # rank x |F|
+        Lp = L8[:, perm].astype(np.int64)
+        sig = (Lp[:, free] + Lp[:, piv] @ A.astype(np.int64)) % 2
+        live = sig.any(axis=0)
+        wts = 1 + A.sum(axis=0, dtype=np.int64)
+
+        def record(cols, w):
+            nonlocal best, best_sup
+            v = np.zeros(m, dtype=np.uint8)
+            for c in cols:
+                v[free[c]] ^= 1
+                v[piv] ^= A[:, c]
+            best, best_sup = w, perm[np.flatnonzero(v)]
+
+        cand = np.flatnonzero(live & (wts < best))
+        if cand.size:
+            j = cand[int(np.argmin(wts[cand]))]
+            record([j], int(wts[j]))
+        order = np.argsort(wts, kind="stable")[:pair_top]
         for a in range(len(order)):
             for b in range(a + 1, len(order)):
-                v = R[order[a]] ^ R[order[b]]
-                if ((v @ LT[perm]) % 2).any():
-                    consider(v, perm)
-    if best_v is None:
+                pw = 2 + int(np.count_nonzero(A[:, order[a]] ^ A[:, order[b]]))
+                if pw >= best:
+                    continue
+                if (sig[:, order[a]] ^ sig[:, order[b]]).any():
+                    record([order[a], order[b]], pw)
+    if best_sup is None:
         return None, None
-    return best, sorted(int(i) for i in np.flatnonzero(best_v))
+    return best, sorted(int(i) for i in best_sup)
 
 
 # -------------------------------------------------------------------- builder

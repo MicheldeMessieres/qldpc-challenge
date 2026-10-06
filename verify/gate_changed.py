@@ -423,26 +423,30 @@ def _budget(n, deep, fast=False):
     return trials, seconds, 1
 
 
-# Circuit-tier refutation budget (RFC 0001 step 6). Per-trial RIS cost on
-# ker(H_dem) fits ~cost * mechanisms^3, dominated by the packed RREF. With
-# the in-C++ DEM trial loop (gf2_fast.dem_rand_witness: kernel packed once,
-# pivot-order permutation instead of physical column moves, 4 threads;
-# measured 2026-08-21: 0.76 ms at m=1687, 10.8 ms at m=5353, 330 ms at
-# m=12411) the asymptotic constant is ~2e-13; the pure numpy fallback loop
-# measured ~1.9e-11 (85 ms at m=1651), hence the 100x factor. The budget
-# targets a wall-clock per basis and converts it to trials through the fit;
-# the hard time cap inside ris_dem bounds CI even where the fit is off. At
-# MAX_DEM_MECHANISMS (~3.1 s/trial) the 120 s target buys ~38 trials, so the
-# cap is genuinely searchable at full depth.
-CIRCUIT_TRIAL_COST = 2.0e-13          # seconds per trial per mechanisms^3
-CIRCUIT_PY_FACTOR = 100               # numpy-loop fallback slowdown, measured
+# Circuit-tier refutation budget (RFC 0001 step 6). The search reduces the
+# r x m DEM check matrix in a random column order each trial (issue #2797;
+# before it, a basis of the kernel, at ~2e-13 m^3 s per trial), so per-trial
+# cost is ~cost * r^2 * m with r the detector count. Measured 2026-10-06 with
+# the in-C++ trial loop on 4 threads: 4.9 ms at (r, m) = (810, 23,940),
+# 44 ms at (1,002, 89,381), 132 ms at (1,728, 96,962), 277 ms at
+# (2,304, 130,972), a constant of 3e-13 to 5e-13; 8e-13 leaves room for a
+# slower runner, and the hard time cap inside ris_dem bounds CI even where
+# the fit is off. The pure numpy loop measured ~190x slower (922 ms against
+# 4.9 ms on the first of those), hence the fallback factor. At the cap with
+# r = m / 30 the 120 s target buys about 200 trials per basis; the old cap
+# bought 38.
+CIRCUIT_TRIAL_COST = 8.0e-13          # seconds per trial per (detectors^2 * mechanisms)
+CIRCUIT_PY_FACTOR = 200               # numpy-loop fallback slowdown, measured
 CIRCUIT_SECONDS = 120.0               # wall-clock target per basis
 CIRCUIT_MAX_TRIALS = 20_000
 CIRCUIT_MIN_TRIALS = 12
+CIRCUIT_DETECTORS_PER_MECHANISM = 1 / 30   # the densest ratio seen; used when
+                                           # the caller has no detector count
 
 
-def _circuit_budget(m, fast):
-    per = CIRCUIT_TRIAL_COST * m ** 3 * (1 if fast else CIRCUIT_PY_FACTOR)
+def _circuit_budget(m, fast, detectors=None):
+    r = detectors if detectors else max(1, int(m * CIRCUIT_DETECTORS_PER_MECHANISM))
+    per = CIRCUIT_TRIAL_COST * r * r * m * (1 if fast else CIRCUIT_PY_FACTOR)
     per = max(per, 0.002)
     trials = int(max(CIRCUIT_MIN_TRIALS if fast else 3,
                      min(CIRCUIT_MAX_TRIALS, CIRCUIT_SECONDS / per)))
@@ -498,7 +502,8 @@ def _circuit_refute(doc, circuits_dir, seed, trials_override=None):
         # `fast` keys on the DEM entry point specifically: a stale extension
         # without it drops ris_dem to the numpy loop and must be budgeted so.
         trials, cap = _circuit_budget(
-            m, CT._GF is not None and hasattr(CT._GF, "dem_rand_witness"))
+            m, CT._GF is not None and hasattr(CT._GF, "dem_rand_witness"),
+            detectors=dem.num_detectors)
         if trials_override:
             trials = trials_override
         w, wit = CT.ris_dem(Hd, L, trials, seed=seed, max_seconds=cap)

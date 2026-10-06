@@ -560,15 +560,162 @@ WitnessResult distance_rand_witness_cpp(const GF2Matrix& HX, const GF2Matrix& HZ
 
 // Circuit-tier (DEM) variant, RFC 0001 issue #505: min |e| with H e = 0 and
 // L e != 0, where H is a detector error model's detectors-by-mechanisms
-// parity-check matrix and L its observables-by-mechanisms matrix. This is the
-// SAME search as the CSS side: "flips a logical observable" (some row of L
-// has odd inner product with e) is the identical predicate the CSS
-// nontriviality check computes against a logical basis, so the trials core is
-// reused verbatim with L in the LZ seat. The kernel of H is computed and
-// packed once, shared read-only across threads; rref_perm randomizes the
-// information set by visiting columns in permuted PIVOT order, so nothing is
-// ever physically permuted or repacked per trial (the numpy path paid an
-// m x m column gather each trial -- ~130 MB at m~12k -- for the same effect).
+// parity-check matrix (r x m) and L its observables-by-mechanisms matrix.
+//
+// The search is Prange's information-set search run on H ITSELF, not on a
+// basis of its kernel (issue #2797). A random column order is eliminated on
+// the r x m check matrix, which costs ~r^2 m / 64 word operations; the pivot
+// columns P and the free columns F of that reduction give the systematic
+// kernel basis { e_j + sum_{i : R[i][j]} e_{P[i]} : j in F } without ever
+// forming it: basis vector j weighs 1 + (column weight of R at j) and flips
+// the observables L[:, j] + sum_i R[i][j] L[:, P[i]]. These are exactly the
+// candidates rref_perm(K, perm) produced on the kernel basis K -- one unit on
+// an information set of ker H, the rest on the r dependent columns -- so the
+// bound found is the same kind of bound; what changes is the price. The
+// kernel basis of a memory DEM has m - r rows, and r is a few percent of m,
+// so reducing it cost ~m^3 per trial (2e-13 m^3 s measured 2026-08-21: 3.1 s
+// at m = 25,000) where reducing H costs ~r^2 m. The pair step sums the
+// pair_depth lightest basis vectors two at a time, as on the code tier.
+struct DemLcols {
+    int wobs;                            // words per observable signature
+    std::vector<uint64_t> col;           // m * wobs: L[:, c] as a bitset
+};
+
+static DemLcols dem_pack_lcols(const GF2Matrix& L) {
+    DemLcols out;
+    out.wobs = std::max(1, (L.rows_ + 63) / 64);
+    out.col.assign((size_t)L.cols_ * out.wobs, 0);
+    for (int o = 0; o < L.rows_; ++o) {
+        const uint64_t* row = L.row_ptr(o);
+        for (int c = 0; c < L.cols_; ++c)
+            if ((row[c / 64] >> (c % 64)) & 1)
+                out.col[(size_t)c * out.wobs + o / 64] |= uint64_t(1) << (o % 64);
+    }
+    return out;
+}
+
+static int dem_rand_core(const GF2Matrix& H, const DemLcols& Lc,
+                         int trials, uint64_t seed, int pair_depth,
+                         std::vector<uint64_t>* wit_out)
+{
+    if (wit_out) wit_out->clear();
+    const int m = H.cols_, rows = H.rows_, wpr = H.wpr_, wobs = Lc.wobs;
+    int best = m + 1;
+    if (m == 0) return best;
+
+    Xoshiro256 rng(seed);
+    std::vector<int> perm(m);
+    std::iota(perm.begin(), perm.end(), 0);
+    std::vector<int> pivcol(rows);
+    std::vector<char> is_pivot(m);
+    std::vector<int> colcount(m);
+    std::vector<uint64_t> sig((size_t)m * wobs);
+    std::vector<uint64_t> lpiv((size_t)rows * wobs);
+
+    auto sig_nonzero = [&](int c) {
+        for (int w = 0; w < wobs; ++w) if (sig[(size_t)c * wobs + w]) return true;
+        return false;
+    };
+
+    for (int trial = 0; trial < trials; ++trial) {
+        rng.shuffle(perm);
+        GF2Matrix M = H;                         // reduced in place, per trial
+        int rank = 0;
+        std::fill(is_pivot.begin(), is_pivot.end(), 0);
+        for (int col : perm) {
+            if (rank == rows) break;
+            int piv = -1;
+            for (int i = rank; i < rows; ++i)
+                if (M.get(i, col)) { piv = i; break; }
+            if (piv < 0) continue;
+            if (piv != rank) M.swap_rows(rank, piv);
+            for (int i = 0; i < rows; ++i)
+                if (i != rank && M.get(i, col)) M.xor_rows(i, rank);
+            pivcol[rank] = col;
+            is_pivot[col] = 1;
+            ++rank;
+        }
+        for (int i = 0; i < rank; ++i)
+            for (int w = 0; w < wobs; ++w)
+                lpiv[(size_t)i * wobs + w] = Lc.col[(size_t)pivcol[i] * wobs + w];
+
+        // column weights and observable signatures of the systematic basis
+        std::fill(colcount.begin(), colcount.end(), 0);
+        std::fill(sig.begin(), sig.end(), 0);
+        for (int i = 0; i < rank; ++i) {
+            const uint64_t* row = M.row_ptr(i);
+            for (int w = 0; w < wpr; ++w) {
+                uint64_t word = row[w];
+                while (word) {
+                    int bit = __builtin_ctzll(word);
+                    word &= word - 1;
+                    int c = w * 64 + bit;
+                    if (c >= m || is_pivot[c]) continue;
+                    colcount[c] += 1;
+                    for (int q = 0; q < wobs; ++q)
+                        sig[(size_t)c * wobs + q] ^= lpiv[(size_t)i * wobs + q];
+                }
+            }
+        }
+        for (int c = 0; c < m; ++c)
+            if (!is_pivot[c])
+                for (int w = 0; w < wobs; ++w)
+                    sig[(size_t)c * wobs + w] ^= Lc.col[(size_t)c * wobs + w];
+
+        // ---- single-vector candidates ----
+        int best_a = -1, best_b = -1;            // this trial's improvement
+        for (int c = 0; c < m; ++c) {
+            if (is_pivot[c]) continue;
+            int w = 1 + colcount[c];
+            if (w < best && sig_nonzero(c)) { best = w; best_a = c; best_b = -1; }
+        }
+
+        // ---- pairwise candidates (lightest pair_depth basis vectors) ----
+        if (pair_depth > 1) {
+            std::vector<int> freecols;
+            freecols.reserve(m - rank);
+            for (int c = 0; c < m; ++c) if (!is_pivot[c]) freecols.push_back(c);
+            int pd = std::min<int>(pair_depth, (int)freecols.size());
+            if (pd >= 2) {
+                std::partial_sort(freecols.begin(), freecols.begin() + pd, freecols.end(),
+                    [&](int a, int b) { return colcount[a] < colcount[b]; });
+                int wr = (rank + 63) / 64;
+                std::vector<std::vector<uint64_t>> colbits(pd, std::vector<uint64_t>(std::max(wr, 1), 0));
+                for (int i = 0; i < rank; ++i)
+                    for (int jj = 0; jj < pd; ++jj)
+                        if (M.get(i, freecols[jj]))
+                            colbits[jj][i / 64] |= uint64_t(1) << (i % 64);
+                for (int ii = 0; ii < pd; ++ii) {
+                    for (int jj = ii + 1; jj < pd; ++jj) {
+                        int pw = 2;
+                        for (int w = 0; w < wr; ++w)
+                            pw += __builtin_popcountll(colbits[ii][w] ^ colbits[jj][w]);
+                        if (pw >= best) continue;
+                        bool nontrivial = false;
+                        for (int q = 0; q < wobs; ++q)
+                            if (sig[(size_t)freecols[ii] * wobs + q] ^
+                                sig[(size_t)freecols[jj] * wobs + q]) { nontrivial = true; break; }
+                        if (nontrivial) { best = pw; best_a = freecols[ii]; best_b = freecols[jj]; }
+                    }
+                }
+            }
+        }
+
+        if (wit_out && best_a >= 0) {            // materialize this trial's best
+            wit_out->assign(wpr, 0);
+            auto setbit = [&](int c) { (*wit_out)[c / 64] ^= uint64_t(1) << (c % 64); };
+            setbit(best_a);
+            if (best_b >= 0) setbit(best_b);
+            for (int i = 0; i < rank; ++i) {
+                bool on = M.get(i, best_a);
+                if (best_b >= 0) on ^= M.get(i, best_b);
+                if (on) setbit(pivcol[i]);
+            }
+        }
+    }
+    return best;
+}
+
 WitnessResult dem_rand_witness_cpp(const GF2Matrix& H, const GF2Matrix& L,
                                    int trials, uint64_t seed, int pair_depth,
                                    int n_threads) {
@@ -576,7 +723,10 @@ WitnessResult dem_rand_witness_cpp(const GF2Matrix& H, const GF2Matrix& L,
     int m = H.cols_;
     WitnessResult res;
     res.n = m;
-    GF2Matrix K = kernel_basis(H);        // hoisted: once, shared read-only
+    res.weight = m + 1;
+    res.side = -1;
+    if (L.rows_ == 0) return res;
+    DemLcols Lc = dem_pack_lcols(L);           // hoisted: once, shared read-only
     int per = (trials + n_threads - 1) / n_threads;
     std::vector<int> results(n_threads, m + 1);
     std::vector<std::vector<uint64_t>> wits(n_threads);
@@ -585,13 +735,10 @@ WitnessResult dem_rand_witness_cpp(const GF2Matrix& H, const GF2Matrix& L,
     for (int t = 0; t < n_threads; ++t) {
         uint64_t s = seed + 0x9e3779b97f4a7c15ULL * (uint64_t)(t + 1);
         pool.emplace_back([&, t, s]() {
-            results[t] = min_logical_weight_rand_core(m, K, L, per, s,
-                                                      pair_depth, &wits[t]);
+            results[t] = dem_rand_core(H, Lc, per, s, pair_depth, &wits[t]);
         });
     }
     for (auto& th : pool) th.join();
-    res.weight = m + 1;
-    res.side = -1;
     for (int t = 0; t < n_threads; ++t)
         if (results[t] < res.weight) {
             res.weight = results[t];

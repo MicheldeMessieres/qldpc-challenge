@@ -53,18 +53,26 @@ import gf2
 import circuit_tools as ct
 from qldpc_verify import _matrix
 
-MAX_CIRCUIT_FILE_BYTES = 5_000_000
+# A memory DEM's text runs about 80 bytes per mechanism, so the file cap
+# follows the mechanism cap below (10.6 MB at m = 130,972 measured
+# 2026-10-06 on [[144,10,16]] at rounds = 16); the .stim is a tenth of that.
+MAX_CIRCUIT_FILE_BYTES = 12_000_000
 
 # Verification-budget cap for the circuit tier (the RFC's "cap the tier by
 # n*rounds", enforced on the actual cost driver): the refutation gate searches
-# ker(H_dem) by RIS, and per-trial cost fits ~2e-13 * mechanisms^3 seconds
-# with the in-C++ trial loop (gf2_fast.dem_rand_witness, measured 2026-08-21;
-# the 2026-08-20 numpy-orchestrated loop this cap was first sized against was
-# ~6x slower). At the cap a trial is ~3.1 s, so the gate's 120 s/basis target
-# buys ~38 trials -- searchable at full depth, keeping a circuit entry within
-# the same ~10-minute budget a deep code claim gets. Raise-only, as the
-# search stack improves (GPU RIS is the known route up).
-MAX_DEM_MECHANISMS = 25_000
+# for undetected logical fault sets in the DEM by randomized information-set
+# search, and the cap is what that search can cover in the gate's 120 s per
+# basis. Until issue #2797 the search reduced a basis of ker(H_dem), an
+# (m - r) x m matrix for r detectors, so a trial cost ~2e-13 m^3 s and the
+# cap had to sit at 25,000 (3.1 s per trial there; 38 trials per basis). The
+# search now reduces the r x m check matrix itself (gf2_fast.dem_rand_witness,
+# circuit_tools.ris_dem), which yields the same candidates at ~5e-13 r^2 m s
+# per trial on 4 threads: 4.9 ms at m = 23,940, r = 810 ([[90,4,9]]); 277 ms
+# at m = 130,972, r = 2,304 ([[144,10,16]] at rounds = 16, the largest
+# efficiency-frontier memory the generator builds). At this cap the 120 s
+# target still buys a few hundred trials per basis, more than the old cap
+# bought at 25,000. Raise-only, as the search stack improves.
+MAX_DEM_MECHANISMS = 135_000
 
 SIDE_FILES = {"X": "memory_x", "Z": "memory_z"}
 SIDE_READOUT = {"X": "MX", "Z": "M"}

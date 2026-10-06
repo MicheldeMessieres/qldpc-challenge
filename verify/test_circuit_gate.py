@@ -166,6 +166,45 @@ def test_budget_shape():
     assert 0 < t_py < t_mid <= t_small           # fallback shallower, never zero
 
 
+def test_budget_follows_the_check_matrix_not_its_kernel():
+    """Issue #2797: the search reduces the r x m check matrix, so the budget
+    is r^2 m, not m^3. The old 25,000 cap is now deep, the new cap still
+    affordable, and more detectors at the same m cost trials."""
+    from circuit_verify import MAX_DEM_MECHANISMS
+    t_old_cap, _ = gc._circuit_budget(25_000, fast=True, detectors=810)
+    t_new_cap, _ = gc._circuit_budget(MAX_DEM_MECHANISMS, fast=True,
+                                      detectors=MAX_DEM_MECHANISMS // 30)
+    t_sparse, _ = gc._circuit_budget(130_000, fast=True, detectors=1000)
+    t_dense, _ = gc._circuit_budget(130_000, fast=True, detectors=2300)
+    assert t_old_cap >= 1000                      # was 38 at m^3 pricing
+    assert t_new_cap >= gc.CIRCUIT_MIN_TRIALS
+    assert t_dense < t_sparse
+    assert gc._circuit_budget(130_000, fast=True) == gc._circuit_budget(
+        130_000, fast=True, detectors=130_000 // 30)
+
+
+def test_dem_search_finds_an_undetected_single_mechanism():
+    """A mechanism with no detectors that flips an observable is a weight-1
+    undetected logical fault; both search paths must return it. On the check
+    matrix it is a zero column, i.e. a free column of weight 0 in every
+    reduction, which the kernel-side search never saw as a special case."""
+    import numpy as np
+    H = np.zeros((3, 9), dtype=np.int8)
+    H[0, 0] = H[0, 1] = H[1, 1] = H[1, 2] = H[2, 3] = H[2, 4] = 1
+    L = np.zeros((1, 9), dtype=np.int8)
+    L[0, 7] = 1                                  # column 7 is detector-free
+    L[0, 0] = L[0, 2] = 1                        # 0 + 1 + 2 is a weight-3 one
+    for fast in (True, False):
+        saved = ct._GF
+        if not fast:
+            ct._GF = None
+        try:
+            w, wit = ct.ris_dem(H, L, trials=4, seed=1)
+        finally:
+            ct._GF = saved
+        assert (w, wit) == (1, [7]), (fast, w, wit)
+
+
 def test_dem_wall_cap_stops_after_opener(monkeypatch):
     """#684 review regression, load-independent form (the first version
     asserted wall-clock seconds, which asserts the speed of the box and
