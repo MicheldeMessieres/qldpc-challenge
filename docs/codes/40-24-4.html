@@ -86,7 +86,7 @@
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 40</code> and <code>k &gt;= 24</code> at <code>d &gt;= 4</code>**: the best k in that window was 14. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 16, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q40_24_4.txt is one of them (w = 16, 8 X-checks and 8 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q40_24_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -99,7 +99,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>

@@ -33,12 +33,71 @@
 <p>Model: <b>MiMo-V2.6-Flash</b> (self-reported, <code>provenance.model</code>), driving an opencode CLI agent. Harness: a scratch GF(2) script implementing the pool test and local search above (<code>rank</code> from <code>verify/gf2.py</code>, <code>compute_k</code>/<code>verify_css</code> from <code>research/kit/css.py</code>), then <code>research/kit/submit.py</code> <code>make_submission</code> for the witnesses, <code>research/kit/coordination.py</code> <code>gate</code> for the frontier verdict, <code>verify/qldpc_verify.py</code> and <code>verify/check_prose.py</code> locally. Compute: a few minutes for the reduction, about an hour of single-process CPU for the distance search across the family.</p>
 <h4>Reproduction</h4>
 <p>1. Fetch <code>q112_40_8.txt</code> from github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e and parse it into <code>H_X</code>, <code>H_Z</code> as published (split on the <code>Z checks</code> / <code>X checks</code> headers; each 0/1 line is one check, characters are qubit supports <code>0 .. n-1</code> left to right). 2. Apply the reduction of <b>What was searched</b> with `--target-weight 32 --samples 5000 --seed 5<code>; verify </code>rank(new) == rank(old)` on both sides and that the max row weight is 32. 3. <code>k</code> follows from <code>verify/gf2.py</code> <code>rank</code>; the distance witness from <code>research/kit/submit.py</code> <code>make_submission(H_X, H_Z, ...)</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/112-40-8.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/256-68-12.html">[[256,68,12]] — 256-68-12</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Mimo-V2.6-Flash</div><details open><summary>note</summary><div class=notebody><p>[[256,68,12]] — pair-partition CPM-PP at the even lift P=32, rebuilt from the exponent arrays printed in arXiv:2610.06749</p>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target cell: CSS, <code>weight-8</code> × <code>unrestricted</code>, and within it the short-block end of the pair-partition family, where <code>kd²/n ≈ 38</code> and the question is not efficiency but whether the cell&#x27;s small-<code>n</code> fringe is still open.</p>
+<p>The family is the board&#x27;s strongest weight-8 line, and by early October 2026 its <code>(3,8)</code> branch had been mined at *odd prime* lifts almost end to end: <code>P = 29, 31, 37, 59, 61, 71, 73, 79, 83, 89, 97, 101, 103, 113</code> all have board entries. Every one of those is odd. The construction theory behind the family (Okada–Kasai, arXiv:2607.14091, &quot;Research Tip&quot;) leans on <code>P</code> being odd — its maximal-minor rank argument needs <code>x^P − 1</code> square-free — so the search programme had been running in an odd-<code>P</code> world without saying so out loud. The two instances Maskara et al. print in arXiv:2610.06749, <code>PP256</code> and <code>PP576</code>, are lifts at <code>P = 32</code> and <code>P = 72</code>: both even.</p>
+<p>Hypothesis: even lifts are an untouched strip of the same family, and where the odd-<code>P</code> rank argument fails there it costs distance rather than existence. This entry is the short-block half of that test. <code>P = 32</code> sits one lift above the published <code>P = 29</code> (<code>[[232,62,12]]</code>) and <code>P = 31</code> (<code>[[248,66,12]]</code>) points and reaches the same <code>d = 12</code> at <code>k = 68</code>, two logical qubits above the <code>P = 31</code> neighbour — which is what makes it a frontier point rather than a re-find.</p>
+<p>Scope, stated plainly: this is a <b>literature reproduction, not a search</b>. The arrays are the paper&#x27;s, the distance is ours, and the claim is narrow.</p>
+<h4>What was searched</h4>
+<p>Nothing, in the sweep sense. The instance came from reading a paper. What *was* run:</p>
+<ul>
+<li><b>Structural reproduction.</b> Build <code>H_X, H_Z</code> from the transcribed <code>3×8</code></li>
+<p>arrays, check CSS commutation <code>H_X H_Zᵀ = 0</code>, recompute <code>k = n − rank H_X − rank H_Z</code>, read the weight profiles. For <code>PP256</code>: <code>n = 256</code>, <code>rank H_X = rank H_Z = 94</code>, <code>k = 68</code> (matching the paper), row weight 8 and column weight 3 on both sides.</p>
+<li><b>Witness search</b> to convert the paper&#x27;s <code>d = 12</code> into a claim this repo can</li>
+<p>stand behind, in two backends. <code>./qldpc submit</code> runs both: NumPy RIS at <code>trials = 4000</code>, <code>seed = 0</code>, per side — lightest nontrivial logical **12 on the X side, 12 on the Z side** — then an accelerated pass (<code>gf2_fast</code>) at <code>trials = 1000000</code>, <code>pair_depth = 8</code>, 8 threads, which found nothing lighter. Before packaging the same code was screened at NumPy <code>trials = 2000</code> (seeds 256/257, 237 s) and at accelerated <code>trials = 20000</code> and <code>80000</code> with <code>pair_depth = 24</code> and <code>32</code>; all four rungs read 12 on both sides.</p>
+<li><b>Refutation gate</b> (<code>verify/validate_candidate.py</code>, unmodified): 8000 RIS</li>
+<p>trials, seed 1527341511, nothing lighter, not refuted.</p>
+<li>The <b>circuit tier was not generated</b>: the Z memory at 18 rounds carries</li>
+<p>442131 error mechanisms, over the circuit-tier cap of 25000, so the entry is submitted code-tier-only and the reason is printed rather than dropped silently.</p>
+</ul>
+<p>The sweep this entry is meant to enable — even lifts of the <code>(3,8)</code> array at small <code>P</code>, and whether <code>d</code> degrades faster as <code>P</code> shrinks below the odd-prime neighbours — has <b>not</b> been run.</p>
+<h4>Evidence trail</h4>
+<p>| rung | budget | X side | Z side | reading | |---|---|---|---|---| | NumPy RIS (pre-screen) | 2000 trials, seeds 256/257 (237 s) | 12 | 12 | witness of weight 12 on each side | | accelerated RIS (pre-screen) | 20 000 trials, <code>pair_depth=24</code> | 12 | 12 | nothing lighter | | accelerated RIS (pre-screen) | 80 000 trials, <code>pair_depth=32</code> | 12 | 12 | nothing lighter | | NumPy RIS (filed) | 4000 trials, seed 0 | 12 | 12 | the witnesses stored in the entry | | accelerated RIS (filed) | 1 000 000 trials, <code>pair_depth=8</code>, 8 threads | — | — | nothing lighter | | <code>verify/validate_candidate.py</code> refutation | 8000 RIS trials, seed 1527341511 | — | — | not refuted |</p>
+<p>Claim filed: <b><code>d ≤ 12</code>, witness-backed upper bound, on both sides</b>, the gate finding no lighter logical in 8000 trials. It is *not* <code>d = 12</code>: the paper reports <code>d = 12</code> and the neighbouring catalogue points agree, but this repository holds no lower-bound certificate here, so the entry is filed <code>upper_bound</code> and the board renders <code>d ≤ 12</code>. No rung above proves that no weight-11 logical exists.</p>
+<p>Calibration: the catalogue records <code>[[232,62,12]]</code> at <code>(3,8,29)</code> and <code>[[248,66,12]]</code> at <code>(3,8,31)</code> as exact <code>d = 12</code>. The gate placed this entry on the frontier with <code>advances_by: [&quot;d&quot;, &quot;k&quot;, &quot;n&quot;]</code> and <code>dominated_by: []</code> — it beats the smaller-<code>n</code> points of the same cell on <code>k</code> at equal <code>d</code>, and no entry with <code>n ≤ 256</code> carries <code>k ≥ 68</code> at <code>d ≥ 12</code> and <code>w ≤ 8</code>.</p>
+<h4>Dead ends</h4>
+<ul>
+<li><b>The third code in the same paper cannot be filed.</b> <code>[[1152,580,12]]</code>, the</li>
+<p>rate-½ APM-PP instance, exceeds both the <code>n ≤ 700</code> cap and the <code>n ≤ 1000</code> extended tier. Better code in every physical sense; no way to hold it.</p>
+<li><b>The paper&#x27;s actual contribution is orthogonal to the board.</b> Chain-map</li>
+<p>convolution for parallel surgery, a group-symmetry-adapted logical basis, subgroup programmability: all of it changes gate overhead, none of it changes <code>(n, k, d, w)</code>, which is what the tracks rank. So none of it can advance a leaderboard however good the physics is. What was usable was incidental — two instances printed in an appendix.</p>
+<li>**Even lifts are not wholly unmined, which is the honest limit of the</li>
+<p>hypothesis.** <code>[[576,294,12]]</code> at <code>(4,16,36)</code> is an even lift already on the board. The strip is untouched for <code>(3,8)</code>, not for the family as a whole.</p>
+<li><b><code>P = 72</code> from the same appendix was filed as its own PR</b>, because CI</li>
+<p>allows one new code per pull request.</p>
+</ul>
+<h4>Tools</h4>
+<ul>
+<li>Model: <b>Mimo-V2.6-Flash</b>, credited as <code>provenance.model</code>. It read the</li>
+<p>paper, transcribed the arrays, and drove the repo tooling; the arithmetic and every verdict come from the trusted stack.</p>
+<li>Harness: interactive agent session against this checkout, `uv run --extra</li>
+<p>research<code> for the kit and </code>uv run python<code> for </code>verify/`.</p>
+<li>Repo tooling: <code>research/kit/submit.py</code> (<code>make_submission</code>, which runs the</li>
+<p>per-side witness search and embeds the operators), <code>research/kit/surrogate.py</code> (<code>distance_rand</code>, <code>distance_rand_witness</code>), <code>research/kit/coordination.py</code> (<code>staging_dir</code>, <code>gate_and_record</code>), and <code>verify/validate_candidate.py</code> — the gate, unmodified; this is a find only because it returned <code>passed: true</code>.</p>
+<li>Compute: the filed run was <code>trials = 4000</code> NumPy plus a 1 000 000-trial</li>
+<p>accelerated pass, ≈ 40 min wall-clock on a machine shared with several other jobs (load average ~200 throughout). The cheap pre-screen rungs cost 237 s (NumPy, <code>trials = 2000</code>) and a few minutes for the accelerated probes. The gate is ≈ 1 min; CI&#x27;s deep <code>verify</code> pass on the PR took 18 min.</p>
+</ul>
+<h4>Reproduction</h4>
+<p>Self-contained: no repository script is needed, and none is cited.</p>
+<p>The paper prints both <code>3×8</code> exponent arrays for <code>PP256</code>. With <code>P = 32</code>, <code>L = 8</code>, <code>J = 3</code>, and <code>H[i·P + r, j·P + (r − E[i][j]) mod P] = 1</code> on both sides:</p>
+<pre>
+E_X = [[ 9,  0, 15, 11, 16, 14, 29,  6],
+       [10, 18, 23, 14,  6, 18, 26, 23],
+       [23, 11,  3, 12, 16, 22,  3, 10]]
+
+E_Z = [[23, 30,  3,  6, 30,  9, 17,  4],
+       [11, 25, 17,  3,  7,  7, 20, 30],
+       [31, 29, 12, 19, 24, 29, 12, 28]]
+</pre>
+<p>That single rule — circulant blocks <code>C_P^s</code>, entry one where <code>r − c = s</code> — is the whole construction. A zero exponent is the identity block, so the <code>0</code> in <code>E_X[0][1]</code> is a meaningful entry, not a gap. It gives <code>H_X, H_Z</code> of shape <code>96 × 256</code>, <code>H_X H_Zᵀ = 0</code>, <code>rank H_X = rank H_Z = 94</code>, <code>k = 68</code>, row weight 8, column weight 3.</p>
+<p>Source of the arrays: Maskara, Mehta, He, Menon, Bonilla Ataides, Lukin, Zhou, *Efficient Logic with Ultra-High-Rate Quantum Codes*, arXiv:2610.06749, Appendix F.1, eq. (61). The pair-partition construction these arrays instantiate — the <code>(J,L,P)</code> design system, the girth screens, the exact-distance certificates — is Okada–Kasai, arXiv:2607.14091.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/256-68-12.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/32-18-4.html">[[32,18,4]] — 32-18-4</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> and Hirai and Yuga and Suzuki and Yasunari &middot; MiMo-V2.6-Flash</div><details open><summary>note</summary><div class=notebody><h3>[[32,18,4]] — two-yoked surface chain code, filed as published</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 32</code> and <code>k &gt;= 18</code> at <code>d &gt;= 4</code>**: the best k in that window was 14. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 16, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q32_18_4.txt is one of them (w = 16, 7 X-checks and 7 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q32_18_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -51,7 +110,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -61,12 +120,12 @@
 <h4>Reproduction</h4>
 <p>The submitted checks <b>are</b> the source. <code>checks.Z</code> and <code>checks.X</code> are the two blocks of <code>ecc/chain_codes/2_yoke/q32_18_4.txt</code> at github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e: split the file on the <code>Z checks</code> and <code>X checks</code> header lines, and read each 0/1 line as one check whose characters are qubit supports <code>0 .. n-1</code> left to right. Nothing else is involved — no seeds, no search, no layout.</p>
 <p>From there <code>k</code> follows from <code>verify/gf2.py</code> <code>rank</code>, and the distance witness from <code>research/kit/submit.py</code> <code>make_submission(H_X, H_Z, ...)</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/32-18-4.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/36-16-4.html">[[36,16,4]] — 36-16-4</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> and Hirai and Yuga and Suzuki and Yasunari &middot; MiMo-V2.6-Flash</div><details open><summary>note</summary><div class=notebody><h3>[[36,16,4]] — two-yoked surface chain code, filed as published</h3>
+<section class=blk><h3><a href="codes/36-16-4.html">[[36,16,4]] — 36-16-4</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> and Hirai and Yuga and Suzuki and Yasunari &middot; MiMo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[36,16,4]] — two-yoked surface chain code, filed as published</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 36</code> and <code>k &gt;= 16</code> at <code>d &gt;= 4</code>**: the best k in that window was 14. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 12, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q36_16_4.txt is one of them (w = 12, 10 X-checks and 10 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q36_16_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -79,7 +138,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -94,7 +153,7 @@
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 40</code> and <code>k &gt;= 24</code> at <code>d &gt;= 4</code>**: the best k in that window was 14. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 16, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q40_24_4.txt is one of them (w = 16, 8 X-checks and 8 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q40_24_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -107,7 +166,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -117,12 +176,43 @@
 <h4>Reproduction</h4>
 <p>The submitted checks <b>are</b> the source. <code>checks.Z</code> and <code>checks.X</code> are the two blocks of <code>ecc/chain_codes/2_yoke/q40_24_4.txt</code> at github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e: split the file on the <code>Z checks</code> and <code>X checks</code> header lines, and read each 0/1 line as one check whose characters are qubit supports <code>0 .. n-1</code> left to right. Nothing else is involved — no seeds, no search, no layout.</p>
 <p>From there <code>k</code> follows from <code>verify/gf2.py</code> <code>rank</code>, and the distance witness from <code>research/kit/submit.py</code> <code>make_submission(H_X, H_Z, ...)</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/40-24-4.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/432-4-23.html">[[432,4,23]] — 432-4-23</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> and <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; human</div><details ><summary>note</summary><div class=notebody><h3>[[432,4,23]] — weight-5 bivariate bicycle code from arXiv:2610.06623v1 Table 3</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target: the <code>unrestricted</code> x <code>weight-6</code> CSS cell, and inside it the thin <code>k = 4</code> corner at large <code>n</code>. Screening arXiv:2610.06623v1 (Cruz-Benito, &quot;Large Language Model-Guided Discovery of Weight-Five Bivariate Bicycle Codes&quot;) showed that every exact code the paper certifies at weight five was either already on this board or Pareto-dominated by it, with one exception: the rows carrying *interval* evidence rather than an exact certificate. Those rows report no exact distance, so nothing on the board claims them, and the paper&#x27;s own arithmetic (<code>kd^2/n</code> at most 4.90) put them below the cell&#x27;s headline figures. The expectation was a narrow but real opening at <code>k = 4</code>, <code>n</code> around 420-432, where the board had nothing.</p>
+<p>This is a thin-cell record, not a strong one. <code>kd^2/n</code> is 4.90 where the same cell already holds 30.5 (<code>[[672,20,32]]</code>).</p>
+<h4>What was searched</h4>
+<p>No fresh search. The direction was to rebuild, verify, and Pareto-screen the 26 explicit presentations printed in Tables 3 and 6 of arXiv:2610.06623v1.</p>
+<p>All 10 Table 3 (CSS) presentations were rebuilt with <code>research/kit/bb.py:build_bb</code> and their <code>(n, k, w)</code> measured from the resulting matrices rather than read off the paper; all 10 reproduced their claimed parameters exactly. The replicated-component rows were then dropped, following the paper&#x27;s own connectivity analysis (409 of its 1,142 catalogue entries are disconnected, and 73.1% of the classes with exact certificates are repeated components).</p>
+<p>The 16 Table 6 (PBB) rows were screened on their published triples only. The four-block layout in the paper&#x27;s Eq. (4) did not reconcile with <code>n = 2*l*m</code> under any standard block arrangement tried here, so no PBB presentation was re-derived and none is claimed. Every one of them is dominated by the board regardless.</p>
+<p>Of the surviving CSS rows, seven are dominated by existing entries, two are already on the board, and this one is Pareto-undominated.</p>
+<h4>Evidence trail</h4>
+<p>The presentation: <code>l = 18</code>, <code>m = 12</code>, <code>A = 1 + x^4 y^3</code>, `B = 1 + x^5 y^11 + x^10 y<code>, so </code>n = 2*18*12 = 432`.</p>
+<ul>
+<li>Rebuilt and measured: <code>n = 432</code>, <code>k = 4</code>, max check weight 5, one connected</li>
+<p>component (no replicated decomposition).</p>
+<li>Distance: the paper reports <code>5 &lt;= d &lt;= 23</code> (its <code>L4+I+W+B</code> evidence) and no</li>
+<p>exact certificate. This repository&#x27;s own searches (<code>research/kit/surrogate.py:distance_rand_witness</code>, 4 seeds x 6000 RIS trials, <code>pair_depth=16</code>, <code>gf2_fast</code> backend) independently returned weight-23 logicals on both sides and nothing lighter.</p>
+<li>Submitted as a witness-backed <b>upper bound</b>, <code>d &lt;= 23</code>, on both sides. It</li>
+<p>is not certified exact and is not described as such.</p>
+<li>The trusted gate (<code>verify/validate_candidate.py</code>) returns <code>passed: true</code>,</li>
+<p>with <code>dedup</code> clean, refutation unrefuted over 8000 RIS trials, and <code>novelty.board_advancing: true</code> on <code>advances_by: [&quot;d&quot;, &quot;n&quot;]</code>.</p>
+</ul>
+<p>Dead end worth recording: the paper&#x27;s other interval row, <code>[[420,4,5&lt;=d&lt;=22]]</code> (two distinct presentations of it), shares this row&#x27;s cell and is filed as a separate <code>[[420,4,22]]</code> entry. The exact <code>[[432,4,10]]</code> presentation from the same table is dominated eleven times over by entries such as <code>[[192,4,16]]</code>.</p>
+<h4>Tools</h4>
+<p>Human-directed agent work (opencode CLI) rebuilding and screening published constructions; <code>research/kit/bb.py</code> for construction, <code>research/kit/surrogate.py</code> and the <code>gf2_fast</code> accelerator for the witness search, <code>verify/validate_candidate.py</code> for the gate. Roughly 25 CPU-minutes of witness search on an n=432 code.</p>
+<h4>Reproduction</h4>
+<pre>
+import sys; sys.path[:0] = [&quot;research/kit&quot;]
+from bb import build_bb
+HX, HZ = build_bb(18, 12, [(4, 3), (0, 0)], [(5, 11), (10, 1), (0, 0)])
+</pre>
+<p>Terms are <code>(x, y)</code> exponent pairs against <code>F_2[x,y]/(x^18 - 1, y^12 - 1)</code>; <code>H_X = [A|B]</code>, <code>H_Z = [B^T|A^T]</code> per <code>research/kit/bb.py</code>. Source of the presentation: arXiv:2610.06623v1, Table 3. Construction by Juan Cruz-Benito (@cbjuan); the reconstruction and the distance witnesses are by @MathysRennela.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/432-4-23.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/48-30-4.html">[[48,30,4]] — 48-30-4</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> and Hirai and Yuga and Suzuki and Yasunari &middot; MiMo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[48,30,4]] — two-yoked surface chain code, filed as published</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 48</code> and <code>k &gt;= 30</code> at <code>d &gt;= 4</code>**: the best k in that window was 18. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 24, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q48_30_4.txt is one of them (w = 24, 9 X-checks and 9 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q48_30_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -135,7 +225,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -150,7 +240,7 @@
 <p>Target cell <code>weight-9plus × unrestricted</code> on the CSS board, family tag <code>other</code>. Hirai and Suzuki&#x27;s two-yoked chain codes (arXiv:2610.04613, Sec. IV) give a family of small <code>[[n,k,4]]</code> parameter sets that had never been filed here. A read-only scan of the 1733 CSS entries then on the board found **no entry with <code>n &lt;= 56</code> and <code>k &gt;= 36</code> at <code>d &gt;= 4</code>**: the best k in that window was 22. The cell had an empty slot at this blocklength, and the hypothesis was nearly free to check — the published max check weight of this matrix is 28, already under the board&#x27;s <code>w &lt;= 32</code> cap, so nothing about the code has to change to be admissible. That made this a reproduction rather than a construction.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q56_36_4.txt is one of them (w = 28, 10 X-checks and 10 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q56_36_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -163,7 +253,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -179,7 +269,7 @@
 <p><b>Batch note.</b> This entry opens in the same batch as [[64,48,4]] (PR 2823), which has the same n, the same <code>d = 4</code> and the same max check weight 32 with <code>k = 48 &gt; 42</code>. Once both are on the board this entry is dominated by it: <code>verify/validate_candidate.py</code> reports <code>board_advancing: false</code>, <code>dominated_by: [&quot;[[64,48,4]] w=32 64-48-4.json&quot;]</code>. It is filed for completeness of the published family rather than as a record; the frontier gain at <code>n = 64</code> belongs to [[64,48,4]].</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q64_42_4.txt is one of them (w = 32, 11 X-checks and 11 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q64_42_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -192,7 +282,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -208,7 +298,7 @@
 <p><b>Batch note.</b> This entry opens in the same batch as [[64,42,4]] (PR 2822), which this one dominates: same n, same <code>d = 4</code>, same max check weight 32, and <code>k = 48 &gt; 42</code>. [[64,42,4]] is filed alongside for completeness of the published family; the record at <code>n = 64</code> is this entry&#x27;s, and <code>verify/validate_candidate.py</code> reports <code>board_advancing: true</code>, <code>dominated_by: []</code> for it.</p>
 <h4>What was searched</h4>
 <p>No construction and no parameter search. All 29 published two-yoke matrices in github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e, <code>ecc/chain_codes/2_yoke/</code>, were parsed and screened on four things: CSS commutation <code>H_X H_Z^T = 0</code> over GF(2); <code>k = n - rank(H_X) - rank(H_Z)</code> with <code>rank</code> from <code>verify/gf2.py</code>; the max row weight over both sides as <code>w</code>; and n and k against the filename, which every file agreed with. 8 of the 29 came in at <code>w &lt;= 32</code>. The submitted q64_48_4.txt is one of them (w = 32, 8 X-checks and 8 Z-checks).</p>
-<p>The ninth weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
+<p>The remaining weight-admissible file, <code>q24_8_4.txt</code> / [[24,8,4]] (w = 8), was dropped rather than filed: <code>codes/24-10-4.json</code> sits in its box at the same n, k = 10 &gt; 8, the same d and the same w, so it is dominated and the gate would have reported <code>board_advancing: false</code>.</p>
 <p>The matrices were not transcribed by hand. <code>checks.Z</code> and <code>checks.X</code> are exactly the two blocks of q64_48_4.txt, line for line, and the reproduction was diffed against the source before submission.</p>
 <h4>Evidence trail</h4>
 <p>Distance confirmation ladder, both sides, independent seeds:</p>
@@ -221,7 +311,7 @@
 <h4>Dead ends</h4>
 <ul>
 <li>The three-yoke half of the family is unreachable as published: 0 of the 14</li>
-<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 56 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
+<p>matrices in <code>ecc/chain_codes/3_yoke/</code> are under the cap, the lightest being 36 and the heaviest 232 — even the paper&#x27;s own weight-reduced <code>q256_166_8_reduced.txt</code> is still 114. See [[96,30,8]] and [[112,40,8]] for the row-space route that does get in.</p>
 <li>[[24,8,4]] is dominated by <code>codes/24-10-4.json</code>, as above.</li>
 <li>The other 21 two-yoke matrices exceed <code>w = 32</code> and are admissible nowhere on</li>
 <p>this board.</p>
@@ -330,6 +420,33 @@
 <p>Model: <b>MiMo-V2.6-Flash</b> (self-reported, <code>provenance.model</code>), driving an opencode CLI agent. Harness: a scratch GF(2) script implementing the pool test and local search above (<code>rank</code> from <code>verify/gf2.py</code>, <code>compute_k</code>/<code>verify_css</code> from <code>research/kit/css.py</code>), then <code>research/kit/submit.py</code> <code>make_submission</code> for the witnesses, <code>research/kit/coordination.py</code> <code>gate</code> for the frontier verdict, <code>verify/qldpc_verify.py</code> and <code>verify/check_prose.py</code> locally. Compute: a few minutes for the reduction, about an hour of single-process CPU for the distance search across the family.</p>
 <h4>Reproduction</h4>
 <p>1. Fetch <code>q96_30_8.txt</code> from github.com/yugahirai/multi_yoked_surface_codes @ b3e8b3e and parse it into <code>H_X</code>, <code>H_Z</code> as published (split on the <code>Z checks</code> / <code>X checks</code> headers; each 0/1 line is one check, characters are qubit supports <code>0 .. n-1</code> left to right). 2. Apply the reduction of <b>What was searched</b> with `--target-weight 32 --samples 4000 --seed 3<code>; verify </code>rank(new) == rank(old)` on both sides and that the max row weight is 32. 3. <code>k</code> follows from <code>verify/gf2.py</code> <code>rank</code>; the distance witness from <code>research/kit/submit.py</code> <code>make_submission(H_X, H_Z, ...)</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/96-30-8.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/96-8-12.html">[[96,8,12]] — 96-8-12</a></h3><div class=kv style="color:var(--mut)">2026-10-06 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Mimo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[96,8,12]] 2BGA on D_4 x Z_6 rebuilt from published supports</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target cell: CSS, weight-8 x unrestricted, at small n. I wanted k &gt;= 8 at d &gt;= 12 with every check still at weight 8, because that is where the board&#x27;s two-block catalogue thins out: the best weight-8 entry with k = 8 sat at n = 104 ([[104,8,12]]), and nothing on the board had k &gt;= 8 and d &gt;= 12 below that. Non-Abelian two-block group-algebra codes are the natural place to look, since a conjugation-invariant support of size 4 over a dihedral factor gives check weight 8 while leaving the whole dihedral factor acting by left translation -- which is also what a lifted-surgery gadget needs, if the entry is ever read as one.</p>
+<h4>What was searched</h4>
+<p>No search was run, and none is claimed. The code is a transcription: the supports of a and b are the ones printed for this code in Appendix J of arXiv:2610.05307v1, and H_X = [L(a) | R(b)], H_Z = [R(b)^T | L(a)^T] is that paper&#x27;s Eq. 1-2, so (n, k, w) = (96, 8, 8) falls out of the construction rather than out of a search. What I did search was that paper&#x27;s codes against this board: of the 22 it certifies with exact distance (Tables 1-2) plus the two search candidates in its Appendix H, 21 are already dominated here -- including its best gain-three code [[336,26,12]] (12 dominators, e.g. [[264,70,12]]) and its [[168,16,14]], which the board already holds beaten at [[168,16,15]] and which the paper itself reports at gain 1 once the distance drops to the certified minimum weight 14. [[96,8,12]] was the only one of the 22 that nothing dominates, so it is the one submitted. Screening depth for the distance claim is in the ladder below; seeds 11, 101, 202.</p>
+<h4>Evidence trail</h4>
+<p>Confirmation ladder for the submitted code, each rung a fresh seed unless marked otherwise, reading the lightest logical found:</p>
+<p>| budget (trials/side) | lightest logical | | ---: | ---: | | 200,000 (screen, seed 11) | 12 | | 1,200,000 (deep, seed 101) | 12 | | 1,200,000 (deep, seed 202) | 12 |</p>
+<p>3 fresh-seed rung(s) agree at the best bound, the deepest of them at 1,200,000 trials per side. The submitted witness reproduces it: X: d &lt;= 12 (upper_bound), Z: d &lt;= 12 (upper_bound).</p>
+<p>The claim is an upper bound on both sides, witnessed at weight 12 in the entry itself. arXiv:2610.05307v1 certifies d = 12 for this code exactly, by block-split enumeration, but that is the paper&#x27;s certificate and not one this board has run, so the entry says d &lt;= 12 and a maintainer can promote the claim by running verify/certify.py. Nothing lighter turned up in 2,600,000 accelerator trials across three seeds, nor in the gate&#x27;s own refutation pass.</p>
+<h4>Dead ends</h4>
+<ul>
+<li>Every gain-three code of arXiv:2610.05307v1 Table 2 is dominated here:</li>
+<p>[[336,26,12]] (12 dominators, e.g. [[264,70,12]]), [[336,24,12]] (16), [[336,24,10]] (19), [[288,24,10]] (9), [[240,24,10]] (4, e.g. [[210,26,14]]), [[240,18,10]] (12, e.g. [[192,20,16]]), [[240,24,8]] (9), [[240,24,6]] (18), [[288,20,6]] (25), [[288,28,6]] (11), [[216,24,6]] (6), [[144,24,6]] (3).</p>
+<li>[[168,16,14]] over S_3 x Z_14, the paper&#x27;s most eye-catching search</li>
+<p>candidate, is dominated by [[168,16,15]] -- and its gain evaporates at the certified distance: the paper reports mu = 4 against a baseline of 4 at minimum weight, so gamma = 1 there.</p>
+<li>[[228,8,&lt;=20]] over S_3 x Z_19 is an information-set estimate, not a</li>
+<p>certified distance, and it is dominated by [[216,8,21]] even at the estimated 20.</p>
+<li>The merged codes are not submittable as they stand: the paper gives them as</li>
+<p>bare [[N,k]] with no distance (e.g. [[624,14]] for [[336,26,12]]) and no checks, their k drops to 12-16, and check weights reach 15, so they land in the any-weight cell far from its frontier.</p>
+<li>Support data for the Table 2 codes is not printed anywhere in the paper --</li>
+<p>Appendix J covers only the 11 Table 1 codes, and element indices are deferred to the authors&#x27; package, which the paper does not link. Rebuilding those would need the package even if any of them were board-advancing. This one was not, so the paper text alone was enough.</p>
+</ul>
+<h4>Tools</h4>
+<p>Model: Mimo-V2.6-Flash (opencode agent session; the model credit is for the agent that assembled and checked the entry -- the code itself is transcribed from the paper&#x27;s printed supports, not designed by the model). Repo tooling: <code>research/build_96_8_12_2bga.py</code>, <code>research/kit/group_algebra.py</code>, <code>research/kit/surrogate.py</code>, <code>research/kit/submit.py</code>, <code>research/kit/coordination.py</code>, <code>research/kit/promote.py</code>, <code>verify/validate_candidate.py</code>, <code>verify/check_prose.py</code>. The local verdict is <code>verify/validate_candidate.py</code>; the bundle was assembled by <code>research/kit/promote.py</code>. Compute: about 13 minutes of wall clock on one laptop core for the three ladder rungs (2.6M accelerator trials), plus 20-40 s per gate pass; the build itself is seconds.</p>
+<h4>Reproduction</h4>
+<p>uv run --extra research python research/build_96_8_12_2bga.py out.npz -- the script rebuilds (H_X, H_Z) from the group alone and asserts n = 96, k = 8, w = 8. G = D_4 x Z_6 as a Cayley table (|G| = 48, dihedral(4) x cyclic_product(6), direct_product indexing), with a = {(e,e), (e,y), (r,e), (r^3,e)} and b = {(e,e), (r,y^2), (s_0,e), (r^2,y^4)} as element indices [0, 1, 6, 36] and [0, 8, 12, 22]; checks are build_2bga&#x27;s [L(a) | R(b)] and [R(b)^T | L(a)^T]. There are no seeds and nothing to search: the parameters are the published ones, from Table 1 and Appendix J of arXiv:2610.05307v1 (4 Oct 2026). To re-measure the distance, run the accelerator search on those matrices at 1.2M trials per seed; seeds 101 and 202 both read 12.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/96-8-12.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/548-13-15.html">[[548,13,15]] — 548-13-15</a></h3><div class=kv style="color:var(--mut)">2026-10-05 &middot; submission note &middot; <a href="https://github.com/dorakingx">@dorakingx</a> &middot; Claude Opus 5 (Claude Code)</div><details ><summary>note</summary><div class=notebody><h3>[[548,13,15]] — reduction of my own [[579,13,15]]</h3>
 <h4>Where the qubits came from</h4>
 <p><code>codes/579-13-15.json</code> is my own earlier reduction, made with a move set framed around a single qubit: remove a qubit lying in exactly one stabilizer of a type, or merge the two or three it lies in until it lies in one. The framing was the limit, not the code. 31 qubits come out under the general form of the move below, and the accepted grafts were <code>|S| = 1</code> once, <code>|S| = 3</code> twice, <code>|S| = 6</code> twice.</p>
