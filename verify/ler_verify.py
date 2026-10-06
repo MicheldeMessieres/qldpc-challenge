@@ -118,8 +118,8 @@ def gate_point(points):
     entry merged, this point verified at PR time (the gate tries rates from
     the top down and stops at the first it cannot afford, so a merged entry's
     top point is always a gate-verified one)."""
-    pts = [q for q in points if isinstance(q, dict) and "p" in q]
-    return max(pts, key=lambda q: q["p"]) if pts else None
+    pts = [q for q in points if isinstance(q, dict)]
+    return max(pts, key=lambda q: q.get("p") or 0) if pts else None
 
 
 def summary_rate(doc):
@@ -132,7 +132,7 @@ def summary_rate(doc):
     for s in ("X", "Z"):
         pts = points_of(ler.get(s))
         g = gate_point(pts or [])
-        if g is not None:
+        if g is not None and isinstance(g.get("ler_per_round"), (int, float)):
             vals.append(g["ler_per_round"])
     return max(vals) if vals else None
 

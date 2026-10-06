@@ -129,7 +129,9 @@ def main(argv=None):
                 if lrep.get("skipped"):
                     pass
                 elif lrep["ok"]:
-                    circ += f", ler/round<={summary_rate(doc):.3g} at the gate point"
+                    rate = summary_rate(doc)
+                    circ += (f", ler/round<={rate:.3g} at the gate point"
+                             if rate is not None else ", ler verified")
                 else:
                     rep["ok"] = False
                     rep["checks"] += [c for c in lrep["checks"]

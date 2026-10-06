@@ -175,12 +175,24 @@ def test_failures_floor_rejected(artifact):
     assert "X_ler_arithmetic" in bad and "below the floor" in bad["X_ler_arithmetic"]
 
 
+def _starve_replica(monkeypatch):
+    """Make every replica come back truncated to a handful of shots, as a
+    wall budget that expires mid-run does. Patched rather than timed: the
+    parallel decode loop stops on a chunk boundary, and a chunk on a
+    many-core box is small enough to be unverifiable while the same chunk
+    on a four-core runner already verifies a high-rate point, so a test
+    that sets a tiny LER_SECONDS asserts the core count of the machine."""
+    def starved(dem, shots, seed, max_seconds=None, workers=None):
+        return 1, 20
+    monkeypatch.setattr(lv.lt, "measure_failures", starved)
+
+
 def test_budget_truncation_fails_unverifiable(artifact, monkeypatch):
     # When the wall budget cannot afford a replica that would catch a 2x
     # under-report, the claim must fail as unverifiable rather than merge
     # weakly checked (the tier's stated budget-vs-statistics choice).
     doc, cdir = artifact
-    monkeypatch.setattr(lv, "LER_SECONDS", 0.001)
+    _starve_replica(monkeypatch)
     rep = lv.verify_ler(doc, cdir)
     bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
     assert any(k.endswith("_ler_replicated") for k in bad)
@@ -242,11 +254,13 @@ def test_lower_points_are_deferred_when_the_budget_runs_out(artifact,
 
 def test_no_affordable_point_fails_as_unverifiable(artifact, monkeypatch):
     doc, cdir = artifact
-    monkeypatch.setattr(lv, "LER_SECONDS", 0.001)
+    _starve_replica(monkeypatch)
     rep = lv.verify_ler(doc, cdir)
     bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
     assert any(k.endswith("_ler_replicated") for k in bad)
     assert any("unverifiable within budget" in v for v in bad.values())
+    assert all(r["status"] == "deferred"
+               for r in rep["computed"]["X"]["points"].values())
 
 
 def test_saturated_point_rejected(artifact):
