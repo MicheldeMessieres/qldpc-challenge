@@ -60,7 +60,7 @@ sys.path.insert(0, os.path.join(ROOT, "verify"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import circuit_tools as ct  # noqa: E402
 import gf2  # noqa: E402
-from circuit_verify import MAX_DEM_MECHANISMS  # noqa: E402
+from circuit_verify import MAX_CIRCUIT_N, MAX_DEM_MECHANISMS  # noqa: E402
 from gate_changed import _circuit_budget  # noqa: E402
 
 SCREEN_ROUNDS = 2
@@ -671,6 +671,11 @@ def generate(doc, coords=None, rounds=None, seed=0, max_candidates=6,
     if any. Raises CircuitUnavailable with the reason when no verifiable tier
     can be produced (DEM over the cap, no claim within the clamp)."""
     n, d = doc["n"], doc["distance"]["d"]
+    if n > MAX_CIRCUIT_N:
+        raise CircuitUnavailable(
+            f"n={n} is above the circuit tier's reach of n <= "
+            f"{MAX_CIRCUIT_N} (decided on #2797 and #2811: the tier stays on "
+            f"instances that can be built now); submit the code tier only")
     HX = _matrix(doc["checks"]["X"], n)
     HZ = _matrix(doc["checks"]["Z"], n)
     rounds = max(int(rounds or d), d)

@@ -161,7 +161,9 @@ def test_budget_shape():
     t_mid, _ = gc._circuit_budget(8000, fast=True)
     t_cap, _ = gc._circuit_budget(25_000, fast=True)
     t_py, _ = gc._circuit_budget(8000, fast=False)
-    assert t_small == gc.CIRCUIT_MAX_TRIALS      # small DEMs get full depth
+    assert t_small >= 50_000                     # small DEMs get deep: the
+                                                 # 120 s pays for tens of
+                                                 # thousands of trials
     assert t_cap >= gc.CIRCUIT_MIN_TRIALS        # cap sized to stay feasible
     assert 0 < t_py < t_mid <= t_small           # fallback shallower, never zero
 
@@ -181,6 +183,27 @@ def test_budget_follows_the_check_matrix_not_its_kernel():
     assert t_dense < t_sparse
     assert gc._circuit_budget(130_000, fast=True) == gc._circuit_budget(
         130_000, fast=True, detectors=130_000 // 30)
+
+
+def test_circuit_tier_blocklength_cap():
+    """The tier stays on low-n instances (#2797, #2811): an entry above
+    MAX_CIRCUIT_N is refused at the first check, before any artifact is
+    read, and one at the cap is not."""
+    import copy
+    from circuit_verify import MAX_CIRCUIT_N, verify_circuit
+    big = {"n": MAX_CIRCUIT_N + 1, "k": 1, "checks": {"X": [], "Z": []},
+           "distance": {"d": 3},
+           "circuit": {"rounds": 3, "stim_version": stim.__version__,
+                       "d_circ": {"X": {"value": 3, "witness": []},
+                                  "Z": {"value": 3, "witness": []}}}}
+    rep = verify_circuit(big, "/nonexistent")
+    bad = [c["check"] for c in rep["checks"] if not c["ok"]]
+    assert bad == ["circuit_tier_blocklength"]
+    edge = copy.deepcopy(big)
+    edge["n"] = MAX_CIRCUIT_N
+    rep = verify_circuit(edge, "/nonexistent")
+    assert "circuit_tier_blocklength" not in \
+        [c["check"] for c in rep["checks"] if not c["ok"]]
 
 
 def test_dem_search_finds_an_undetected_single_mechanism():

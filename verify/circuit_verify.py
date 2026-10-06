@@ -56,6 +56,7 @@ from qldpc_verify import _matrix
 # A memory DEM's text runs about 80 bytes per mechanism, so the file cap
 # follows the mechanism cap below (10.6 MB at m = 130,972 measured
 # 2026-10-06 on [[144,10,16]] at rounds = 16); the .stim is a tenth of that.
+# Plain text on purpose: a compressed artifact is not auditable in a diff.
 MAX_CIRCUIT_FILE_BYTES = 12_000_000
 
 # Verification-budget cap for the circuit tier (the RFC's "cap the tier by
@@ -73,6 +74,16 @@ MAX_CIRCUIT_FILE_BYTES = 12_000_000
 # target still buys a few hundred trials per basis, more than the old cap
 # bought at 25,000. Raise-only, as the search stack improves.
 MAX_DEM_MECHANISMS = 135_000
+
+# The tier's reach in qubits. Decided on #2797 and #2811 (MathysRennela,
+# FarLab, vprusso, 2026-10-06): the circuit tier is for instances that can be
+# built and understood now, so it stays on low-n codes, and the mechanism cap
+# above is what admits those at rounds = d (the n = 144 bivariate bicycle
+# codes run 65,000 to 131,000 mechanisms); larger codes will likely want
+# different circuit constructions by the time they are realistic, and a tier
+# engineered for n = 1000 today would be guessing at them. Raise-only, with
+# a decision on the issue tracker.
+MAX_CIRCUIT_N = 200
 
 SIDE_FILES = {"X": "memory_x", "Z": "memory_z"}
 SIDE_READOUT = {"X": "MX", "Z": "M"}
@@ -222,6 +233,11 @@ def verify_circuit(doc, circuits_dir):
            f"provably overestimate d_circ)")
 
     n = doc["n"]
+    record("circuit_tier_blocklength", n <= MAX_CIRCUIT_N,
+           f"n={n} (the circuit tier covers n <= {MAX_CIRCUIT_N}; see "
+           f"MAX_CIRCUIT_N for the decision)")
+    if n > MAX_CIRCUIT_N:
+        return report
     for side in ("X", "Z"):
         claim = cb["d_circ"][side]
         base = os.path.join(circuits_dir, SIDE_FILES[side])

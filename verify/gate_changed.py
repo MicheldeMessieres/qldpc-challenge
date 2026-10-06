@@ -431,14 +431,18 @@ def _budget(n, deep, fast=False):
 # 44 ms at (1,002, 89,381), 132 ms at (1,728, 96,962), 277 ms at
 # (2,304, 130,972), a constant of 3e-13 to 5e-13; 8e-13 leaves room for a
 # slower runner, and the hard time cap inside ris_dem bounds CI even where
-# the fit is off. The pure numpy loop measured ~190x slower (922 ms against
+# the fit is off. The trial ceiling is 10x the old one, so a small DEM gets
+# the depth the budget can pay for rather than stopping at 20,000. The pure numpy loop measured ~190x slower (922 ms against
 # 4.9 ms on the first of those), hence the fallback factor. At the cap with
 # r = m / 30 the 120 s target buys about 200 trials per basis; the old cap
 # bought 38.
 CIRCUIT_TRIAL_COST = 8.0e-13          # seconds per trial per (detectors^2 * mechanisms)
 CIRCUIT_PY_FACTOR = 200               # numpy-loop fallback slowdown, measured
 CIRCUIT_SECONDS = 120.0               # wall-clock target per basis
-CIRCUIT_MAX_TRIALS = 20_000
+CIRCUIT_MAX_TRIALS = 200_000          # raised 10x with the r^2 m search: on
+                                      # a small DEM (m ~ 2,000) the 120 s now
+                                      # buy ~60,000 trials where 20,000 took
+                                      # 15 s before (FarLab on #2811)
 CIRCUIT_MIN_TRIALS = 12
 CIRCUIT_DETECTORS_PER_MECHANISM = 1 / 30   # the densest ratio seen; used when
                                            # the caller has no detector count
