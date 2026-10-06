@@ -21,7 +21,8 @@
         "0.1",
         "0.2",
         "0.3",
-        "0.4"
+        "0.4",
+        "0.5"
       ]
     },
     "name": {
@@ -147,7 +148,7 @@
         },
         "ler": {
           "type": "object",
-          "description": "optional measured logical-error-rate tier: the same committed memory circuits, sampled under the canonical noise recipe and decoded with the pinned decoder. Distance is a floor; this is the measured rate a device-like simulation actually sees, prefactors included.",
+          "description": "optional measured logical-error-rate tier: the same committed memory circuits, sampled under the canonical noise recipe at one or more physical rates and decoded with the pinned decoder. Distance is a floor; this is the measured rate a device-like simulation actually sees, prefactors included. Since 0.5 each basis is a list of points (a curve), compared across entries only at equal p.",
           "required": [
             "X",
             "Z"
@@ -155,120 +156,266 @@
           "additionalProperties": false,
           "properties": {
             "X": {
-              "type": "object",
-              "description": "one basis's measured rate: the committed memory circuit sampled at the canonical reference rate and decoded with the pinned decoder. Self-reported measurement; CI re-measures with an independent seed and rejects claims outside sampling error (verify/ler_verify.py).",
-              "required": [
-                "p",
-                "shots",
-                "failures",
-                "seed",
-                "decoder",
-                "ler_per_round",
-                "ci95"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "p": {
-                  "const": 0.001,
-                  "description": "physical rate of the canonical noise recipe; fixed so rates are comparable across entries"
-                },
-                "shots": {
-                  "type": "integer",
-                  "minimum": 10000,
-                  "description": "sampled shots; the floor keeps a claim statistically meaningful"
-                },
-                "failures": {
-                  "type": "integer",
-                  "minimum": 100,
-                  "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
-                },
-                "seed": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
-                },
-                "decoder": {
-                  "enum": [
-                    "bposd-cs-10"
-                  ],
-                  "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
-                },
-                "ler_per_round": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 0.5,
-                  "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
-                },
-                "ci95": {
+              "oneOf": [
+                {
                   "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
+                  "minItems": 1,
+                  "maxItems": 4,
                   "items": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 0.5
+                    "type": "object",
+                    "description": "one measured point: the committed memory circuit, its canonical noise recipe re-applied at physical rate p, sampled and decoded with the pinned decoder. Self-reported measurement; CI re-measures with an independent seed (verify/ler_verify.py): the highest-rate point at PR time, the rest weekly post-merge with receipts under receipts/ler/.",
+                    "required": [
+                      "p",
+                      "shots",
+                      "failures",
+                      "seed",
+                      "decoder",
+                      "ler_per_round",
+                      "ci95"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "p": {
+                        "enum": [
+                          0.01,
+                          0.005,
+                          0.002,
+                          0.001
+                        ],
+                        "description": "physical rate of the canonical noise recipe, on the board's grid so points are comparable across entries at equal p; a point whose per-shot failure fraction exceeds 1/2 is saturated and rejected"
+                      },
+                      "shots": {
+                        "type": "integer",
+                        "minimum": 10000,
+                        "description": "sampled shots; the floor keeps a claim statistically meaningful"
+                      },
+                      "failures": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
+                      },
+                      "seed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
+                      },
+                      "decoder": {
+                        "enum": [
+                          "bposd-cs-10"
+                        ],
+                        "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
+                      },
+                      "ler_per_round": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 0.5,
+                        "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
+                      },
+                      "ci95": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 0.5
+                        },
+                        "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                      }
+                    }
                   },
-                  "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                  "description": "schema 0.5 (issue #1278): a list of points, one per physical rate, highest rate first by convention. Distinct rates; the verifier replicates the highest rate at PR time and defers the rest to the weekly post-merge replication."
+                },
+                {
+                  "type": "object",
+                  "description": "pre-0.5 form: one point at the canonical rate 0.001. Accepted on entries that declare schema 0.4 or earlier; a 0.5 entry carries the list form (verify/ler_verify.py checks the pairing).",
+                  "required": [
+                    "p",
+                    "shots",
+                    "failures",
+                    "seed",
+                    "decoder",
+                    "ler_per_round",
+                    "ci95"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "p": {
+                      "const": 0.001,
+                      "description": "physical rate of the canonical noise recipe; fixed so rates are comparable across entries"
+                    },
+                    "shots": {
+                      "type": "integer",
+                      "minimum": 10000,
+                      "description": "sampled shots; the floor keeps a claim statistically meaningful"
+                    },
+                    "failures": {
+                      "type": "integer",
+                      "minimum": 100,
+                      "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
+                    },
+                    "seed": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
+                    },
+                    "decoder": {
+                      "enum": [
+                        "bposd-cs-10"
+                      ],
+                      "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
+                    },
+                    "ler_per_round": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
+                    },
+                    "ci95": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 0.5
+                      },
+                      "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                    }
+                  }
                 }
-              }
+              ]
             },
             "Z": {
-              "type": "object",
-              "description": "one basis's measured rate: the committed memory circuit sampled at the canonical reference rate and decoded with the pinned decoder. Self-reported measurement; CI re-measures with an independent seed and rejects claims outside sampling error (verify/ler_verify.py).",
-              "required": [
-                "p",
-                "shots",
-                "failures",
-                "seed",
-                "decoder",
-                "ler_per_round",
-                "ci95"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "p": {
-                  "const": 0.001,
-                  "description": "physical rate of the canonical noise recipe; fixed so rates are comparable across entries"
-                },
-                "shots": {
-                  "type": "integer",
-                  "minimum": 10000,
-                  "description": "sampled shots; the floor keeps a claim statistically meaningful"
-                },
-                "failures": {
-                  "type": "integer",
-                  "minimum": 100,
-                  "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
-                },
-                "seed": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
-                },
-                "decoder": {
-                  "enum": [
-                    "bposd-cs-10"
-                  ],
-                  "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
-                },
-                "ler_per_round": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 0.5,
-                  "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
-                },
-                "ci95": {
+              "oneOf": [
+                {
                   "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
+                  "minItems": 1,
+                  "maxItems": 4,
                   "items": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 0.5
+                    "type": "object",
+                    "description": "one measured point: the committed memory circuit, its canonical noise recipe re-applied at physical rate p, sampled and decoded with the pinned decoder. Self-reported measurement; CI re-measures with an independent seed (verify/ler_verify.py): the highest-rate point at PR time, the rest weekly post-merge with receipts under receipts/ler/.",
+                    "required": [
+                      "p",
+                      "shots",
+                      "failures",
+                      "seed",
+                      "decoder",
+                      "ler_per_round",
+                      "ci95"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "p": {
+                        "enum": [
+                          0.01,
+                          0.005,
+                          0.002,
+                          0.001
+                        ],
+                        "description": "physical rate of the canonical noise recipe, on the board's grid so points are comparable across entries at equal p; a point whose per-shot failure fraction exceeds 1/2 is saturated and rejected"
+                      },
+                      "shots": {
+                        "type": "integer",
+                        "minimum": 10000,
+                        "description": "sampled shots; the floor keeps a claim statistically meaningful"
+                      },
+                      "failures": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
+                      },
+                      "seed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
+                      },
+                      "decoder": {
+                        "enum": [
+                          "bposd-cs-10"
+                        ],
+                        "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
+                      },
+                      "ler_per_round": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 0.5,
+                        "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
+                      },
+                      "ci95": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 0.5
+                        },
+                        "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                      }
+                    }
                   },
-                  "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                  "description": "schema 0.5 (issue #1278): a list of points, one per physical rate, highest rate first by convention. Distinct rates; the verifier replicates the highest rate at PR time and defers the rest to the weekly post-merge replication."
+                },
+                {
+                  "type": "object",
+                  "description": "pre-0.5 form: one point at the canonical rate 0.001. Accepted on entries that declare schema 0.4 or earlier; a 0.5 entry carries the list form (verify/ler_verify.py checks the pairing).",
+                  "required": [
+                    "p",
+                    "shots",
+                    "failures",
+                    "seed",
+                    "decoder",
+                    "ler_per_round",
+                    "ci95"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "p": {
+                      "const": 0.001,
+                      "description": "physical rate of the canonical noise recipe; fixed so rates are comparable across entries"
+                    },
+                    "shots": {
+                      "type": "integer",
+                      "minimum": 10000,
+                      "description": "sampled shots; the floor keeps a claim statistically meaningful"
+                    },
+                    "failures": {
+                      "type": "integer",
+                      "minimum": 100,
+                      "description": "shots where the decoder's predicted observable flips disagreed with the sampled ones; at least 100, so the claim carries ~10% statistical error and prefactor comparisons between schedules are resolvable (raise shots until the count is reached)"
+                    },
+                    "seed": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "stim sampler seed; with shots and the pinned stim version this determines the sample"
+                    },
+                    "decoder": {
+                      "enum": [
+                        "bposd-cs-10"
+                      ],
+                      "description": "the pinned decoder (BP+OSD, minimum-sum, scaling 0.625, osd_cs order 10, 30 iterations, DEM-prob channel prior)"
+                    },
+                    "ler_per_round": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "per-round logical error rate via the parity-aware conversion from failures/shots and circuit.rounds"
+                    },
+                    "ci95": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 0.5
+                      },
+                      "description": "Wilson 95% interval on ler_per_round, from the same conversion"
+                    }
+                  }
                 }
-              }
+              ]
             }
           }
         },
@@ -561,7 +708,8 @@
             "enum": [
               "0.2",
               "0.3",
-              "0.4"
+              "0.4",
+              "0.5"
             ]
           }
         }
@@ -587,7 +735,8 @@
             "enum": [
               "0.2",
               "0.3",
-              "0.4"
+              "0.4",
+              "0.5"
             ]
           }
         }
@@ -606,7 +755,8 @@
             "enum": [
               "0.2",
               "0.3",
-              "0.4"
+              "0.4",
+              "0.5"
             ]
           }
         }
@@ -631,7 +781,8 @@
           "schema_version": {
             "enum": [
               "0.3",
-              "0.4"
+              "0.4",
+              "0.5"
             ]
           }
         }
@@ -656,7 +807,8 @@
           "schema_version": {
             "enum": [
               "0.3",
-              "0.4"
+              "0.4",
+              "0.5"
             ]
           }
         }
@@ -710,7 +862,10 @@
       "then": {
         "properties": {
           "schema_version": {
-            "const": "0.4"
+            "enum": [
+              "0.4",
+              "0.5"
+            ]
           },
           "checks": {
             "required": [

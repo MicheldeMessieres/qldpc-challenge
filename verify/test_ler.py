@@ -23,6 +23,8 @@ pytest.importorskip("ldpc", reason="ler tier needs the `research` extra")
 import stim
 
 import circuit_tools as ct
+import ler_measure as lm
+import ler_receipts as lr
 import ler_tools as lt
 import ler_verify as lv
 
@@ -60,12 +62,35 @@ def _artifact(tmp):
         dem = ct.derive_dem(noisy)
         with open(os.path.join(cdir, fname + ".dem"), "w") as f:
             f.write(str(dem))
-        ler[basis] = lt.ler_block(dem, ROUNDS, SHOTS, seed=7, p_ref=ct.P_REF)
+        # two points of the curve (issue #1278): the canonical rate and a
+        # higher one where failures are common, which is the gate point
+        ler[basis] = [
+            lm.measure_point(noisy, doc["n"], ROUNDS, 0.005, 7, shots=SHOTS,
+                             log=lambda s: None),
+            lt.ler_block(dem, ROUNDS, SHOTS, seed=7, p_ref=ct.P_REF)]
     doc = copy.deepcopy(doc)
-    doc["schema_version"] = "0.2"
+    doc["schema_version"] = "0.5"
     doc["circuit"] = {"d_circ": {}, "rounds": ROUNDS,
                       "stim_version": stim.__version__, "ler": ler}
     return doc, cdir
+
+
+def _legacy(doc):
+    """The same artifact in the pre-0.5 single-object form at schema 0.4."""
+    leg = copy.deepcopy(doc)
+    leg["schema_version"] = "0.4"
+    leg["circuit"]["ler"] = {
+        s: next(q for q in doc["circuit"]["ler"][s] if q["p"] == ct.P_REF)
+        for s in ("X", "Z")}
+    return leg
+
+
+def _recompute(blk):
+    p = blk["failures"] / blk["shots"]
+    blk["ler_per_round"] = round(lt.per_round(p, ROUNDS), 9)
+    lo, hi = lt.wilson_ci(blk["failures"], blk["shots"])
+    blk["ci95"] = [round(lt.per_round(lo, ROUNDS), 9),
+                   round(lt.per_round(hi, ROUNDS), 9)]
 
 
 @pytest.fixture(scope="module")
@@ -89,13 +114,9 @@ def test_underreported_failures_rejected(artifact):
     doc, cdir = artifact
     doc = copy.deepcopy(doc)
     for s in ("X", "Z"):
-        blk = doc["circuit"]["ler"][s]
-        blk["failures"] = max(lt.MIN_FAILURES, blk["failures"] // 2)
-        p = blk["failures"] / blk["shots"]
-        blk["ler_per_round"] = round(lt.per_round(p, ROUNDS), 9)
-        lo, hi = lt.wilson_ci(blk["failures"], blk["shots"])
-        blk["ci95"] = [round(lt.per_round(lo, ROUNDS), 9),
-                       round(lt.per_round(hi, ROUNDS), 9)]
+        for blk in doc["circuit"]["ler"][s]:
+            blk["failures"] = max(lt.MIN_FAILURES, blk["failures"] // 2)
+            _recompute(blk)
     rep = lv.verify_ler(doc, cdir)
     assert not rep["ok"]
     bad = [c["check"] for c in rep["checks"] if not c["ok"]]
@@ -105,7 +126,7 @@ def test_underreported_failures_rejected(artifact):
 def test_broken_arithmetic_rejected(artifact):
     doc, cdir = artifact
     doc = copy.deepcopy(doc)
-    doc["circuit"]["ler"]["X"]["ler_per_round"] *= 1.5
+    doc["circuit"]["ler"]["X"][0]["ler_per_round"] *= 1.5
     rep = lv.verify_ler(doc, cdir)
     bad = [c["check"] for c in rep["checks"] if not c["ok"]]
     assert "X_ler_arithmetic" in bad
@@ -114,7 +135,7 @@ def test_broken_arithmetic_rejected(artifact):
 def test_unpinned_decoder_rejected(artifact):
     doc, cdir = artifact
     doc = copy.deepcopy(doc)
-    doc["circuit"]["ler"]["Z"]["decoder"] = "mwpm"
+    doc["circuit"]["ler"]["Z"][1]["decoder"] = "mwpm"
     rep = lv.verify_ler(doc, cdir)
     bad = [c["check"] for c in rep["checks"] if not c["ok"]]
     assert "Z_ler_arithmetic" in bad
@@ -123,7 +144,7 @@ def test_unpinned_decoder_rejected(artifact):
 def test_shots_floor_rejected(artifact):
     doc, cdir = artifact
     doc = copy.deepcopy(doc)
-    blk = doc["circuit"]["ler"]["X"]
+    blk = doc["circuit"]["ler"]["X"][0]
     blk["shots"], blk["failures"] = 500, 3
     rep = lv.verify_ler(doc, cdir)
     bad = [c["check"] for c in rep["checks"] if not c["ok"]]
@@ -146,13 +167,9 @@ def test_failures_floor_rejected(artifact):
     # comparison; the arithmetic check refuses it outright.
     doc, cdir = artifact
     doc = copy.deepcopy(doc)
-    blk = doc["circuit"]["ler"]["X"]
+    blk = doc["circuit"]["ler"]["X"][1]
     blk["shots"], blk["failures"] = 40_000, 30
-    p = blk["failures"] / blk["shots"]
-    blk["ler_per_round"] = round(lt.per_round(p, ROUNDS), 9)
-    lo, hi = lt.wilson_ci(blk["failures"], blk["shots"])
-    blk["ci95"] = [round(lt.per_round(lo, ROUNDS), 9),
-                   round(lt.per_round(hi, ROUNDS), 9)]
+    _recompute(blk)
     rep = lv.verify_ler(doc, cdir)
     bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
     assert "X_ler_arithmetic" in bad and "below the floor" in bad["X_ler_arithmetic"]
@@ -177,13 +194,146 @@ def test_replica_sized_to_discriminate(artifact):
     rep = lv.verify_ler(doc, cdir)
     assert rep["ok"]
     for s in ("X", "Z"):
-        blk = doc["circuit"]["ler"][s]
-        p = blk["failures"] / blk["shots"]
-        want = min(max(lt.MIN_SHOTS,
-                       __import__("math").ceil(lv.REPLICA_FAILURES / p)),
-                   lv.REPLICA_SHOTS_CAP)
-        assert rep["computed"][s]["replica_shots"] == want
-        assert rep["computed"][s]["detectable_factor"] <= 2.0
+        for blk in doc["circuit"]["ler"][s]:
+            p = blk["failures"] / blk["shots"]
+            want = min(max(lt.MIN_SHOTS,
+                           __import__("math").ceil(lv.REPLICA_FAILURES / p)),
+                       lv.REPLICA_SHOTS_CAP)
+            got = rep["computed"][s]["points"][str(blk["p"])]
+            assert got["replica_shots"] == want
+            assert got["detectable_factor"] <= 2.0
+
+
+# ---- the curve form (issue #1278) ------------------------------------------
+
+def test_gate_verifies_every_affordable_point_top_down(artifact):
+    """Both points of the Steane curve are cheap, so the PR gate verifies
+    both; the record names them from the highest rate down."""
+    doc, cdir = artifact
+    rep = lv.verify_ler(doc, cdir)
+    assert rep["ok"]
+    for s in ("X", "Z"):
+        pts = rep["computed"][s]["points"]
+        assert [q["status"] for q in pts.values()] == ["verified", "verified"]
+        assert list(pts) == ["0.005", "0.001"]
+
+
+def test_lower_points_are_deferred_when_the_budget_runs_out(artifact,
+                                                              monkeypatch):
+    """A budget that pays for the first point only leaves the rest to the
+    weekly replication; the claim still passes on the point it checked."""
+    doc, cdir = artifact
+    real = lv.replicate_point
+
+    def fake(dem, point, *, budget, seeds=1):
+        if point["p"] < 0.005:                   # the second point, each basis
+            return {"status": "unverifiable", "p": point["p"],
+                    "replica_shots": 0, "replica_failures": 0, "runs": [],
+                    "detectable_factor": None}
+        return real(dem, point, budget=budget, seeds=seeds)
+    monkeypatch.setattr(lv, "replicate_point", fake)
+    rep = lv.verify_ler(doc, cdir)
+    assert rep["ok"], [c for c in rep["checks"] if not c["ok"]]
+    x = rep["computed"]["X"]["points"]
+    assert x["0.005"]["status"] == "verified"
+    assert x["0.001"]["status"] == "deferred"
+    assert any(c["check"] == "X_ler_p0.001_deferred" for c in rep["checks"])
+
+
+def test_no_affordable_point_fails_as_unverifiable(artifact, monkeypatch):
+    doc, cdir = artifact
+    monkeypatch.setattr(lv, "LER_SECONDS", 0.001)
+    rep = lv.verify_ler(doc, cdir)
+    bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
+    assert any(k.endswith("_ler_replicated") for k in bad)
+    assert any("unverifiable within budget" in v for v in bad.values())
+
+
+def test_saturated_point_rejected(artifact):
+    """A per-shot failure fraction above 1/2 clamps the per-round conversion
+    and says nothing about the circuit; the arithmetic check refuses it."""
+    doc, cdir = artifact
+    doc = copy.deepcopy(doc)
+    blk = doc["circuit"]["ler"]["X"][0]
+    blk["shots"], blk["failures"] = 10_000, 7_000
+    _recompute(blk)
+    rep = lv.verify_ler(doc, cdir)
+    bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
+    assert "saturated" in bad.get("X_ler_arithmetic", "")
+
+
+def test_off_grid_and_duplicate_rates_rejected(artifact):
+    doc, cdir = artifact
+    doc = copy.deepcopy(doc)
+    doc["circuit"]["ler"]["X"][0]["p"] = 0.003
+    rep = lv.verify_ler(doc, cdir)
+    bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
+    assert "not on the rate grid" in bad.get("X_ler_arithmetic", "")
+    doc = copy.deepcopy(artifact[0])
+    doc["circuit"]["ler"]["Z"][0]["p"] = 0.001
+    _recompute(doc["circuit"]["ler"]["Z"][0])
+    rep = lv.verify_ler(doc, cdir)
+    bad = {c["check"]: c["detail"] for c in rep["checks"] if not c["ok"]}
+    assert "appears twice" in bad.get("Z_ler_arithmetic", "")
+
+
+def test_legacy_form_accepted_at_0_4_and_refused_at_0_5(artifact):
+    doc, cdir = artifact
+    leg = _legacy(doc)
+    rep = lv.verify_ler(leg, cdir)
+    assert rep["ok"], [c for c in rep["checks"] if not c["ok"]]
+    assert lv.summary_rate(leg) == leg["circuit"]["ler"]["X"]["ler_per_round"] \
+        or lv.summary_rate(leg) == leg["circuit"]["ler"]["Z"]["ler_per_round"]
+    leg["schema_version"] = "0.5"
+    rep = lv.verify_ler(leg, cdir)
+    assert [c["check"] for c in rep["checks"] if not c["ok"]] == ["ler_form"]
+
+
+def test_summary_rate_is_the_gate_point(artifact):
+    doc, _ = artifact
+    want = max(doc["circuit"]["ler"][s][0]["ler_per_round"] for s in ("X", "Z"))
+    assert lv.summary_rate(doc) == want
+    assert lv.gate_point(doc["circuit"]["ler"]["X"])["p"] == 0.005
+
+
+def test_all_mode_replicates_every_point_with_seeds(artifact):
+    doc, cdir = artifact
+    rep = lv.verify_ler(doc, cdir, mode="all", budget=60, seeds=3)
+    assert rep["ok"], [c for c in rep["checks"] if not c["ok"]]
+    for s in ("X", "Z"):
+        for p, got in rep["computed"][s]["points"].items():
+            assert got["status"] == "verified", (s, p, got)
+            assert len(got["runs"]) == 3
+            assert got["replica_shots"] == sum(r["shots"] for r in got["runs"])
+
+
+def test_receipt_roundtrip_and_staleness(artifact, tmp_path):
+    doc, cdir = artifact
+    rep = lv.verify_ler(doc, cdir, mode="all", budget=60, seeds=2)
+    digest = lr.claim_digest(doc, cdir)
+    receipt = lr.make_receipt("7-1-3", digest, rep, head_sha="deadbeef")
+    path = lr.write_receipt(str(tmp_path), receipt)
+    assert path.endswith(os.path.join("receipts", "ler", "7-1-3.json"))
+    back = lr.load_receipt(str(tmp_path), "7-1-3")
+    assert back["claim_digest"] == digest and back["ok"]
+    assert lr.point_status(back, digest, "X", 0.001) == "verified"
+    assert lr.point_status(back, digest, "X", 0.002) == "pending"
+    # an edited claim no longer matches its receipt
+    edited = copy.deepcopy(doc)
+    edited["circuit"]["ler"]["X"][1]["seed"] += 1
+    assert lr.point_status(back, lr.claim_digest(edited, cdir), "X", 0.001) \
+        == "pending"
+    assert lr.point_status(None, digest, "X", 0.001) == "pending"
+
+
+def test_measure_point_raises_shots_to_the_failure_floor(artifact):
+    doc, cdir = artifact
+    circuit = stim.Circuit.from_file(os.path.join(cdir, "memory_z.stim"))
+    q = lm.measure_point(circuit, doc["n"], ROUNDS, 0.001, 3,
+                         log=lambda s: None)
+    assert q["p"] == 0.001 and q["failures"] >= lt.MIN_FAILURES
+    assert q["shots"] in lm.SHOT_STEPS
+    assert lv.point_errors(q, ROUNDS) == []
 
 
 def test_conversion_sanity():

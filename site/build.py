@@ -22,6 +22,8 @@ import urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "verify"))
 from qldpc_verify import board_reports, generator_supports, is_stabilizer
+from ler_verify import gate_point, points_of  # noqa: E402
+import ler_receipts as lr  # noqa: E402
 
 DOCS = os.path.join(ROOT, "docs")
 CERTS = os.path.join(ROOT, "certs")
@@ -739,6 +741,19 @@ font-variant-numeric:tabular-nums}}
 padding:3px 6px;border-radius:5px;background:#ecfdf5;color:#065f46;
 border:1px solid #a7f3d0;vertical-align:2px;white-space:nowrap}}
 .lerv{{font-variant-numeric:tabular-nums;font-weight:600;min-width:5.5em}}
+.lercurve{{display:block;max-width:100%;height:auto;margin:6px 0 2px}}
+.lercurve .grid{{stroke:var(--line,#ddd);stroke-width:1}}
+.lercurve .tick{{font-size:10px;fill:var(--mut)}}
+.lercurve polyline{{fill:none;stroke-width:1.5}}
+.lercurve .lx{{stroke:#1f77b4}} .lercurve .lz{{stroke:#d62728}}
+.lercurve circle.lx{{fill:#1f77b4}} .lercurve circle.lz{{fill:#d62728}}
+.lercurve circle.st-pending,.lercurve circle.st-unverifiable{{fill:#fff}}
+.lercurve circle.st-failed{{fill:#000}}
+table.lerpts{{border-collapse:collapse;font-size:12px;margin:4px 0 8px}}
+table.lerpts th,table.lerpts td{{padding:2px 8px;border-bottom:1px solid var(--line,#ddd);text-align:left}}
+table.lerpts td.num{{font-variant-numeric:tabular-nums}}
+table.lerpts tr.st-pending td,table.lerpts tr.st-unverifiable td{{color:var(--mut)}}
+table.lerpts tr.st-failed td{{color:#b00}}
 .novelty{{display:inline-block;margin-left:7px;font-size:10px;line-height:1;
 padding:3px 6px;border-radius:5px;background:#fef3c7;color:#92400e;
 border:1px solid #fde68a;vertical-align:2px;white-space:nowrap}}
@@ -1784,6 +1799,11 @@ def load_entries():
             # the frontier only ever compares like with like.
             "ler": ler_worst(doc),
             "ler_key": ler_setting(doc),
+            # every measured point with its verification status (issue
+            # #1278): the highest-rate point verified at PR time, the rest
+            # by the weekly post-merge receipt under receipts/ler/
+            "ler_points": ler_points(doc, slug),
+            "ler_by_p": ler_by_p(doc, slug),
             # transversal gates (issue #1850): the verifier's per-gate results,
             # listed on the code page and never ranked.
             "gates": rep["computed"].get("transversal_gates") or [],
@@ -1872,25 +1892,135 @@ def pareto(te):
     return front
 
 
-def ler_worst(doc):
-    """The entry's measured per-round logical error rate as one number: the
-    larger of the X and Z rates (a memory fails when either side does).
-    None without a measured tier."""
+def _gate_points(doc):
+    """{side: gate point} -- the highest-rate point of each basis, which is
+    the one the PR-time gate verified (ler_verify tries rates from the top
+    down, so a merged entry's top point is always gate-verified)."""
     ler = (doc.get("circuit") or {}).get("ler")
     if not ler:
-        return None
-    return max(ler[s]["ler_per_round"] for s in ("X", "Z") if s in ler)
+        return {}
+    out = {}
+    for s in ("X", "Z"):
+        g = gate_point(points_of(ler.get(s)) or [])
+        if g is not None:
+            out[s] = g
+    return out
+
+
+def ler_worst(doc):
+    """The entry's measured per-round logical error rate as one number: the
+    larger of the X and Z rates (a memory fails when either side does) at the
+    gate point, the highest rate claimed. None without a measured tier."""
+    g = _gate_points(doc)
+    return max(q["ler_per_round"] for q in g.values()) if g else None
 
 
 def ler_setting(doc):
-    """(p, decoder) the rate was measured at, so rates are only ever compared
-    within one setting. The schema pins both today; this keeps the frontier
-    honest if either is ever widened."""
+    """(p, decoder) of the gate point, so rates are only ever compared within
+    one setting."""
+    g = _gate_points(doc)
+    if not g:
+        return None
+    q = next(iter(g.values()))
+    return (q["p"], q["decoder"])
+
+
+def ler_points(doc, slug):
+    """{side: [point + status]} for the entry page. Status is "gate" for the
+    highest-rate point (verified at PR time), else the weekly receipt's
+    verdict for the point ("verified", "failed", "unverifiable") or
+    "pending" when no current receipt covers it."""
     ler = (doc.get("circuit") or {}).get("ler")
     if not ler:
-        return None
-    side = ler.get("X") or ler.get("Z")
-    return (side["p"], side["decoder"])
+        return {}
+    cdir = os.path.join(ROOT, "circuits", slug)
+    receipt = lr.load_receipt(ROOT, slug)
+    digest = lr.claim_digest(doc, cdir) if receipt else None
+    out = {}
+    for s in ("X", "Z"):
+        pts = points_of(ler.get(s)) or []
+        g = gate_point(pts)
+        rows = []
+        for q in sorted(pts, key=lambda q: -q["p"]):
+            if q is g:
+                status = "gate"
+            else:
+                status = lr.point_status(receipt, digest, s, q["p"])
+            rec = ((receipt or {}).get("points") or {}).get(s, {}).get(str(q["p"])) \
+                if status not in ("gate", "pending") else None
+            rows.append(dict(q, status=status, receipt=rec,
+                             measured_at=(receipt or {}).get("measured_at")))
+        out[s] = rows
+    return out
+
+
+def ler_by_p(doc, slug):
+    """{p: worse-side per-round rate} over the rates at which BOTH bases have
+    a verified point (gate-verified or receipt-verified); the frontier is
+    computed per p from this."""
+    pts = ler_points(doc, slug)
+    if not pts:
+        return {}
+    out = {}
+    for p in sorted({q["p"] for rows in pts.values() for q in rows}, reverse=True):
+        vals = []
+        for s in ("X", "Z"):
+            q = next((q for q in pts.get(s, []) if q["p"] == p), None)
+            if q and q["status"] in ("gate", "verified"):
+                vals.append(q["ler_per_round"])
+        if len(vals) == 2:
+            out[p] = max(vals)
+    return out
+
+
+def ler_curve_svg(points):
+    """An inline SVG of per-round rate against physical rate, both axes
+    logarithmic, one polyline per basis, each point marked by status."""
+    rows = [(s, q) for s in ("X", "Z") for q in points.get(s, [])]
+    if not rows:
+        return ""
+    W, H, L, B = 360, 170, 46, 28
+    ps = sorted({q["p"] for _, q in rows})
+    rates = [q["ler_per_round"] for _, q in rows if q["ler_per_round"] > 0]
+    if not rates:
+        return ""
+    x0, x1 = math.log10(min(ps)), math.log10(max(ps))
+    if x1 == x0:
+        x0, x1 = x0 - 0.5, x1 + 0.5
+    y0 = math.floor(math.log10(min(rates)))
+    y1 = math.ceil(math.log10(max(rates)))
+    if y1 == y0:
+        y1 = y0 + 1
+
+    def X(p):
+        return L + (math.log10(p) - x0) / (x1 - x0) * (W - L - 12)
+
+    def Y(r):
+        return (H - B) - (math.log10(max(r, 10 ** y0)) - y0) / (y1 - y0) * (H - B - 10)
+    out = [f'<svg class=lercurve viewBox="0 0 {W} {H}" width={W} height={H} '
+           'role=img aria-label="measured logical error rate against physical rate">']
+    for e in range(y0, y1 + 1):
+        y = Y(10 ** e)
+        out.append(f'<line x1={L} y1={y:.1f} x2={W - 12} y2={y:.1f} class=grid/>'
+                   f'<text x={L - 4} y={y + 3:.1f} class=tick text-anchor=end>1e{e}</text>')
+    for p in ps:
+        out.append(f'<text x={X(p):.1f} y={H - B + 14} class=tick text-anchor=middle>'
+                   f'{p:g}</text>')
+    out.append(f'<text x={(L + W - 12) / 2:.0f} y={H - 2} class=tick text-anchor=middle>'
+               'physical rate p</text>')
+    for s, cls in (("X", "lx"), ("Z", "lz")):
+        pts = sorted((q for q in points.get(s, []) if q["ler_per_round"] > 0),
+                     key=lambda q: q["p"])
+        if len(pts) > 1:
+            out.append(f'<polyline class="{cls}" points="' + " ".join(
+                f'{X(q["p"]):.1f},{Y(q["ler_per_round"]):.1f}' for q in pts) + '"/>')
+        for q in pts:
+            out.append(f'<circle class="{cls} st-{q["status"]}" cx={X(q["p"]):.1f} '
+                       f'cy={Y(q["ler_per_round"]):.1f} r=4>'
+                       f'<title>{s} p={q["p"]:g}: {q["ler_per_round"]:.3g}/round, '
+                       f'{q["status"]}</title></circle>')
+    out.append("</svg>")
+    return "".join(out)
 
 
 def ler_frontier(entries):
@@ -1899,19 +2029,23 @@ def ler_frontier(entries):
     better, at least one strict. Decoupled from the (n, k, d, w)
     frontier that awards the record star: d and w do not enter, so a code can
     be an LER record without being a distance record and vice versa.
-    Computed per (p, decoder) setting."""
-    by_setting = {}
+    Computed per physical rate p over the entries with a verified point at
+    that p (issue #1278): an entry is a record if it is Pareto-best at any p
+    it has been verified at, and rates at different p are never compared."""
+    by_p = {}
     for i, e in enumerate(entries):
-        if e["ler"] is not None:
-            by_setting.setdefault(e["ler_key"], []).append(i)
-    def beats(b, a):
-        return (b["n"] <= a["n"] and b["k"] >= a["k"] and b["ler"] <= a["ler"]
-                and (b["n"] < a["n"] or b["k"] > a["k"] or b["ler"] < a["ler"]))
+        for p in e.get("ler_by_p") or {}:
+            by_p.setdefault((p, e["ler_key"][1] if e["ler_key"] else None), []).append(i)
+
+    def beats(b, a, p):
+        rb, ra = b["ler_by_p"][p], a["ler_by_p"][p]
+        return (b["n"] <= a["n"] and b["k"] >= a["k"] and rb <= ra
+                and (b["n"] < a["n"] or b["k"] > a["k"] or rb < ra))
 
     front = set()
-    for idxs in by_setting.values():
+    for (p, _), idxs in by_p.items():
         for i in idxs:
-            if not any(j != i and beats(entries[j], entries[i]) for j in idxs):
+            if not any(j != i and beats(entries[j], entries[i], p) for j in idxs):
                 front.add(i)
     return front
 
@@ -2771,20 +2905,45 @@ def detail_page(e):
                      f'<div class=wit>{wit}</div></details>')
         ler = circ.get("ler")
         if ler:
-            # measured logical error rate: the prefactor d_circ cannot see.
-            # Values verified by independent re-measurement (ler_verify).
+            # measured logical error rate: the prefactor d_circ cannot see,
+            # one point per physical rate (issue #1278). The highest-rate
+            # point was verified by the PR gate; every other point carries
+            # the weekly post-merge receipt's verdict, or "pending".
+            status_text = {
+                "gate": "verified at PR time",
+                "verified": "verified post-merge",
+                "failed": "FAILED post-merge replication: does not count",
+                "unverifiable": "unverifiable within the post-merge budget: "
+                                "does not count",
+                "pending": "pending post-merge replication",
+            }
+            pts = e.get("ler_points") or {}
+            P.append(ler_curve_svg(pts))
+            P.append('<table class=lerpts><thead><tr><th>basis</th><th>p</th>'
+                     '<th>ler/round</th><th>95% CI</th><th>failures/shots</th>'
+                     '<th>status</th></tr></thead><tbody>')
             for s in ("X", "Z"):
-                blk = ler.get(s)
-                if not blk:
-                    continue
-                lo, hi = blk.get("ci95", ["?", "?"])
-                P.append(
-                    f'<div class=kv><b>ler/round ({s})</b> '
-                    f'{blk["ler_per_round"]:.3g} '
-                    f'<span class=claimed>95% CI [{lo:.3g}, {hi:.3g}] '
-                    f'&middot; {blk["failures"]}/{sci_int(blk["shots"])} '
-                    f'shots &middot; decoder {html.escape(blk["decoder"])} '
-                    f'at p={blk["p"]}</span></div>')
+                for q in pts.get(s, []):
+                    lo, hi = q.get("ci95", ["?", "?"])
+                    st = q["status"]
+                    extra = ""
+                    rec = q.get("receipt")
+                    if rec and rec.get("replica_shots"):
+                        extra = (f' ({rec["replica_failures"]}/'
+                                 f'{sci_int(rec["replica_shots"])} replica shots, '
+                                 f'{q.get("measured_at", "")[:10]})')
+                    P.append(
+                        f'<tr class="st-{st}"><td>{s}</td><td>{q["p"]:g}</td>'
+                        f'<td class=num>{q["ler_per_round"]:.3g}</td>'
+                        f'<td class=num>[{lo:.3g}, {hi:.3g}]</td>'
+                        f'<td class=num>{q["failures"]}/{sci_int(q["shots"])}</td>'
+                        f'<td>{status_text.get(st, st)}{html.escape(extra)}</td></tr>')
+            P.append('</tbody></table>')
+            dec = next((q["decoder"] for rows in pts.values() for q in rows), "")
+            P.append(f'<div class=kv><span class=claimed>decoder '
+                     f'{html.escape(dec)}; rates are compared across entries '
+                     f'only at equal p; a point whose per-shot failure fraction '
+                     f'would exceed 1/2 is not admitted</span></div>')
         else:
             P.append('<div class=kv style="color:var(--mut)">no measured '
                      'logical error rate yet; d_circ is a floor, and the '
@@ -4391,24 +4550,31 @@ def ler_frontier_panel(entries, lrec):
     if not lrec:
         return ""
     measured = [e for e in entries if e["ler"] is not None]
-    settings = sorted({e["ler_key"] for e in measured})
+    settings = sorted({(p, e["ler_key"][1]) for e in measured
+                       for p in (e.get("ler_by_p") or {})}, reverse=True)
     rows = []
     for e in sorted((entries[i] for i in lrec),
                     key=lambda e: (e["ler"], e["n"], -e["k"])):
-        ler = e["doc"]["circuit"]["ler"]
+        gp = e["ler_key"][0] if e["ler_key"] else None
         sides = " &middot; ".join(
-            f'{s} {ler[s]["ler_per_round"]:.3g}' for s in ("X", "Z") if s in ler)
+            f'{s} {rows_[0]["ler_per_round"]:.3g}'
+            for s, rows_ in e["ler_points"].items() if rows_)
+        sides += f' at p={gp:g}' if gp is not None else ""
+        if len(e.get("ler_by_p") or {}) > 1:
+            sides += f' &middot; {len(e["ler_by_p"])} rates verified'
         circ = (f' &middot; d_circ &le; {e["d_circ"]}'
                 if e["d_circ"] is not None else "")
         rows.append(
             f'<li><a class="mono lnkd" href="codes/{e["slug"]}.html">'
             f'[[{e["n"]},{e["k"]},{e["d"]}]]</a>'
-            f'<span class=lerv title="worse of the two per-round rates">'
+            f'<span class=lerv title="worse of the two per-round rates at the '
+            f'highest measured p">'
             f'{e["ler"]:.3g}</span>'
             f'<span class=lfam>{sides}{circ} &middot; w={e["w"]}</span>'
             f'<span class=lwho>{authors_compact(e["authors_list"])}</span></li>')
-    where = "; ".join(f'p = {p:g}, decoder {html.escape(dec)}'
-                      for p, dec in settings)
+    where = "; ".join(f'p = {p:g}' for p, _ in settings)
+    decs = sorted({dec for _, dec in settings if dec})
+    where += " with decoder " + ", ".join(html.escape(d) for d in decs) if decs else ""
     return ('<section class="latest lerfront" id=lerfront>'
             '<h2 class=track>Logical error rate frontier '
             f'<span class=tcount>&middot; {len(rows)} of {len(measured)} '
@@ -4416,8 +4582,12 @@ def ler_frontier_panel(entries, lrec):
             '<p class=ptsub>Pareto frontier over (n, k, LER): no other '
             'measured code has at most the qubits, at least the logical '
             'qubits, and at most the per-round logical error rate, with one '
-            'strict. LER is the worse of the X and Z rates, measured on the '
-            f'committed memory circuits at {where} and re-measured by CI. '
+            'strict, compared only among entries verified at the same p. '
+            'LER is the worse of the X and Z rates, measured on the '
+            f'committed memory circuits at {where} and re-measured by CI: '
+            'the highest-rate point at PR time, the rest weekly after merge '
+            '(each point on an entry page shows which). The number shown is '
+            'the rate at the highest p the entry was measured at. '
             'Distance and check weight do not enter: this frontier is '
             'independent of the (n, k, d, w) frontier that awards the '
             'record star, and the rows below carry the <span class=lerchip>'
@@ -4778,9 +4948,10 @@ def board_table(entries, records, lrec=frozenset()):
                 f'">&#9881;{e["d_circ"]}</span>')
                if e["d_circ"] is not None else "")
             + (f'<span class=lerchip title="LER record: Pareto-best on (n, k, '
-               f'measured logical error rate {e["ler"]:.3g}/round) among '
-               'codes with a measured rate; independent of the distance '
-               'record star">LER record</span>' if i in lrec else "")
+               f'measured logical error rate) at some physical rate it was '
+               f'verified at ({e["ler"]:.3g}/round at p={e["ler_key"][0]:g}); '
+               'independent of the distance record star">LER record</span>'
+               if i in lrec else "")
             + f'</td><td class="typecell col-type" data-label="type">{chips(e)}</td>'
             f'<td class="num col-n" data-label="n">{e["n"]}</td>'
             f'<td class="num col-k" data-label="k">{e["k"]}</td>'
@@ -4923,8 +5094,8 @@ def board_legend(asym=True):
             'parameter set exists in the literature; see provenance notes</span>'
             '<span><span class=lerchip style="margin-left:0">LER record</span> '
             'Pareto-best on (n, k, measured logical error rate) among the '
-            'codes with a measured rate; independent of the (n, k, d, w) '
-            'record star</span>'
+            'codes verified at the same physical rate; independent of the '
+            '(n, k, d, w) record star</span>'
             '<span class=collegend><b>columns:</b> '
             '<b>n</b> physical qubits &middot; <b>k</b> logical qubits '
             '&middot; <b>d</b> distance (smallest undetectable error'

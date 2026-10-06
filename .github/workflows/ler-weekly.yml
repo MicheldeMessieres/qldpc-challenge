@@ -1,0 +1,82 @@
+name: ler-weekly
+
+# Post-merge replication of every measured-rate point (issue #1278). The PR
+# gate in verify.yml replicates a claim's highest-rate point inside 120 s per
+# basis and defers the rest; this run gives every point a long budget and
+# several seeds and commits the outcome as receipts under receipts/ler/, which
+# the site reads to label each point verified, failed, unverifiable, or
+# pending. It runs after verify.yml's Monday 08:00 board-wide pass.
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 10 * * 1"
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "space-separated slugs to replicate (default: stalest first, all)"
+        required: false
+        default: ""
+
+concurrency:
+  group: ler-weekly
+  cancel-in-progress: false
+
+jobs:
+  replicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - name: build optional refutation accelerator
+        continue-on-error: true
+        run: make fast
+      - name: replicate every point, stalest entries first
+        # 30 minutes per point across three seeds is the cap, not the cost: a
+        # point where failures are common replicates in seconds. The job
+        # budget stops opening new entries at five hours, so a board longer
+        # than one run is covered across weeks rather than timing out.
+        run: |
+          uv run --frozen --extra research python verify/ler_replicate.py \
+            --budget 1800 --seeds 3 --job-seconds 18000 \
+            --head-sha "${{ github.sha }}" \
+            ${{ github.event.inputs.slugs && format('--slugs {0}', github.event.inputs.slugs) || '' }}
+      - name: commit the receipts and the rebuilt site (race-safe)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add receipts/ler
+          if git diff --cached --quiet; then
+            echo "no receipt changed"; exit 0
+          fi
+          git commit -m "Weekly LER replication receipts [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "pushed on attempt $attempt"; break
+            fi
+            echo "push raced; rebasing and retrying ($attempt)"
+            git fetch origin main && git rebase origin/main || exit 1
+          done
+          # The receipts change what the site shows, and the [skip ci]
+          # commit above does not trigger site.yml, so rebuild here with
+          # the same loop site.yml uses.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            make build
+            git add docs/*.html docs/codes docs/stats.json docs/style.css docs/favicon.svg
+            if git diff --cached --quiet; then
+              echo "site already up to date"; exit 0
+            fi
+            git commit -m "Rebuild leaderboard site [skip ci]"
+            if git push origin main; then
+              echo "site pushed on attempt $attempt"; exit 0
+            fi
+            echo "push raced; retrying ($attempt)"
+          done
+          echo "failed to push the site after 5 attempts"; exit 1
