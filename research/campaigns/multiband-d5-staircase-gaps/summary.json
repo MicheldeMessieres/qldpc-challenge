@@ -1,0 +1,215 @@
+{
+  "aborted_experiments": 0,
+  "authority": "candidates listed here passed verify/validate_candidate.py; nothing here is a board entry until a human reviews and submits it",
+  "budget": {
+    "consumed": {
+      "candidates_screened": 11
+    },
+    "declared": {
+      "candidates_screened": 62
+    },
+    "remaining": {
+      "candidates_screened": 51
+    }
+  },
+  "campaign_id": "multiband-d5-staircase-gaps",
+  "campaign_name": "Multi-band dense-packed surface codes: fill the d=5 staircase gaps in local-2d-single / weight-4",
+  "contract_hash": null,
+  "errors": [],
+  "experiments": [
+    {
+      "contract_hash": null,
+      "family": "topological",
+      "mode": "hand_built",
+      "note": "rebuild codes/388-20-5.json and compare check matrices, not (n,k,w)",
+      "params": {
+        "d": 5,
+        "m": 3,
+        "pitch": 6,
+        "rows": 8
+      },
+      "seed": 0,
+      "spent": {
+        "candidates_screened": 1,
+        "cpu_hours": 0,
+        "gpu_hours": 0,
+        "walltime_hours": 7.85476277693912e-06
+      },
+      "survivors": 0,
+      "verdict": "not_run"
+    },
+    {
+      "contract_hash": null,
+      "family": "topological",
+      "mode": "enumeration",
+      "note": "is the patch size d=6, the required d at k>=20, a member of this family at all?",
+      "params": {
+        "d": [
+          4,
+          6,
+          8
+        ],
+        "m": "2..24",
+        "rows": "2..24"
+      },
+      "seed": 0,
+      "spent": {
+        "candidates_screened": 6,
+        "cpu_hours": 0,
+        "gpu_hours": 0,
+        "walltime_hours": 6.147968722264825e-05
+      },
+      "survivors": 0,
+      "verdict": "not_run"
+    },
+    {
+      "contract_hash": null,
+      "family": "topological",
+      "mode": "enumeration",
+      "note": "looks like a clean advancing ladder at claimed d=5; measure instead of trusting the patch argument",
+      "params": {
+        "d": 5,
+        "m": "11..17",
+        "pitch": 2,
+        "rows": 2
+      },
+      "screened": {
+        "backend": "fast",
+        "d": 4,
+        "kd2_over_n": 0.9279437609841827,
+        "trials": 300000
+      },
+      "seed": 0,
+      "spent": {
+        "candidates_screened": 3,
+        "cpu_hours": 0,
+        "gpu_hours": 0,
+        "walltime_hours": 0.027802779295276803
+      },
+      "survivors": 0,
+      "verdict": "refuted"
+    },
+    {
+      "contract_hash": null,
+      "family": "topological",
+      "mode": "refinement",
+      "note": "staircase gap at k=46: no single-layer weight-<=4 entry with n<=862, k>=46, d>=5",
+      "params": {
+        "d": 5,
+        "m": 7,
+        "pitch": 6,
+        "rows": 7
+      },
+      "screened": {
+        "backend": "fast",
+        "d": 5,
+        "kd2_over_n": 1.334106728538283,
+        "trials": 300000
+      },
+      "seed": 0,
+      "spent": {
+        "candidates_screened": 1,
+        "cpu_hours": 0,
+        "gpu_hours": 0,
+        "walltime_hours": 0.0356427452391674
+      },
+      "survivors": 1,
+      "verdict": "passed",
+      "verified_kd2_over_n": 1.334106728538283
+    }
+  ],
+  "frontier_advances": 1,
+  "negative_results": [
+    {
+      "detail": "build(5,8,3,6) reproduces codes/388-20-5.json exactly: same n=388, k=20, w=4, and an identical permutation-invariant pairwise-intersection signature, so the two differ only in qubit numbering",
+      "what": "calibration passed"
+    },
+    {
+      "detail": "6 of 6 probed d=4/6/8 configs come back css=False at every pitch: the two-band plaquette colouring that makes the code CSS needs odd d. pitch_min(d)=2*floor(3d/4) was measured at odd d only, so its value at d=6 is an extrapolation and cannot be reached. The d=6 target (required to advance the cell at k>=20) is unreachable in this family.",
+      "what": "even patch size is not in the family"
+    },
+    {
+      "detail": "rows=2, pitch=2 gives k=2m-1 at n=34m-9 and is CSS with no empty rows, so it screens as advancing at the assumed d=5; measured, all of it is d=4: [(365, 21, 4, 4), (433, 25, 4, 4), (569, 33, 4, 4)]. The bands overlap by seven rows so no patch argument constrains the distance. Reproduces the 2026-08-31 fieldnote's degenerate-mask refutations.",
+      "what": "degenerate overlapping bands collapse the distance"
+    }
+  ],
+  "objective": {
+    "direction": "maximize",
+    "metric": "kd2_over_n",
+    "target": 1.35
+  },
+  "params": {
+    "gating": "verify/validate_candidate.py via coordination.gate_and_record",
+    "m_range": [
+      2,
+      48
+    ],
+    "min_k": 20,
+    "n_cap": 1000,
+    "pair_depth": 16,
+    "patch_sizes_swept": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "rows_range": [
+      2,
+      48
+    ],
+    "screening_backend": "gf2_fast",
+    "screening_trials_per_side": 300000,
+    "seeds": [
+      1
+    ],
+    "threads": 4
+  },
+  "report": "research/campaigns/multiband-d5-staircase-gaps/REPORT.md",
+  "required_outputs": [
+    "experiment_ledger",
+    "surviving_candidates",
+    "negative_results",
+    "campaign_summary"
+  ],
+  "run_contract": null,
+  "screen_quality": [
+    {
+      "family": "topological",
+      "pairs": 2,
+      "spearman": 1.0
+    }
+  ],
+  "snapshot": {
+    "branch": "research-multiband-campaign",
+    "diff_sha256": "01837d760174cad0de1692de96288a2a77cb555852f53b8c1a95e3dcf36632c0",
+    "dirty": true,
+    "head": "d3bc08056b0b7333e819f5850e85b6cebe94b64b",
+    "untracked_count": 2
+  },
+  "status": "completed",
+  "stopped_by": {
+    "detail": "1 validated survivors",
+    "type": "candidates_found"
+  },
+  "summary_version": 1,
+  "survivors": [
+    {
+      "advanced_frontier": true,
+      "board_advancing": true,
+      "cell": [
+        "weight-4",
+        "local-2d-single"
+      ],
+      "d": 5,
+      "fingerprint": "cb1f5266cba8faf5",
+      "k": 46,
+      "labels": [
+        "advances the weight-4 x local-2d-single board",
+        "literature novelty UNVERIFIED"
+      ],
+      "n": 862,
+      "weight_class": "weight-4"
+    }
+  ]
+}

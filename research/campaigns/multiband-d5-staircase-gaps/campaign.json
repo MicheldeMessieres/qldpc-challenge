@@ -1,0 +1,28 @@
+{
+  "campaign": {
+    "schema_version": 1,
+    "id": "multiband-d5-staircase-gaps",
+    "name": "Multi-band dense-packed surface codes: fill the d=5 staircase gaps in local-2d-single / weight-4",
+    "status": "completed",
+    "objective": { "metric": "kd2_over_n", "direction": "maximize", "target": 1.35 },
+    "constraints": {
+      "max_check_weight": 4,
+      "n": [300, 1000],
+      "min_distance": 5,
+      "locality": "local-2d-single"
+    },
+    "methods": {
+      "families": ["topological"],
+      "generators": ["research/multiband_surface.py::build"],
+      "screening": { "trials_per_candidate": 300000, "seeds": [1] }
+    },
+    "budget": { "candidates_screened": 62 },
+    "stopping": [
+      { "type": "target_reached" },
+      { "type": "candidates_found", "count": 1 },
+      { "type": "budget_exhausted" }
+    ],
+    "required_outputs": ["experiment_ledger", "surviving_candidates", "negative_results", "campaign_summary"],
+    "notes": "Direction chosen after reading the gate's own dominance rule: _LOCAL_ORDER in verify/validate_candidate.py is {local-2d-single: 0, local-2d-bilayer: 1, unrestricted: 2} and a dominator must be at order <= the candidate's, so local-2d-single is the cell with the FEWEST competitors, not the hardest. In that cell the high-k corners are nearly empty (best d at k=20..30 is 5), so d=5 at k>=24 is board-advancing there. The family that fills them is the multi-band dense-packed surface code; the builder was calibrated against codes/388-20-5.json (identical permutation-invariant Tanner signature) before any sweeping."
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "aborted_experiments": 0,
+  "authority": "this manifest records what ran; what a run is allowed to claim is still decided by verify/validate_candidate.py",
+  "campaign_id": "multiband-d5-staircase-gaps",
+  "consumed": {
+    "candidates_screened": 11,
+    "walltime_hours": 0.064
+  },
+  "errors": [],
+  "experiments": 4,
+  "logs": [],
+  "manifest_version": 1,
+  "negative_results": [
+    {
+      "detail": "build(5,8,3,6) reproduces codes/388-20-5.json exactly: same n=388, k=20, w=4, and an identical permutation-invariant pairwise-intersection signature, so the two differ only in qubit numbering",
+      "what": "calibration passed"
+    },
+    {
+      "detail": "6 of 6 probed d=4/6/8 configs come back css=False at every pitch: the two-band plaquette colouring that makes the code CSS needs odd d. pitch_min(d)=2*floor(3d/4) was measured at odd d only, so its value at d=6 is an extrapolation and cannot be reached. The d=6 target (required to advance the cell at k>=20) is unreachable in this family.",
+      "what": "even patch size is not in the family"
+    },
+    {
+      "detail": "rows=2, pitch=2 gives k=2m-1 at n=34m-9 and is CSS with no empty rows, so it screens as advancing at the assumed d=5; measured, all of it is d=4: [(365, 21, 4, 4), (433, 25, 4, 4), (569, 33, 4, 4)]. The bands overlap by seven rows so no patch argument constrains the distance. Reproduces the 2026-08-31 fieldnote's degenerate-mask refutations.",
+      "what": "degenerate overlapping bands collapse the distance"
+    }
+  ],
+  "params": {
+    "gating": "verify/validate_candidate.py via coordination.gate_and_record",
+    "m_range": [
+      2,
+      48
+    ],
+    "min_k": 20,
+    "n_cap": 1000,
+    "pair_depth": 16,
+    "patch_sizes_swept": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "rows_range": [
+      2,
+      48
+    ],
+    "screening_backend": "gf2_fast",
+    "screening_trials_per_side": 300000,
+    "seeds": [
+      1
+    ],
+    "threads": 4
+  },
+  "seeds": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "snapshot": {
+    "branch": "research-multiband-campaign",
+    "diff_sha256": "01837d760174cad0de1692de96288a2a77cb555852f53b8c1a95e3dcf36632c0",
+    "dirty": true,
+    "head": "d3bc08056b0b7333e819f5850e85b6cebe94b64b",
+    "untracked_count": 2
+  },
+  "started_at": "2026-10-07T10:36:38.583687+00:00",
+  "survivor_verdicts": [
+    {
+      "d": 5,
+      "fingerprint": null,
+      "k": 46,
+      "n": 862
+    }
+  ],
+  "written_at": "2026-10-07T10:40:28.067688+00:00"
+}
