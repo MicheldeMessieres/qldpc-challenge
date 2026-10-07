@@ -1,0 +1,24 @@
+{
+  "campaign": {
+    "schema_version": 1,
+    "id": "openalex-harvest-2863",
+    "name": "OpenAlex literature harvest (issue #2863): reconstruct the board-absent instances of the Tier 1 papers and screen them against the board",
+    "status": "completed",
+    "objective": { "metric": "kd2_over_n", "direction": "maximize" },
+    "constraints": { "n": [1, 1000] },
+    "methods": {
+      "families": ["other", "bivariate-bicycle", "lifted-product", "topological"],
+      "generators": [
+        "research/campaigns/openalex-harvest-2863/routing_codes.py::build",
+        "research/campaigns/openalex-harvest-2863/lp_canonical.py::lp",
+        "research/campaigns/openalex-harvest-2863/vine_extract.py::analyze",
+        "research/campaigns/openalex-harvest-2863/itb_codes.py::build"
+      ],
+      "screening": { "trials_per_candidate": 500000, "seeds": [5] }
+    },
+    "budget": { "candidates_screened": 100 },
+    "stopping": [ { "type": "budget_exhausted" } ],
+    "required_outputs": ["negative_results", "campaign_summary"],
+    "notes": "Items S1, L1, L2, L4 and L5 of issue #2863 (L3 was done independently by @MathysRennela with the same result). Every paper in Tier 1 publishes enough to rebuild its instances except the two in-range canonical lifted-product codes, which are in arXiv:2607.28605's own appendix rather than in the Cain et al. paper it cites. The builders here are the reconstruction recipes; the fieldnote fieldnotes/2026-10-07-openalex-harvest-reconstructions.md carries the readings and verdicts. Two filings: [[200,16,17]] (routing code) and [[468,36,20]] (canonical LP); everything else is a negative."
+  }
+}
