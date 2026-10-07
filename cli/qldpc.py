@@ -462,7 +462,34 @@ def _board_identities():
     return vc._board_entries(), vc._identity_sets
 
 
-def board_dedup(report):
+def _board_codes_dir():
+    """The directory `verify/validate_candidate.py` reads the board from."""
+    import validate_candidate as vc
+    return vc._CODES
+
+
+def _self_entry_name(out_dir, out_file):
+    """The board entry name this run is about to create, or None.
+
+    A candidate can only match *itself* when it is being written into the
+    directory the board is read from -- then the entry it is about to add and
+    the entry the dedup finds are the same file. With `--out` pointing
+    elsewhere (a scratch directory, as the CLI tests use) an entry of the same
+    basename is a *different* file on purpose, and must keep being reported as
+    a possible equivalent.
+
+    Matching on the basename alone conflates the two cases, and quietly stops
+    the equivalence box from doing its job.
+    """
+    try:
+        if os.path.abspath(out_dir) != os.path.abspath(_board_codes_dir()):
+            return None
+    except Exception:
+        return None
+    return os.path.basename(out_file)
+
+
+def board_dedup(report, *, exclude=None):
     """Compare a verified candidate against the board the way the validator does.
 
     Returns {"checked", "match", "kind"}: exact fingerprint first, then WL
@@ -470,6 +497,19 @@ def board_dedup(report):
     the validator's own dedup verdict (verify/validate_candidate.py), computed
     here so the drafted PR body can tick the equivalence box with evidence
     instead of leaving a prompt a human has to answer by hand (issue #2328).
+
+    `exclude` is the candidate's own file name once it is on disk, and it is
+    what makes the comparison mean what the box says. The candidate is being
+    compared against the board *as it will be once this PR lands*, so its own
+    freshly written entry is not a match -- it is the entry this PR adds. A
+    genuinely equivalent entry under a *different* name still matches, which is
+    the case the box is for.
+
+    Without this the comparison was made after `codes/<slug>.json` had been
+    written, so the candidate was in the board it compared against, matched
+    itself on its own fingerprint, and the equivalence box stayed unticked on
+    every run -- which `verify/check_prose.py` then refuses, making
+    `--open-pr` unable to complete on an unedited draft.
     """
     try:
         board, identity_sets = _board_identities()
@@ -479,16 +519,18 @@ def board_dedup(report):
               f"unticked for a human to answer")
         return {"checked": False, "match": None, "kind": None}
 
+    others = [b for b in board if b["name"] != exclude]
+
     def fps_of(b):
         return {b["fingerprint"]} | set(b.get("css_fingerprints") or [])
 
     def sigs_of(b):
         return {b["sig"]} | set(b.get("css_sigs") or [])
 
-    exact = next((b["name"] for b in board if fps & fps_of(b)), None)
+    exact = next((b["name"] for b in others if fps & fps_of(b)), None)
     if exact:
         return {"checked": True, "match": exact, "kind": "exact fingerprint"}
-    wl = next((b["name"] for b in board if sigs & sigs_of(b)), None)
+    wl = next((b["name"] for b in others if sigs & sigs_of(b)), None)
     if wl:
         return {"checked": True, "match": wl, "kind": "WL signature"}
     return {"checked": True, "match": None, "kind": None}
@@ -1027,7 +1069,12 @@ def cmd_submit(args):
 
     res["note_path"] = note_out
     res["stage"] = "draft"
-    args._dedup = board_dedup(report)
+    # The candidate's own file is on disk by now (written above), so when this
+    # run is writing into the board's own directory the dedup is told to skip it:
+    # the question the equivalence box asks is whether some OTHER entry already
+    # carries this code, and the file this run just added is not an answer to it.
+    args._dedup = board_dedup(
+        report, exclude=_self_entry_name(args.out, out))
     title = pr_title(n, k, d, _descriptor(args))
     body_file = write_pr_body(slug, pr_body(doc, report, args, out, note_out))
     branch = f"submit-{slug}"
