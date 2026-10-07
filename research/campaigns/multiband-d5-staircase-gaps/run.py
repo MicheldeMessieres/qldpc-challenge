@@ -168,7 +168,26 @@ def measure(hx, hz, trials=FAST_TRIALS):
 
 def main():
     camp = load_campaign(os.path.join(_HERE, "campaign.json"))
-    led = Ledger(camp)
+    # The manifest is the half of the record that says what PRODUCED the numbers
+    # in the notes: snapshot, resolved depth, seeds. Required whenever a
+    # campaign's numbers reach notes/ -- research/campaigns/README.md, "When a
+    # manifest is required".
+    led = Ledger(
+        camp,
+        manifest=os.path.join(_HERE, "manifest.json"),
+        params={"screening_backend": "gf2_fast",
+                "screening_trials_per_side": FAST_TRIALS,
+                "pair_depth": 16,
+                "seeds": [1],
+                "threads": 4,
+                "rows_range": [2, 48],
+                "m_range": [2, 48],
+                "patch_sizes_swept": [4, 5, 6, 7, 8],
+                "n_cap": 1000,
+                "min_k": 20,
+                "gating": "verify/validate_candidate.py via "
+                          "coordination.gate_and_record"},
+    )
     pool = board_pool(4)
     print(f"campaign {camp.id}: {camp.name}")
     print(f"  competitor pool: {len(pool)} single-layer weight-<=4 CSS entries")

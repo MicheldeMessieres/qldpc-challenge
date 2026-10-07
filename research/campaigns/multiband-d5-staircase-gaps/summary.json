@@ -33,7 +33,7 @@
         "candidates_screened": 1,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 8.007997222294863e-06
+        "walltime_hours": 7.85476277693912e-06
       },
       "survivors": 0,
       "verdict": "not_run"
@@ -57,7 +57,7 @@
         "candidates_screened": 6,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 6.157826027800992e-05
+        "walltime_hours": 6.147968722264825e-05
       },
       "survivors": 0,
       "verdict": "not_run"
@@ -84,7 +84,7 @@
         "candidates_screened": 3,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 0.02744387844138853
+        "walltime_hours": 0.027802779295276803
       },
       "survivors": 0,
       "verdict": "refuted"
@@ -111,7 +111,7 @@
         "candidates_screened": 1,
         "cpu_hours": 0,
         "gpu_hours": 0,
-        "walltime_hours": 0.035130185295833546
+        "walltime_hours": 0.0356427452391674
       },
       "survivors": 1,
       "verdict": "passed",
@@ -138,7 +138,33 @@
     "metric": "kd2_over_n",
     "target": 1.35
   },
-  "params": {},
+  "params": {
+    "gating": "verify/validate_candidate.py via coordination.gate_and_record",
+    "m_range": [
+      2,
+      48
+    ],
+    "min_k": 20,
+    "n_cap": 1000,
+    "pair_depth": 16,
+    "patch_sizes_swept": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "rows_range": [
+      2,
+      48
+    ],
+    "screening_backend": "gf2_fast",
+    "screening_trials_per_side": 300000,
+    "seeds": [
+      1
+    ],
+    "threads": 4
+  },
   "report": "research/campaigns/multiband-d5-staircase-gaps/REPORT.md",
   "required_outputs": [
     "experiment_ledger",
@@ -155,11 +181,11 @@
     }
   ],
   "snapshot": {
-    "branch": "main",
-    "diff_sha256": null,
-    "dirty": false,
-    "head": "7ee80da1897f08cec2b022c4abf20604c8a4d97f",
-    "untracked_count": 5
+    "branch": "research-multiband-campaign",
+    "diff_sha256": "01837d760174cad0de1692de96288a2a77cb555852f53b8c1a95e3dcf36632c0",
+    "dirty": true,
+    "head": "d3bc08056b0b7333e819f5850e85b6cebe94b64b",
+    "untracked_count": 2
   },
   "status": "completed",
   "stopped_by": {
