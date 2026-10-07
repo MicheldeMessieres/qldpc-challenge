@@ -43,6 +43,15 @@ costs its author nothing. That is the one case where reserving the fix to the
 author protects the wrong party. It is the narrowest form that can work: the
 tag and nothing else, not the name, not provenance, not a note.
 
+A binding for measured-rate points (schema 0.5, issue #1278): a change that
+ONLY adds points to `circuit.ler`, keeping every point the entry already
+carried byte-identical (the pre-0.5 single object counts as one point), binds
+for anyone. A point is a claim about the committed circuit at a physical
+rate, and the gate re-measures every point it can afford and the weekly run
+the rest, so a planted point is caught the way a planted distance is;
+removing or altering an existing point, or touching anything else in the
+entry, stays with the listed authors. This is what lets a maintainer carry
+the board's entries through a schema change in the tier without owning them.
 Replacing an existing artifact stays with the code's listed authors either
 way, which matters more for circuits than for layouts: the circuit tier is
 penalty-only (d_circ is clamped to <= d), so a donated schedule can lower an
@@ -424,12 +433,70 @@ def novelty_binding(author, base_doc, new_doc):
     return True, None
 
 
+def _rate_points(claim):
+    """A basis's measured-rate claim as a list of points: the pre-0.5 single
+    object is one point, a 0.5 list is itself, anything else is None."""
+    if isinstance(claim, dict):
+        return [claim]
+    if isinstance(claim, list):
+        return claim
+    return None
+
+
+def rate_binding(author, base_doc, new_doc):
+    """Does new_doc differ from base_doc by exactly the addition of measured-
+    rate points to an existing circuit.ler? Returns (ok, reason-if-not).
+
+    Allowed: points appended to circuit.ler.<basis> (and the pre-0.5 single
+    object rewritten as a list that still contains it byte-identical), plus
+    a `schema_version` change. Everything else, including every other field
+    of the circuit block, the distance, provenance, and the existing points
+    themselves, must be byte-identical; no basis may be dropped. A point is a
+    measurement of the committed circuit at one physical rate, re-measured by
+    ler_verify at PR time where the budget allows and weekly after merge, so
+    the binding adds claims the board checks and can take nothing away.
+    """
+    keys = set(base_doc) | set(new_doc)
+    for key in keys - {"circuit", "schema_version"}:
+        if base_doc.get(key) != new_doc.get(key):
+            return False, (f"field '{key}' changed (adding rate points may "
+                           "change circuit.ler and nothing else)")
+    bc, nc = base_doc.get("circuit"), new_doc.get("circuit")
+    if not isinstance(bc, dict) or not isinstance(nc, dict):
+        return False, "the entry has no circuit tier to carry a measured rate"
+    for key in (set(bc) | set(nc)) - {"ler"}:
+        if bc.get(key) != nc.get(key):
+            return False, (f"circuit.{key} changed (adding rate points may "
+                           "change circuit.ler and nothing else)")
+    bl, nl = bc.get("ler") or {}, nc.get("ler") or {}
+    if not isinstance(bl, dict) or not isinstance(nl, dict) or not nl:
+        return False, "circuit.ler is missing or not an object"
+    if set(bl) - set(nl):
+        return False, "a basis was removed from circuit.ler"
+    added = 0
+    for side, claim in nl.items():
+        new_pts = _rate_points(claim)
+        old_pts = _rate_points(bl.get(side)) or []
+        if new_pts is None:
+            return False, f"circuit.ler.{side} is neither a point nor a list"
+        for q in old_pts:
+            if q not in new_pts:
+                return False, (f"circuit.ler.{side}: an existing point "
+                               f"(p={q.get('p')}) was changed or removed; "
+                               "that stays with the listed authors")
+        added += len(new_pts) - len(old_pts)
+    if added <= 0:
+        return False, "no measured-rate point was added"
+    return True, ""
+
+
 BINDINGS = (
     ("refutation", refutation_binding, "witness_provenance credit, refuting"),
     ("layout", layout_binding, "adding a first locality block to"),
     ("circuit", circuit_binding, "adding a first circuit block to"),
     ("family", family_binding, "correcting the family tag of"),
     ("novelty", novelty_binding, "recording a literature match on"),
+    ("rate", rate_binding, "adding measured-rate points to"),
 )
 
 
@@ -438,6 +505,11 @@ def evident_binding(base_doc, new_doc):
     leads with one relevant rejection instead of three."""
     if "circuit" in new_doc and "circuit" not in base_doc:
         return "circuit"
+    if (isinstance(base_doc.get("circuit"), dict)
+            and isinstance(new_doc.get("circuit"), dict)
+            and base_doc["circuit"].get("ler") != new_doc["circuit"].get("ler")
+            and base_doc.get("distance") == new_doc.get("distance")):
+        return "rate"
     if "locality" in new_doc and "locality" not in base_doc:
         return "layout"
     if (base_doc.get("family") != new_doc.get("family")
