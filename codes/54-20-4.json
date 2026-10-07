@@ -1,5 +1,5 @@
 {
- "schema_version": "0.2",
+ "schema_version": "0.5",
  "name": "[[54,20,4]], 2D-local bilayer layout",
  "code_type": "CSS",
  "n": 54,
@@ -579,30 +579,58 @@
    "method": "generic CSS memory schedule with one flag qubit per check: CX layers from a bipartite edge coloring, the flag coupled to the ancilla after the first and the second-to-last CX slot and measured every round, slot assignments filtered by an exact hook-cost criterion over single, same-ancilla and cross-ancilla hook pairs; screened by RIS and a seeded BP+OSD search"
   },
   "ler": {
-   "X": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 972,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.026303835,
-    "ci95": [
-     0.024650729,
-     0.028066376
-    ]
-   },
-   "Z": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 988,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.026774941,
-    "ci95": [
-     0.025104387,
-     0.028555241
-    ]
-   }
+   "X": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 4031,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.168251897,
+     "ci95": [
+      0.160343869,
+      0.176838561
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 972,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.026303835,
+     "ci95": [
+      0.024650729,
+      0.028066376
+     ]
+    }
+   ],
+   "Z": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 3962,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.162497619,
+     "ci95": [
+      0.154993077,
+      0.170608734
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 988,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.026774941,
+     "ci95": [
+      0.025104387,
+      0.028555241
+     ]
+    }
+   ]
   }
  }
 }

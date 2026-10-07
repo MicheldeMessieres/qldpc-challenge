@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2",
+  "schema_version": "0.5",
   "name": "[[79,11,3]] multi-band dense-packed code",
   "code_type": "CSS",
   "n": 79,
@@ -767,30 +767,58 @@
       "method": "generic CSS memory schedule: one ancilla per check, CX layers from a bipartite edge coloring, CNOT orders filtered by a hook-error criterion; screened by RIS on ker(H_dem) and an observable-constrained seeded BP+OSD search"
     },
     "ler": {
-      "X": {
-        "p": 0.001,
-        "shots": 10000,
-        "failures": 285,
-        "seed": 7,
-        "decoder": "bposd-cs-10",
-        "ler_per_round": 0.009686443,
-        "ci95": [
-          0.008619522,
-          0.01088413
-        ]
-      },
-      "Z": {
-        "p": 0.001,
-        "shots": 10000,
-        "failures": 303,
-        "seed": 7,
-        "decoder": "bposd-cs-10",
-        "ler_per_round": 0.010311179,
-        "ci95": [
-          0.009207366,
-          0.011545953
-        ]
-      }
+      "X": [
+        {
+          "p": 0.002,
+          "shots": 10000,
+          "failures": 1219,
+          "seed": 20261006,
+          "decoder": "bposd-cs-10",
+          "ler_per_round": 0.044471491,
+          "ci95": [
+            0.041968223,
+            0.047120531
+          ]
+        },
+        {
+          "p": 0.001,
+          "shots": 10000,
+          "failures": 285,
+          "seed": 7,
+          "decoder": "bposd-cs-10",
+          "ler_per_round": 0.009686443,
+          "ci95": [
+            0.008619522,
+            0.01088413
+          ]
+        }
+      ],
+      "Z": [
+        {
+          "p": 0.002,
+          "shots": 10000,
+          "failures": 1189,
+          "seed": 20261006,
+          "decoder": "bposd-cs-10",
+          "ler_per_round": 0.043269881,
+          "ci95": [
+            0.040807197,
+            0.04587765
+          ]
+        },
+        {
+          "p": 0.001,
+          "shots": 10000,
+          "failures": 303,
+          "seed": 7,
+          "decoder": "bposd-cs-10",
+          "ler_per_round": 0.010311179,
+          "ci95": [
+            0.009207366,
+            0.011545953
+          ]
+        }
+      ]
     }
   }
 }
