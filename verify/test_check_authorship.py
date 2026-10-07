@@ -770,7 +770,74 @@ def main():
     ok, why = check_authorship.novelty_binding("bob", same, copy.deepcopy(BASE_DOC))
     check("an unchanged novelty binds nothing", not ok and "nothing" in why)
 
+    _rate_cases()
     return 0
+
+
+def _rate_cases():
+    """Measured-rate points (schema 0.5, #1278): adding points to an existing
+    circuit.ler binds for anyone, since the gate re-measures them; changing
+    or removing an existing point, or anything else, does not."""
+    legacy = {"p": 0.001, "shots": 10000, "failures": 154, "seed": 7,
+              "decoder": "bposd-cs-10", "ler_per_round": 0.0052,
+              "ci95": [0.0044, 0.006]}
+    higher = {"p": 0.005, "shots": 10000, "failures": 1250, "seed": 7,
+              "decoder": "bposd-cs-10", "ler_per_round": 0.045,
+              "ci95": [0.042, 0.048]}
+    base = copy.deepcopy(BASE_DOC)
+    base["circuit"] = {"rounds": 3, "stim_version": "1.16.0",
+                       "d_circ": {"X": {"value": 3, "witness": [0, 1, 2]},
+                                  "Z": {"value": 3, "witness": [3, 4, 5]}},
+                       "ler": {"X": dict(legacy), "Z": dict(legacy)}}
+
+    def migrated(**also):
+        def edit():
+            d = copy.deepcopy(base)
+            d["schema_version"] = "0.5"
+            d["circuit"]["ler"] = {"X": [dict(higher), dict(legacy)],
+                                   "Z": [dict(higher), dict(legacy)]}
+            for k, v in also.items():
+                d[k] = v
+            return d
+        return edit
+
+    run_case("non-author may add measured-rate points to an existing ler",
+             migrated(), True, rename=False, base_doc=base)
+
+    def altered():
+        d = migrated()()
+        d["circuit"]["ler"]["X"][1]["failures"] = 100   # the old point moved
+        return d
+    run_case("non-author may not alter an existing rate point",
+             altered, False, rename=False, base_doc=base)
+
+    def dropped_basis():
+        d = migrated()()
+        del d["circuit"]["ler"]["Z"]
+        return d
+    run_case("non-author may not drop a basis while adding points",
+             dropped_basis, False, rename=False, base_doc=base)
+
+    def nothing_added():
+        d = copy.deepcopy(base)
+        d["schema_version"] = "0.5"
+        d["circuit"]["ler"] = {"X": [dict(legacy)], "Z": [dict(legacy)]}
+        return d
+    run_case("rewriting the legacy object as a one-point list adds nothing",
+             nothing_added, False, rename=False, base_doc=base)
+
+    def other_circuit_field():
+        d = migrated()()
+        d["circuit"]["rounds"] = 4
+        return d
+    run_case("adding rate points may not touch the rest of the circuit block",
+             other_circuit_field, False, rename=False, base_doc=base)
+
+    run_case("adding rate points may not carry another field",
+             migrated(n=61), False, rename=False, base_doc=base)
+
+    run_case("the listed author may add rate points too",
+             migrated(), True, author="alice", rename=False, base_doc=base)
 
 
 def test_main():
