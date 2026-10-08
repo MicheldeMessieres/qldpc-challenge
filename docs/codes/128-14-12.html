@@ -1,0 +1,240 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>[[128,14,12]] · QEC Challenge</title><link rel=icon type="image/svg+xml" href="../favicon.svg"><link rel=preconnect href="https://fonts.googleapis.com"><link rel=preconnect href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel=stylesheet><link rel=stylesheet href="../style.css"><!-- Privacy-friendly analytics by Plausible --><script async src="https://plausible.io/js/pa-BZqEmTRv5VBwv3HYwVpoB.js"></script><script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({"customProperties":{"code_family":"bivariate-bicycle","code_origin":"submission","code_tier":"ub","locality_class":"unrestricted","page_type":"code_detail","weight_class":"weight-8"},"fileDownloads":true,"outboundLinks":true})</script></head><body>
+<div class=wrap>
+<a class=back href="../index.html">&larr; back to the board</a>
+<div class=codehead><span class="mono big">[[128,14,12]]</span> <span class="b ub" title="verified upper bound: an explicit logical of this weight, and independent refutation searches found nothing lighter">d &le;</span></div>
+<div class=params>
+<div class=cell title="physical qubits"><div class=l>n</div><div class=v>128</div></div>
+<div class=cell title="logical qubits"><div class=l>k</div><div class=v>14</div></div>
+<div class=cell title="distance (smallest undetectable error)"><div class=l>d</div><div class=v>12</div></div>
+<div class=cell title="operational efficiency (BPT ratio), compared within a track at comparable n"><div class=l>kd&sup2;/n</div><div class=v>15.75</div></div>
+<div class=cell title="max check weight"><div class=l>w</div><div class=v>8</div></div>
+<div class=cell title="distance asymmetry max(d_X,d_Z)/min(d_X,d_Z): 1 = both Pauli types equally protected; larger = one side protected further, which biased-noise hardware and erasure decoding can exploit"><div class=l>X/Z</div><div class=v>1</div></div>
+</div>
+<section class=blk><h3>Share this result</h3><div class=share><button class=sharebtn type=button data-copy="https://unitaryfoundation.github.io/qldpc-challenge/codes/128-14-12.html" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button><a class=sharebtn href="https://twitter.com/intent/tweet?text=%5B%5B128%2C14%2C12%5D%5D%20quantum%20LDPC%20code%20on%20the%20QEC%20Challenge&amp;url=https%3A//unitaryfoundation.github.io/qldpc-challenge/codes/128-14-12.html" target=_blank rel=noopener aria-label="Post on X" title="Post on X"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a><a class=sharebtn href="https://bsky.app/intent/compose?text=%5B%5B128%2C14%2C12%5D%5D%20quantum%20LDPC%20code%20on%20the%20QEC%20Challenge%20https%3A//unitaryfoundation.github.io/qldpc-challenge/codes/128-14-12.html" target=_blank rel=noopener aria-label="Share on Bluesky" title="Bluesky"><svg viewBox="0 0 568 501" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M123.121 33.664C188.241 82.553 258.281 181.68 284 234.873c25.719-53.193 95.759-152.32 160.879-201.21C491.866-1.611 568-28.906 568 57.947c0 17.346-9.945 145.713-15.778 166.555-20.275 72.453-94.155 90.933-159.875 79.748C507.222 323.8 536.444 388.56 473.333 453.32c-119.86 122.992-172.272-30.859-185.702-70.281-2.462-7.227-3.614-10.608-3.631-7.733-.017-2.875-1.169.506-3.631 7.733-13.43 39.422-65.842 193.273-185.702 70.281-63.111-64.76-33.889-129.52 80.986-149.071-65.72 11.185-139.6-7.295-159.875-79.748C9.945 203.66 0 75.293 0 57.947 0-28.906 76.135-1.611 123.121 33.664Z"/></svg></a><a class=sharebtn href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A//unitaryfoundation.github.io/qldpc-challenge/codes/128-14-12.html" target=_blank rel=noopener aria-label="Share on LinkedIn" title="LinkedIn"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg></a></div></section>
+<section class=blk><h3>Distance</h3>
+<div class=kv><b>X/Z asymmetry</b> 1 &middot; d_X &le; 12, d_Z &le; 12 &middot; w_X = 8, w_Z = 8 <span class=claimed>(max(d_X,d_Z)/min(d_X,d_Z); each side carries its own earned tier: = certified exact, &le; witness upper bound)</span></div>
+<div class=kv><b>d_X</b> 12 &middot; witness weight 12 (claimed upper_bound)</div>
+<div class=kv style="color:var(--mut)">witness found by <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; research/kit/surrogate.lightest_logical &middot; found at 8000 trials &middot; survived 8000 trials &middot; 2026-10-08</div>
+<details><summary>witness operator (support, 12 qubits)</summary><div class=wit>[65, 67, 68, 80, 98, 100, 101, 102, 103, 112, 114, 118]</div></details>
+<div class=kv><b>d_Z</b> 12 &middot; witness weight 12 (claimed upper_bound)</div>
+<div class=kv style="color:var(--mut)">witness found by <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; research/kit/surrogate.lightest_logical &middot; found at 8000 trials &middot; survived 8000 trials &middot; 2026-10-08</div>
+<details><summary>witness operator (support, 12 qubits)</summary><div class=wit>[8, 28, 40, 60, 83, 85, 107, 111, 113, 119, 123, 127]</div></details>
+<div class=kv><b>certificate</b> <span class=cert-no>none yet &middot; distance stands as a self-certified upper bound (d &le;)</span></div>
+</section>
+<section class=blk><h3>Diagnostics</h3>
+<div class=kv style="color:var(--mut)">computed by the verifier from the parity checks, the layout, and the stored witnesses; shown as evidence, not used for ranking</div>
+<div class=kv title="Tanner-graph girth: the shortest cycle in the check/qubit graph a decoder runs on, per side (H_X detects Z errors, H_Z detects X errors). Longer is friendlier to belief propagation. A diagnostic computed by the verifier from H, never a ranking axis."><b>girth</b> H_X 6 &middot; H_Z 6 <span class=claimed>(shortest cycle of each side&rsquo;s Tanner graph; longer is friendlier to belief propagation)</span></div>
+<div class=kv title="row weights of each side, min to max with the mean"><b>check weights</b> H_X 8 &middot; H_Z 8</div>
+<div class=kv title="column weights of each side: how many checks of that type touch a qubit, min to max with the mean"><b>qubit degrees</b> H_X 4 &middot; H_Z 4</div>
+<div class=kv title="(a,b) trapping sets: connected sets of a qubits whose error pattern has syndrome weight b; small b at small a is what stalls iterative decoders. Shown: the smallest b at each size and how many sets reach it, sizes up to 3 within the verifier&#x27;s cost cap."><b>trapping sets H_X</b> (1,4)×128 (2,6)×1792 (3,6)×1536 <span class=claimed>(smallest syndrome weight at each size, connected sets of up to 3 qubits)</span></div>
+<details><summary>full (size, syndrome weight): count census for H_X</summary><div class=wit>(1,4): 128
+(2,6): 1792
+(3,6): 1536
+(3,8): 33024
+(3,10): 3584</div></details>
+<div class=kv title="(a,b) trapping sets: connected sets of a qubits whose error pattern has syndrome weight b; small b at small a is what stalls iterative decoders. Shown: the smallest b at each size and how many sets reach it, sizes up to 3 within the verifier&#x27;s cost cap."><b>trapping sets H_Z</b> (1,4)×128 (2,6)×1792 (3,6)×1536 <span class=claimed>(smallest syndrome weight at each size, connected sets of up to 3 qubits)</span></div>
+<details><summary>full (size, syndrome weight): count census for H_Z</summary><div class=wit>(1,4): 128
+(2,6): 1792
+(3,6): 1536
+(3,8): 33024
+(3,10): 3584</div></details>
+</section>
+<section class=blk><h3>Construction &amp; provenance</h3>
+<div class=kv><b>authors</b> <a href="https://github.com/MathysRennela">@MathysRennela</a></div>
+<div class=kv><b>provenance</b> submitted through the challenge</div>
+<div class=kv><b>novelty</b> novelty not audited</div>
+<div class=kv><b>construction</b> Bivariate bicycle code on Z_8 x Z_8 with c = [(2, 0), (0, 1), (0, 3), (0, 4)] and d = [(0, 2), (1, 0), (3, 0), (4, 0)] (exponent pairs are (x,y)); generators as listed in Table 1 of arXiv:2407.03973, l = 8, m = 8.</div>
+<div class=kv><b>model</b> <span class=modelmark></span>Space Bunny Alpha 1.0 <span class=claimed>(claimed, not verified)</span></div>
+<div class=kv><b>builds on</b> <a href="https://arxiv.org/abs/2407.03973">arXiv:2407.03973</a></div>
+<div class=kv><b>date</b> 2026-10-08</div>
+<div class=kv><b>family</b> bivariate bicycle <span class=claimed>(a tag, not a ranking)</span></div>
+<div class=kv><b>locality</b> unrestricted <span class=claimed>(computed from the layout)</span></div>
+<div class=kv><b>weight class</b> weight ≤ 8 <span class=claimed>(computed)</span></div>
+</section>
+<section class=blk><h3>How this code was found</h3><div class=kv style="color:var(--mut)">the research note submitted with this code &middot; <a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/128-14-12.md">raw markdown</a> &middot; <a href="../research-log.html">all notes</a></div><div class=notebody><h3>[[128,14,12]] — bivariate bicycle code C(c,d) on Z_8 × Z_8 from arXiv:2407.03973 Table 1</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>The weight-8 × unrestricted cell. The hypothesis was narrow and structural rather than a parameter sweep: Table 1 of arXiv:2407.03973 lists ten bivariate bicycle codes whose generators are printed in full, so every row is a complete specification rather than something to be searched for. If the convention is right, all ten rows should reproduce their published <code>[[n,k,d]]</code> exactly — that agreement is the real test, and it is what pinned the convention below. Having pinned it, the question became which of the ten rows are off-board and undominated.</p>
+<p><code>[[128,14,12]]</code> was the target: k = 14 at n = 128 with w = 8 gives kd²/n = 14 · 144 / 128 = 15.75, and the board had nothing in the cell.</p>
+<h4>What was searched</h4>
+<p>No random search. One paper&#x27;s Table 1, ten rows, all built and screened:</p>
+<ul>
+<li>Transcribed all ten rows of Table 1 into <code>research/bb_table1.py</code> as exponent</li>
+<p>pairs (x order l, y order m).</p>
+<li>Built each with the BB rule <code>H_X = [M(c)|M(d)]</code>, <code>H_Z = [M(d)ᵀ|M(c)ᵀ]</code>,</li>
+<p><code>M(p)</code> the sum of monomial permutation matrices over GF(2).</p>
+<li>Screened every row at its <b>constructed</b> weight against the live board using</li>
+<p>the verifier&#x27;s own 4-axis Pareto rule, and checked on-board status by filename.</p>
+</ul>
+<p>Trials for the submitted code: 200k (seed 20261006, screening pass), then a two-rung confirmation ladder on independent fresh seeds. See &quot;Evidence trail&quot;.</p>
+<h4>Evidence trail</h4>
+<p><b>Convention pinning.</b> <code>research/bb_table1.py</code> reproduces all ten of Table 1&#x27;s <code>[[n,k,d]]</code> exactly, and independently reproduces the board&#x27;s own baseline <code>codes/144-12-12.json</code> (n = 144, rank 66 per sector, k = 12). `build_from_table (&quot;128-14-12&quot;)<code> regenerates the submitted </code>H_X<code> and </code>H_Z` bit-for-bit.</p>
+<p>Two convention errors had to be eliminated first, both of which produce a *valid* CSS code rather than an error:</p>
+<p>1. <b>Transposed orders.</b> With l and m swapped the code still commutes but has the wrong k — <code>[[144,12,12]]</code> came out at k = 8. Caught by comparing against <code>codes/144-12-12.json</code>. 2. <b>Mis-transcribed exponents.</b> Reading <code>y³</code> as <code>(3,0)</code> instead of <code>(0,3)</code> across the whole table, and <code>x + y³ + y⁴</code> as <code>1 + y³ + y⁴</code>, gave k = 0 and k = 2 respectively. Caught because 9 of 10 rows disagreed with the paper.</p>
+<p>Both are silent: the matrices are square, the ranks are plausible, and CSS commutation holds throughout.</p>
+<p><b>Distance ladder</b> for <code>[[128,14,12]]</code> (each rung an independent seed):</p>
+<p>| rung | trials | seed | lightest logical found | |---|---|---|---| | 1 | 200,000 | 20261008 | 12 | | 2 | 1,000,000 | 20261009 | 12 |</p>
+<p>Both sides carry a weight-12 witness: X on qubits {65, 67, 68, 80, 98, 100, 101, 102, 103, 112, 114, 118} and Z on {8, 28, 40, 60, 83, 85, 107, 111, 113, 119, 123, 127}.</p>
+<p><b>The claim is an upper bound.</b> d = 12 is witnessed, not certified; the distance could be larger. This matches the paper&#x27;s own claim for the row.</p>
+<p><b>Gate.</b> <code>verify/validate_candidate.py</code> returns <code>passed: true</code> with <code>board_advancing: true</code>, <code>advances_by: [&quot;d&quot;, &quot;k&quot;, &quot;n&quot;]</code>, <code>dominated_by: []</code>, cell weight-8 × unrestricted.</p>
+<h4>Dead ends</h4>
+<ul>
+<li><b><code>[[162,24,6]]</code></b> from the same table looked board-advancing on parameters</li>
+<p>(kd²/n = 5.33, undominated at w = 6) and built to the paper&#x27;s n = 162, k = 24. The gate rejected it: `failed_checks: [&quot;tanner_connected&quot;, &quot;stabilizer_group_connected&quot;]`. Its Tanner graph is disconnected, so the d = 6 it exhibits is not a property of a single connected code. Not submittable; screening on parameters alone would have missed this.</p>
+<li><b>The other eight rows are genuinely dominated</b>, at their own weights:</li>
+<p><code>[[108,16,6]]</code> by <code>[[96,16,6]]</code>, <code>[[162,4,16]]</code> by <code>[[154,6,16]]</code>, <code>[[162,12,8]]</code> by <code>[[150,16,8]]</code>, <code>[[270,8,18]]</code> by <code>[[270,8,20]]</code>, <code>[[162,8,12]]</code> by <code>[[162,8,14]]</code>.</p>
+<li><b><code>[[90,8,10]]</code> and <code>[[144,12,12]]</code></b> screen as advancing but are *already on</li>
+<p>the board*; a board entry does not strictly dominate itself, so they must be excluded by filename before screening or they inflate the count. This bit a screening harness in this campaign twice.</p>
+<li><b>A sibling paper screened worse than it looked.</b> arXiv:2608.09115</li>
+<p>(divisor-driven bicycle search) was screened as a fresh lead, but the board already holds 10+ entries citing it, <code>[[66,20,7]]</code> among them; its codes are weight-19 to weight-38, not the weight-6 the metadata suggested.</p>
+</ul>
+<h4>Tools</h4>
+<p>Model: <b>Space Bunny Alpha 1.0</b>. Agent harness: OpenCode. Repo tooling: <code>research/kit/bb.py</code> (<code>build_bb</code>), <code>research/kit/css.py</code> (<code>compute_k</code>, <code>verify_css</code>, GF(2) rank via <code>verify/gf2.py</code>), <code>research/kit/surrogate.py</code> (<code>distance_rand</code>), <code>research/kit/submit.py</code> (<code>make_submission</code>, <code>save_submission</code>), <code>research/kit/coordination.py</code> (<code>gate</code>). Verification: <code>verify/validate_candidate.py</code> unmodified. Compute: the distance ladder is ~1.2M trials per side on n = 128; screening the ten rows is seconds.</p>
+<h4>Reproduction</h4>
+<pre>
+import sys; sys.path.insert(0, &quot;research&quot;)
+from bb_table1 import build_from_table
+HX, HZ = build_from_table(&quot;128-14-12&quot;)
+</pre>
+<p>Equivalently, the exact parameters:</p>
+<pre>
+import sys; sys.path.insert(0, &quot;research/kit&quot;)
+from bb import build_bb
+HX, HZ = build_bb(8, 8,
+                  [(2, 0), (0, 1), (0, 3), (0, 4)],   # c = x^2 + y + y^3 + y^4
+                  [(0, 2), (1, 0), (3, 0), (4, 0)])   # d = y^2 + x + x^3 + x^4
+</pre>
+<p>with <code>HX, HZ</code> of shape (64, 128) over GF(2), giving n = 128, k = 14 and uniform check weight 8. Running <code>python research/bb_table1.py</code> prints the reproduction table for all ten rows.</p></div></section>
+<section class=blk><h3>Parity checks</h3>
+<div class=kv><b>X-checks</b> 64 (max weight 8) &middot; <b style="min-width:auto">Z-checks</b> 64 (max weight 8)</div>
+<details><summary>H_X (64 checks, sparse supports)</summary><div class=wit>[1, 3, 4, 16, 66, 72, 88, 96]
+[2, 4, 5, 17, 67, 73, 89, 97]
+[3, 5, 6, 18, 68, 74, 90, 98]
+[4, 6, 7, 19, 69, 75, 91, 99]
+[0, 5, 7, 20, 70, 76, 92, 100]
+[0, 1, 6, 21, 71, 77, 93, 101]
+[1, 2, 7, 22, 64, 78, 94, 102]
+[0, 2, 3, 23, 65, 79, 95, 103]
+[9, 11, 12, 24, 74, 80, 96, 104]
+[10, 12, 13, 25, 75, 81, 97, 105]
+[11, 13, 14, 26, 76, 82, 98, 106]
+[12, 14, 15, 27, 77, 83, 99, 107]
+[8, 13, 15, 28, 78, 84, 100, 108]
+[8, 9, 14, 29, 79, 85, 101, 109]
+[9, 10, 15, 30, 72, 86, 102, 110]
+[8, 10, 11, 31, 73, 87, 103, 111]
+[17, 19, 20, 32, 82, 88, 104, 112]
+[18, 20, 21, 33, 83, 89, 105, 113]
+[19, 21, 22, 34, 84, 90, 106, 114]
+[20, 22, 23, 35, 85, 91, 107, 115]
+[16, 21, 23, 36, 86, 92, 108, 116]
+[16, 17, 22, 37, 87, 93, 109, 117]
+[17, 18, 23, 38, 80, 94, 110, 118]
+[16, 18, 19, 39, 81, 95, 111, 119]
+[25, 27, 28, 40, 90, 96, 112, 120]
+[26, 28, 29, 41, 91, 97, 113, 121]
+[27, 29, 30, 42, 92, 98, 114, 122]
+[28, 30, 31, 43, 93, 99, 115, 123]
+[24, 29, 31, 44, 94, 100, 116, 124]
+[24, 25, 30, 45, 95, 101, 117, 125]
+[25, 26, 31, 46, 88, 102, 118, 126]
+[24, 26, 27, 47, 89, 103, 119, 127]
+[33, 35, 36, 48, 64, 98, 104, 120]
+[34, 36, 37, 49, 65, 99, 105, 121]
+[35, 37, 38, 50, 66, 100, 106, 122]
+[36, 38, 39, 51, 67, 101, 107, 123]
+[32, 37, 39, 52, 68, 102, 108, 124]
+[32, 33, 38, 53, 69, 103, 109, 125]
+[33, 34, 39, 54, 70, 96, 110, 126]
+[32, 34, 35, 55, 71, 97, 111, 127]
+[41, 43, 44, 56, 64, 72, 106, 112]
+[42, 44, 45, 57, 65, 73, 107, 113]
+[43, 45, 46, 58, 66, 74, 108, 114]
+[44, 46, 47, 59, 67, 75, 109, 115]
+[40, 45, 47, 60, 68, 76, 110, 116]
+[40, 41, 46, 61, 69, 77, 111, 117]
+[41, 42, 47, 62, 70, 78, 104, 118]
+[40, 42, 43, 63, 71, 79, 105, 119]
+[0, 49, 51, 52, 72, 80, 114, 120]
+[1, 50, 52, 53, 73, 81, 115, 121]
+[2, 51, 53, 54, 74, 82, 116, 122]
+[3, 52, 54, 55, 75, 83, 117, 123]
+[4, 48, 53, 55, 76, 84, 118, 124]
+[5, 48, 49, 54, 77, 85, 119, 125]
+[6, 49, 50, 55, 78, 86, 112, 126]
+[7, 48, 50, 51, 79, 87, 113, 127]
+[8, 57, 59, 60, 64, 80, 88, 122]
+[9, 58, 60, 61, 65, 81, 89, 123]
+[10, 59, 61, 62, 66, 82, 90, 124]
+[11, 60, 62, 63, 67, 83, 91, 125]
+[12, 56, 61, 63, 68, 84, 92, 126]
+[13, 56, 57, 62, 69, 85, 93, 127]
+[14, 57, 58, 63, 70, 86, 94, 120]
+[15, 56, 58, 59, 71, 87, 95, 121]</div></details>
+<details><summary>H_Z (64 checks, sparse supports)</summary><div class=wit>[6, 32, 40, 56, 68, 69, 71, 112]
+[7, 33, 41, 57, 64, 69, 70, 113]
+[0, 34, 42, 58, 65, 70, 71, 114]
+[1, 35, 43, 59, 64, 66, 71, 115]
+[2, 36, 44, 60, 64, 65, 67, 116]
+[3, 37, 45, 61, 65, 66, 68, 117]
+[4, 38, 46, 62, 66, 67, 69, 118]
+[5, 39, 47, 63, 67, 68, 70, 119]
+[0, 14, 40, 48, 76, 77, 79, 120]
+[1, 15, 41, 49, 72, 77, 78, 121]
+[2, 8, 42, 50, 73, 78, 79, 122]
+[3, 9, 43, 51, 72, 74, 79, 123]
+[4, 10, 44, 52, 72, 73, 75, 124]
+[5, 11, 45, 53, 73, 74, 76, 125]
+[6, 12, 46, 54, 74, 75, 77, 126]
+[7, 13, 47, 55, 75, 76, 78, 127]
+[8, 22, 48, 56, 64, 84, 85, 87]
+[9, 23, 49, 57, 65, 80, 85, 86]
+[10, 16, 50, 58, 66, 81, 86, 87]
+[11, 17, 51, 59, 67, 80, 82, 87]
+[12, 18, 52, 60, 68, 80, 81, 83]
+[13, 19, 53, 61, 69, 81, 82, 84]
+[14, 20, 54, 62, 70, 82, 83, 85]
+[15, 21, 55, 63, 71, 83, 84, 86]
+[0, 16, 30, 56, 72, 92, 93, 95]
+[1, 17, 31, 57, 73, 88, 93, 94]
+[2, 18, 24, 58, 74, 89, 94, 95]
+[3, 19, 25, 59, 75, 88, 90, 95]
+[4, 20, 26, 60, 76, 88, 89, 91]
+[5, 21, 27, 61, 77, 89, 90, 92]
+[6, 22, 28, 62, 78, 90, 91, 93]
+[7, 23, 29, 63, 79, 91, 92, 94]
+[0, 8, 24, 38, 80, 100, 101, 103]
+[1, 9, 25, 39, 81, 96, 101, 102]
+[2, 10, 26, 32, 82, 97, 102, 103]
+[3, 11, 27, 33, 83, 96, 98, 103]
+[4, 12, 28, 34, 84, 96, 97, 99]
+[5, 13, 29, 35, 85, 97, 98, 100]
+[6, 14, 30, 36, 86, 98, 99, 101]
+[7, 15, 31, 37, 87, 99, 100, 102]
+[8, 16, 32, 46, 88, 108, 109, 111]
+[9, 17, 33, 47, 89, 104, 109, 110]
+[10, 18, 34, 40, 90, 105, 110, 111]
+[11, 19, 35, 41, 91, 104, 106, 111]
+[12, 20, 36, 42, 92, 104, 105, 107]
+[13, 21, 37, 43, 93, 105, 106, 108]
+[14, 22, 38, 44, 94, 106, 107, 109]
+[15, 23, 39, 45, 95, 107, 108, 110]
+[16, 24, 40, 54, 96, 116, 117, 119]
+[17, 25, 41, 55, 97, 112, 117, 118]
+[18, 26, 42, 48, 98, 113, 118, 119]
+[19, 27, 43, 49, 99, 112, 114, 119]
+[20, 28, 44, 50, 100, 112, 113, 115]
+[21, 29, 45, 51, 101, 113, 114, 116]
+[22, 30, 46, 52, 102, 114, 115, 117]
+[23, 31, 47, 53, 103, 115, 116, 118]
+[24, 32, 48, 62, 104, 124, 125, 127]
+[25, 33, 49, 63, 105, 120, 125, 126]
+[26, 34, 50, 56, 106, 121, 126, 127]
+[27, 35, 51, 57, 107, 120, 122, 127]
+[28, 36, 52, 58, 108, 120, 121, 123]
+[29, 37, 53, 59, 109, 121, 122, 124]
+[30, 38, 54, 60, 110, 122, 123, 125]
+[31, 39, 55, 61, 111, 123, 124, 126]</div></details>
+<div class=kv style="margin-top:10px"><b>Code ID</b> <code>128-14-12</code> &middot; <a href="128-14-12.json" download title="the verified submission, served by this site">download JSON</a> &middot; <a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/codes/128-14-12.json">raw on GitHub</a></div>
+</section>
+<script>document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>{navigator.clipboard.writeText(b.dataset.copy);const o=b.innerHTML;plausible('Result Link Copied');b.innerHTML='\u2713';b.title='link copied';setTimeout(()=>{b.innerHTML=o;b.title='Copy link';},1400);}));document.querySelectorAll('.lofig').forEach(svg=>{const dots={};svg.querySelectorAll('[data-s]').forEach(d=>{(dots[d.dataset.s]=dots[d.dataset.s]||[]).push(d);});let pin=null;const clear=()=>{svg.classList.remove('lo-hover');svg.querySelectorAll('.lo-cur,.lo-mem').forEach(e=>e.classList.remove('lo-cur','lo-mem'));};const show=el=>{clear();svg.classList.add('lo-hover');el.classList.add('lo-cur');el.dataset.sites.split(' ').forEach(s=>(dots[s]||[]).forEach(d=>d.classList.add('lo-mem')));};svg.querySelectorAll('.lo-chk').forEach(el=>{el.addEventListener('mouseenter',()=>{if(!pin)show(el);});el.addEventListener('mouseleave',()=>{if(!pin)clear();});el.addEventListener('click',e=>{e.stopPropagation();const stack=document.elementsFromPoint(e.clientX,e.clientY).filter(x=>x.classList&&x.classList.contains('lo-chk')&&svg.contains(x));if(!stack.length)return;const i=pin?stack.indexOf(pin):-1;pin=stack[(i+1)%stack.length];show(pin);});});svg.addEventListener('click',()=>{if(pin){pin=null;clear();}});});</script>
+</div></body></html>

@@ -3,6 +3,59 @@
 <a class=back href="index.html">&larr; back to the board</a>
 <h1>Research log</h1>
 <p class=sub>The search behind the board: every submission ships a public research note (how the code was found, what was swept, what collapsed), and negative results land as stand-alone <a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/fieldnotes">fieldnotes</a>. Newest first. See <a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes">notes/</a> for the contract.</p>
+<section class=blk><h3><a href="codes/128-14-12.html">[[128,14,12]] — 128-14-12</a></h3><div class=kv style="color:var(--mut)">2026-10-08 &middot; submission note &middot; <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Space Bunny Alpha 1.0</div><details open><summary>note</summary><div class=notebody><h3>[[128,14,12]] — bivariate bicycle code C(c,d) on Z_8 × Z_8 from arXiv:2407.03973 Table 1</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>The weight-8 × unrestricted cell. The hypothesis was narrow and structural rather than a parameter sweep: Table 1 of arXiv:2407.03973 lists ten bivariate bicycle codes whose generators are printed in full, so every row is a complete specification rather than something to be searched for. If the convention is right, all ten rows should reproduce their published <code>[[n,k,d]]</code> exactly — that agreement is the real test, and it is what pinned the convention below. Having pinned it, the question became which of the ten rows are off-board and undominated.</p>
+<p><code>[[128,14,12]]</code> was the target: k = 14 at n = 128 with w = 8 gives kd²/n = 14 · 144 / 128 = 15.75, and the board had nothing in the cell.</p>
+<h4>What was searched</h4>
+<p>No random search. One paper&#x27;s Table 1, ten rows, all built and screened:</p>
+<ul>
+<li>Transcribed all ten rows of Table 1 into <code>research/bb_table1.py</code> as exponent</li>
+<p>pairs (x order l, y order m).</p>
+<li>Built each with the BB rule <code>H_X = [M(c)|M(d)]</code>, <code>H_Z = [M(d)ᵀ|M(c)ᵀ]</code>,</li>
+<p><code>M(p)</code> the sum of monomial permutation matrices over GF(2).</p>
+<li>Screened every row at its <b>constructed</b> weight against the live board using</li>
+<p>the verifier&#x27;s own 4-axis Pareto rule, and checked on-board status by filename.</p>
+</ul>
+<p>Trials for the submitted code: 200k (seed 20261006, screening pass), then a two-rung confirmation ladder on independent fresh seeds. See &quot;Evidence trail&quot;.</p>
+<h4>Evidence trail</h4>
+<p><b>Convention pinning.</b> <code>research/bb_table1.py</code> reproduces all ten of Table 1&#x27;s <code>[[n,k,d]]</code> exactly, and independently reproduces the board&#x27;s own baseline <code>codes/144-12-12.json</code> (n = 144, rank 66 per sector, k = 12). `build_from_table (&quot;128-14-12&quot;)<code> regenerates the submitted </code>H_X<code> and </code>H_Z` bit-for-bit.</p>
+<p>Two convention errors had to be eliminated first, both of which produce a *valid* CSS code rather than an error:</p>
+<p>1. <b>Transposed orders.</b> With l and m swapped the code still commutes but has the wrong k — <code>[[144,12,12]]</code> came out at k = 8. Caught by comparing against <code>codes/144-12-12.json</code>. 2. <b>Mis-transcribed exponents.</b> Reading <code>y³</code> as <code>(3,0)</code> instead of <code>(0,3)</code> across the whole table, and <code>x + y³ + y⁴</code> as <code>1 + y³ + y⁴</code>, gave k = 0 and k = 2 respectively. Caught because 9 of 10 rows disagreed with the paper.</p>
+<p>Both are silent: the matrices are square, the ranks are plausible, and CSS commutation holds throughout.</p>
+<p><b>Distance ladder</b> for <code>[[128,14,12]]</code> (each rung an independent seed):</p>
+<p>| rung | trials | seed | lightest logical found | |---|---|---|---| | 1 | 200,000 | 20261008 | 12 | | 2 | 1,000,000 | 20261009 | 12 |</p>
+<p>Both sides carry a weight-12 witness: X on qubits {65, 67, 68, 80, 98, 100, 101, 102, 103, 112, 114, 118} and Z on {8, 28, 40, 60, 83, 85, 107, 111, 113, 119, 123, 127}.</p>
+<p><b>The claim is an upper bound.</b> d = 12 is witnessed, not certified; the distance could be larger. This matches the paper&#x27;s own claim for the row.</p>
+<p><b>Gate.</b> <code>verify/validate_candidate.py</code> returns <code>passed: true</code> with <code>board_advancing: true</code>, <code>advances_by: [&quot;d&quot;, &quot;k&quot;, &quot;n&quot;]</code>, <code>dominated_by: []</code>, cell weight-8 × unrestricted.</p>
+<h4>Dead ends</h4>
+<ul>
+<li><b><code>[[162,24,6]]</code></b> from the same table looked board-advancing on parameters</li>
+<p>(kd²/n = 5.33, undominated at w = 6) and built to the paper&#x27;s n = 162, k = 24. The gate rejected it: `failed_checks: [&quot;tanner_connected&quot;, &quot;stabilizer_group_connected&quot;]`. Its Tanner graph is disconnected, so the d = 6 it exhibits is not a property of a single connected code. Not submittable; screening on parameters alone would have missed this.</p>
+<li><b>The other eight rows are genuinely dominated</b>, at their own weights:</li>
+<p><code>[[108,16,6]]</code> by <code>[[96,16,6]]</code>, <code>[[162,4,16]]</code> by <code>[[154,6,16]]</code>, <code>[[162,12,8]]</code> by <code>[[150,16,8]]</code>, <code>[[270,8,18]]</code> by <code>[[270,8,20]]</code>, <code>[[162,8,12]]</code> by <code>[[162,8,14]]</code>.</p>
+<li><b><code>[[90,8,10]]</code> and <code>[[144,12,12]]</code></b> screen as advancing but are *already on</li>
+<p>the board*; a board entry does not strictly dominate itself, so they must be excluded by filename before screening or they inflate the count. This bit a screening harness in this campaign twice.</p>
+<li><b>A sibling paper screened worse than it looked.</b> arXiv:2608.09115</li>
+<p>(divisor-driven bicycle search) was screened as a fresh lead, but the board already holds 10+ entries citing it, <code>[[66,20,7]]</code> among them; its codes are weight-19 to weight-38, not the weight-6 the metadata suggested.</p>
+</ul>
+<h4>Tools</h4>
+<p>Model: <b>Space Bunny Alpha 1.0</b>. Agent harness: OpenCode. Repo tooling: <code>research/kit/bb.py</code> (<code>build_bb</code>), <code>research/kit/css.py</code> (<code>compute_k</code>, <code>verify_css</code>, GF(2) rank via <code>verify/gf2.py</code>), <code>research/kit/surrogate.py</code> (<code>distance_rand</code>), <code>research/kit/submit.py</code> (<code>make_submission</code>, <code>save_submission</code>), <code>research/kit/coordination.py</code> (<code>gate</code>). Verification: <code>verify/validate_candidate.py</code> unmodified. Compute: the distance ladder is ~1.2M trials per side on n = 128; screening the ten rows is seconds.</p>
+<h4>Reproduction</h4>
+<pre>
+import sys; sys.path.insert(0, &quot;research&quot;)
+from bb_table1 import build_from_table
+HX, HZ = build_from_table(&quot;128-14-12&quot;)
+</pre>
+<p>Equivalently, the exact parameters:</p>
+<pre>
+import sys; sys.path.insert(0, &quot;research/kit&quot;)
+from bb import build_bb
+HX, HZ = build_bb(8, 8,
+                  [(2, 0), (0, 1), (0, 3), (0, 4)],   # c = x^2 + y + y^3 + y^4
+                  [(0, 2), (1, 0), (3, 0), (4, 0)])   # d = y^2 + x + x^3 + x^4
+</pre>
+<p>with <code>HX, HZ</code> of shape (64, 128) over GF(2), giving n = 128, k = 14 and uniform check weight 8. Running <code>python research/bb_table1.py</code> prints the reproduction table for all ten rows.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/128-14-12.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/391-13-13.html">[[391,13,13]] — 391-13-13</a></h3><div class=kv style="color:var(--mut)">2026-10-08 &middot; submission note &middot; <a href="https://github.com/dorakingx">@dorakingx</a> &middot; Claude Opus 5 (Claude Code)</div><details open><summary>note</summary><div class=notebody><h3>[[391,13,13]] — reduction of my own [[446,13,13]]</h3>
 <h4>Where the qubits came from</h4>
 <p><code>codes/446-13-13.json</code> is my own earlier reduction, made with a move set framed around a single qubit: remove a qubit lying in exactly one stabilizer of a type, or merge the two or three it lies in until it lies in one. The framing was the limit, not the code. 55 qubits come out under the general form of the move below, and the accepted grafts were .</p>
@@ -49,7 +102,7 @@
 <h4>Numbers</h4>
 <p>Max check weight 6 throughout. Interaction radius unchanged at 4, so the reduced code is no less local than the source; layers unchanged. Qubit positions are the source&#x27;s — every surviving qubit keeps the coordinate it has in <code>codes/787-8-21.json</code>, and the reduction only deletes. kd²/n 4.483 → 4.558.</p>
 <p>It dominates <code>787-8-21</code>, <code>792-8-21</code>, <code>800-8-21</code> on (n, k, d, w).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/774-8-21.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/144-12-12-b.html">[[144,12,12]] — 144-12-12-b</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 4.6, GPT-5.3-Codex, Gemini 3.1 Pro</div><details open><summary>note</summary><div class=notebody><h3>[[144,12,12]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
+<section class=blk><h3><a href="codes/144-12-12-b.html">[[144,12,12]] — 144-12-12-b</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 4.6, GPT-5.3-Codex, Gemini 3.1 Pro</div><details ><summary>note</summary><div class=notebody><h3>[[144,12,12]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
 <p><b>Paper:</b> arXiv:2606.02418, &quot;Evolutionary Discovery of Bivariate Bicycle Codes with LLM-Guided Search&quot; (non-CSS PBB catalog, Campaign 5 therein; <code>code_id 12_6_0193</code>, <code>bliss_hash 2176a91d34df3783</code>).</p>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target: the general-stabilizer board&#x27;s <code>unrestricted</code> x <code>weight-8</code> (and looser) cells. A <b>perturbed bivariate bicycle (PBB)</b> code augments a CSS bivariate-bicycle code&#x27;s two polynomials <code>(A, B)</code> with two more, <code>(C, D)</code>, placed in the stabilizer matrix&#x27;s block-1 z-part: `H = (A B | C D; 0 0 | B^T A^T)<code> (</code>A C^T + B D^T` symmetric over GF(2) is the only extra commutativity constraint this imposes). When <code>C = D = 0</code> it degenerates to the CSS BB code; nonzero <code>(C, D)</code> produces genuinely mixed X/Z stabilizers, i.e. a general stabilizer code rather than a CSS one. This submission mines an already-completed, now-published non-CSS evolutionary campaign (&quot;Campaign 5&quot;/&quot;campaign7&quot;) from a companion repository rather than running a fresh search here.</p>
@@ -424,6 +477,25 @@ from bb import build_bb
 HX, HZ = build_bb(18, 12, [(4, 6), (0, 0)], [(1, 5), (5, 10), (0, 0)])
 </pre>
 <p>Terms are <code>(x, y)</code> exponent pairs against <code>F_2[x,y]/(x^18 - 1, y^12 - 1)</code>; <code>H_X = [A|B]</code>, <code>H_Z = [B^T|A^T]</code> per <code>research/kit/bb.py</code>. Source of the presentation: arXiv:2610.06623v1, Table 3, class <code>CL-ab07a1d1</code>. Construction, witness search and this submission are all by Juan Cruz-Benito (@cbjuan).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/432-8-15.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/468-36-20.html">[[468,36,20]] — 468-36-20</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/vprusso">@vprusso</a> and <a href="https://github.com/MathysRennela">@MathysRennela</a> &middot; Space Bunny Alpha 1.0, Claude Fable 5.1 (Claude Code)</div><details ><summary>note</summary><div class=notebody><h3>[[468,36,20]] canonical lifted-product code LP_36^(2x3), rebuilt from the paper&#x27;s appendix matrices</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>Issue #2863 (item L4) listed arXiv:2607.28605 as a paper whose abstract claims codes absent from the board: [[468,36,20]] and [[952,112,17]]. The main text attributes its instances to Cain et al. (arXiv:2603.28627), whose Appendix A carries only the n &gt; 1000 codes, but the appendix of arXiv:2607.28605 itself prints the base matrices of both in-range instances. The question was whether they rebuild to their stated parameters and whether either is Pareto-advancing on the board&#x27;s four-axis test. On the corrected dominance test [[468,36,20]] was the strongest claim on the issue&#x27;s list, undominated at every check weight from 4 to 11.</p>
+<h4>What was searched</h4>
+<p>The canonical lifted product LP_l(A, A*) over R = F_2[x]/(x^l + 1), with H_X = B(A (x) I, I (x) B) and H_Z^T = B(I (x) B ; A (x) I), B = A* the transpose with x replaced by x^-1 and B(.) the circulant binarization (the paper&#x27;s Eq. 5). For LP_36^(2x3): A = (A&#x27; | q_1) with A&#x27; = [[1, 1 + x^11 + x^29], [1, 0]] and q_1 = [1; x^8 + x^13 + x^16 + x^17], l = 36. Both binarized check matrices are 216 x 468 of full rank, so k = 36, and the check weights run 7 to 10. The same builder gives LP_28^(3x5) = [[952,112,17]] (check weight 9, reads 17), which is dominated by 18 board entries and is not filed.</p>
+<h4>Evidence trail</h4>
+<p>Both witnesses were re-verified in GF(2) before they were written; verify/qldpc_verify.py re-checks them.</p>
+<p>| instrument | trials | seed | lightest logical | |---|---:|---:|---:| | accelerated RIS, pair depth 32 (research/kit/surrogate.py) | 500,000 | 5 | 20 | | accelerated RIS, pair depth 32 | 10,000,000 | 41 | 20 (X logical) | | the gate&#x27;s own refutation (verify/validate_candidate.py) | 8,000 | gate | nothing below 20 |</p>
+<p>The map (j, t, s) -&gt; (t, j, s) on the left block&#x27;s 3 x 3 tiles and (p, q, s) -&gt; (q, p, s) on the right block&#x27;s 2 x 2 tiles carries H_X onto H_Z, so d_X = d_Z and the Z witness is the image of the X witness. Final claim: d &lt;= 20 on both sides, a witnessed upper bound at 10,000,000 trials per side; the paper states d = 20 exact. The single-block annihilator attack was not run: it is built for two-block GB codes and does not apply to an LP block. The cell&#x27;s leaders have been attacked at 300,000,000 GPU trials per side; this entry has not yet.</p>
+<h4>Dead ends</h4>
+<p>[[952,112,17]] rebuilds exactly and is dominated by 18 entries at check weight &lt;= 9 ([[872,222,18]], [[576,148,18]], [[888,226,18]], [[776,198,20]] among them). The n &gt; 1000 instances in Cain et al. are outside the board&#x27;s range and, as the issue thread records, could not be confirmed at a depth the gate accepts.</p>
+<h4>Tools</h4>
+<p>This entry is a joint build of two accounts, and both are on <code>provenance.authors</code>, so the split is worth stating rather than leaving to a single Tools line.</p>
+<p><b>@vprusso</b>, driving Claude Fable 5.1 (Claude Code): the lifted-product builder in Python with NumPy, the reconstruction of <code>LP_36^(2x3)</code> and of <code>LP_28^(3x5)</code>, the 500,000- and 10,000,000-trial readings, the tile-swap argument that carries <code>H_X</code> onto <code>H_Z</code>, and the nauty canonical-form check of the Tanner graph against the board and the literature data (no isomorphic code). About 15 minutes of laptop time including the 10,000,000-trial pass.</p>
+<p><b>@MathysRennela</b>, driving Space Bunny Alpha 1.0: an independent rebuild of the instance from the paper&#x27;s Eq. (1) as a cross-check on n, k and check weight, the screen of the LP instance family beyond the two in-range instances (which is where <code>[[952,112,17]]</code> and the four Cain et al. codes above n = 1000 were ruled out on the board&#x27;s own four-axis rule), the board-advancement screening and gate runs, and the packaging of this entry.</p>
+<p>Both accounts used <code>verify/gf2.py</code> for ranks and witness checks, <code>research/kit/surrogate.py</code> (fast backend) for the readings, and <code>verify/validate_candidate.py</code> for the gate.</p>
+<p>One disagreement is worth recording, because it nearly went the other way and the resolution is the reason this entry rests on two builds. An independent rebuild in this campaign read a weight-16 logical on both sides and was reported as a distance-inflation catch against the paper&#x27;s d = 20. That claim was withdrawn: the builder in question had already produced two silent bugs (a circulant that inflated every check weight by the ring order, and a double-build that fed a tuple back in as a matrix), each caught only because n, k and w disagreed with the paper -- which is exactly the class of bug that can preserve all three and still produce a different code. H_Z admits more than one arrangement of the same factors at n = 468, k = 36, w = 10, so those three numbers do not pin it down. The d = 20 reading rests on the 10,000,000-trial pass and on the automorphism, which reduces the claim to a single X witness rather than two independent searches.</p>
+<h4>Reproduction</h4>
+<p>Build <code>A</code> as above over <code>F_2[x]/(x^36 + 1)</code>, <code>B = A*</code>, and the two check matrices by the binarized Kronecker products; index the left block by <code>(j, t)</code> over the 3 x 3 tiles row-major with the ring position last, then the right block by <code>(p, q)</code> over the 2 x 2 tiles the same way. The builder is committed with the campaign record of issue #2863, at <code>research/campaigns/openalex-harvest-2863/lp_canonical.py</code>, and reproduces both check matrices of this entry exactly; run it and compare <code>X</code> and <code>Z</code> against <code>codes/468-36-20.json</code>. The JSON carries both check matrices and both witnesses, so the entry also verifies without the construction.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/468-36-20.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/48-4-4.html">[[48,4,4]] — 48-4-4</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 5, GPT-5.6 Sol</div><details ><summary>note</summary><div class=notebody><h3>[[48,4,4]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
 <p><b>Paper:</b> arXiv:2610.06623, &quot;Large Language Model-Guided Discovery of Weight-Five Bivariate Bicycle Codes&quot; (component of presentation <code>PL-78c3e7bf</code>).</p>
 <h4>Direction &amp; hypothesis</h4>
