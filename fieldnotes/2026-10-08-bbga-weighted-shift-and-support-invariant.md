@@ -10,7 +10,11 @@ Item L7 of issue #2863. Chaobin Liu, *Bivariate Bicycle Codes over Group
 Algebras*, arXiv:2609.36213 (2026-09-28), gives a weighted-shift
 formulation of bicycle codes over `F_2[G]` and a permutation-inequivalence
 certificate. The issue's "done when" was a generator or a written finding;
-this note records both, and that neither produces a new board entry.
+this note records both, and that neither produces a new board entry. The
+S1 reading pass in `fieldnotes/2026-10-07-openalex-harvest-reconstructions.md`
+already rebuilt the C3 instance and recorded the verdict that the paper
+publishes a complete construction; this note takes the other four instances,
+the digest pin, the invariant as a tool, and the sweep.
 
 ## What the paper claims against what the board holds
 
