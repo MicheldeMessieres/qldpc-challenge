@@ -19,6 +19,13 @@ A group is given as a multiplication table ``mul`` (N x N int array,
 ``mul[i, j]`` = index of g_i * g_j) with the identity at index 0. Build one
 from permutation generators with ``perm_group``, or use the helpers
 (``cyclic_product``, ``dihedral``, ``metacyclic``, ``sym``, ``alt``).
+
+The second half of the module is the weighted-shift generalization of
+arXiv:2609.36213 (bivariate bicycle codes over group algebras, "BBGA"):
+``build_bbga`` takes two commuting shifts on p x q blocks of |G| qubits whose
+labels are arbitrary elements of F_2[G], and any bivariate polynomial pair
+(A, B) in them. ``PAPER_INSTANCES`` rebuilds that paper's five examples; the
+A4 x C6 [[144,16,12]] one reproduces the paper's SHA-256 matrix digests.
 """
 import numpy as np
 
@@ -168,6 +175,161 @@ def build_2bga(mul, a, b):
     HX = np.concatenate([La, Rb], axis=1).astype(np.int8)
     HZ = np.concatenate([Rb.T, La.T], axis=1).astype(np.int8)
     return HX, HZ
+
+
+# ----------------------------------------------------------------------
+#  Weighted-shift bivariate bicycle codes over F_2[G]   (arXiv:2609.36213)
+# ----------------------------------------------------------------------
+# Qubits sit on p*q blocks of |G| each, block (i, j) at offset (i*q + j)*|G|.
+# Two "weighted cyclic shifts":
+#   P : block (i, j) -> (i+1, j), acting as rho(a_i) = sum_{g in a_i} R(g)
+#   Q : block (i, j) -> (i, j+1), acting as lambda(b_j) = sum_{g in b_j} L(g)
+# with seeds a_i, b_j arbitrary elements of F_2[G] (lists of element indices,
+# so a seed may be a SUM of group elements, not just one). Left and right
+# multiplication commute, hence PQ = QP for any seeds, and for any bivariate
+# polynomials A = sum P^u Q^v, B = sum P^u Q^v the pair
+#   H_X = [A | B],  H_Z = [B^T | A^T]
+# is CSS. p = q = 1 with monomials A = P, B = Q is the plain 2BGA above with
+# the paper's side convention (rho on the left block). The paper's Prop. 3.1:
+# when every seed is a single group element and <P, Q> is transitive, the
+# code is permutation-equivalent to an ABELIAN 2BGA -- so the design axis
+# that is new here is multi-element seeds (and intransitive shifts, which
+# give direct sums the board's connectivity check rejects).
+
+def reorder(mul, elems, key=None):
+    """Relabel a Cayley table so ``elems`` are sorted (by ``key`` if given).
+
+    The identity must sort first; asserted.
+    """
+    order = sorted(range(len(elems)), key=(lambda i: key(elems[i])) if key else (lambda i: elems[i]))
+    assert order[0] == 0, "identity must stay at index 0 after reordering"
+    inv = np.empty(len(order), dtype=np.int64)
+    inv[order] = np.arange(len(order))
+    return inv[np.asarray(mul)[np.ix_(order, order)]], [elems[i] for i in order]
+
+
+def word(mul, *gs):
+    """Product g_1 g_2 ... g_m of element indices, left to right."""
+    r = 0
+    for g in gs:
+        r = int(mul[r, g])
+    return r
+
+
+def weighted_shifts(mul, a_seeds, b_seeds):
+    """Build the commuting shifts (P, Q) for seeds ``a_seeds`` (length p) and ``b_seeds`` (length q).
+
+    Each seed is a list of element indices (its support in F_2[G]). Returns
+    int8 arrays of shape (p*q*|G|, p*q*|G|).
+    """
+    p, q, N0 = len(a_seeds), len(b_seeds), mul.shape[0]
+    N = p * q * N0
+
+    def blk(i, j):
+        s = ((i % p) * q + (j % q)) * N0
+        return slice(s, s + N0)
+
+    P = np.zeros((N, N), dtype=np.int8)
+    Q = np.zeros((N, N), dtype=np.int8)
+    for i in range(p):
+        for j in range(q):
+            P[blk(i, j), blk(i + 1, j)] = block(mul, a_seeds[i], "R")
+            Q[blk(i, j), blk(i, j + 1)] = block(mul, b_seeds[j], "L")
+    return P, Q
+
+
+def shift_poly(P, Q, terms):
+    """Evaluate sum_{(u, v) in terms} P^u Q^v over GF(2)."""
+    N = P.shape[0]
+    P64, Q64 = P.astype(np.int64), Q.astype(np.int64)
+    Pp, Qp = [np.eye(N, dtype=np.int64)], [np.eye(N, dtype=np.int64)]
+    for _ in range(max(u for u, _ in terms)):
+        Pp.append((Pp[-1] @ P64) % 2)
+    for _ in range(max(v for _, v in terms)):
+        Qp.append((Qp[-1] @ Q64) % 2)
+    M = np.zeros((N, N), dtype=np.int64)
+    for u, v in terms:
+        M += (Pp[u] @ Qp[v]) % 2
+    return (M % 2).astype(np.int8)
+
+
+def build_bbga(mul, a_seeds, b_seeds, A_terms, B_terms):
+    """Build the BBGA code from a Cayley table, shift seeds and the exponent sets of A and B.
+
+    ``A_terms`` and ``B_terms`` are lists of ``(u, v)`` for P^u Q^v. Returns
+    HX, HZ int8 of shape (p*q*|G|, 2*p*q*|G|). CSS guaranteed.
+    """
+    P, Q = weighted_shifts(mul, a_seeds, b_seeds)
+    A, B = shift_poly(P, Q, A_terms), shift_poly(P, Q, B_terms)
+    HX = np.concatenate([A, B], axis=1).astype(np.int8)
+    HZ = np.concatenate([B.T, A.T], axis=1).astype(np.int8)
+    return HX, HZ
+
+
+# --- the paper's instances -------------------------------------------------
+# SHA-256 of the A4 x C6 matrices as row-major uint8 bytes, from the paper's
+# Appendix A. Matching them pins every convention above (group order,
+# composition direction, which side each shift multiplies on) to the paper.
+A4C6_DIGESTS = {
+    "HX": "cc050e8ec7b466b3b9d8b4ee26e0be0645c4243abe865b4596c20192ffa8d914",
+    "HZ": "6c0c76415529174c6a0cb9e139e033e09a5b5044935c6a032acd0a091f44ccd3",
+}
+
+
+def _a4c6_shifts():
+    """A4 x C6 in the paper's order.
+
+    h t^u sits at index 6 j + u, h the j-th even permutation of {0,1,2,3} in
+    lexicographic order, t central of order 6.
+    """
+    mul4, el4 = reorder(*perm_group([(1, 2, 0, 3), (1, 0, 3, 2)], 4))
+    mul, _ = direct_product(mul4, cyclic_product(6)[0])
+    x, y, t = el4.index((1, 2, 0, 3)) * 6, el4.index((1, 0, 3, 2)) * 6, 1
+
+    def w(*g):
+        return word(mul, *g)
+
+    a = [w(t, t, t, t, t), w(x, t), w(x, y, x, t, t, t, t), w(y, x, y, t, t)]
+    b = [0, w(x, y, x, x, t, t, t, t, t), w(y, x, y, t, t, t, t), w(y, x, x, t)]
+    return mul, [a], [b]
+
+
+def _d3_shifts():
+    """D3 = <r, s | r^3 = s^2 = e, srs = r^-1>, seeds a = (e, e, s), b = (e, e, e, r)."""
+    mul, el = dihedral(3)
+    r, s = el.index((1, 2, 0)), el.index((0, 2, 1))
+    return mul, [[0], [0], [s]], [[0], [0], [0], [r]]
+
+
+def _c3_weighted_shifts():
+    """C3 = <r>, weighted seeds a = (e, e, c), b = (c) with c = r + r^2."""
+    mul, _ = cyclic_product(3)
+    c = [1, 2]
+    return mul, [[0], [0], c], [c]
+
+
+PAPER_INSTANCES = {
+    # name: (shifts, A terms, B terms, (n, k, claimed d), note)
+    "a4c6-144-16-12": (_a4c6_shifts, [(1, 0)], [(0, 1)], (144, 16, 12),
+                       "Eqs. (15)-(16); d = 12 exhaustively certified in the paper; "
+                       "not permutation-equivalent to any abelian BB/2BGA (Thm 4.3)"),
+    "d3-144-12-12": (_d3_shifts, [(0, 3), (1, 0), (2, 0)], [(3, 0), (0, 1), (0, 2)],
+                     (144, 12, 12), "Eq. (11): the gross code, <P,Q> = Z_6 x Z_12"),
+    "d3-144-14-14": (_d3_shifts, [(4, 6), (4, 5), (0, 3), (3, 11)],
+                     [(5, 0), (1, 8), (5, 5), (4, 9)], (144, 14, 14),
+                     "Eqs. (12)-(13): weight-8 abelian BB (arXiv:2511.13560 cover)"),
+    "d3-144-16-le12": (_d3_shifts, [(4, 0), (0, 2), (0, 3), (1, 1)],
+                       [(2, 0), (3, 0), (0, 1), (5, 5)], (144, 16, 12),
+                       "Eq. (14): abelian realization, d <= 12 (upper bound only)"),
+    "c3w-18-4-3": (_c3_weighted_shifts, [(2, 0), (0, 1)], [(2, 0), (1, 1), (2, 1)],
+                   (18, 4, 3), "Eqs. (18)-(20): weighted seeds, outside the 2BGA class (Thm 5.2)"),
+}
+
+
+def build_paper_instance(name):
+    shifts, A_terms, B_terms, _, _ = PAPER_INSTANCES[name]
+    mul, a, b = shifts()
+    return build_bbga(mul, a, b, A_terms, B_terms)
 
 
 if __name__ == "__main__":
