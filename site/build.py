@@ -2970,7 +2970,12 @@ def detail_page(e):
                 kind = {"permutation": "qubit permutation", "H": "H on every "
                         "qubit", "S": "S on every qubit",
                         "CX": "CX between two blocks (control unprimed, "
-                        "target primed)"}[g["gate"]]
+                        "target primed)",
+                        "match": "W<=2 diagonal layer"}[g["gate"]]
+                if g["gate"] == "match" and "clifford" in g:
+                    ent = "CZ" if g["clifford"] == "S" else "CZ#"
+                    kind = (f"{g['clifford']} on {g.get('support_size')} "
+                            f"qubits with {ent} on {g.get('pairs')} pairs")
                 if g["gate"] != "permutation" and \
                         not g.get("permutation_trivial", True):
                     kind += " with a qubit permutation"

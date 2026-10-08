@@ -29,6 +29,34 @@ The submitter supplies the logical basis the claim is written in
 pairing) and the verifier checks that basis first, so a claim cannot rest on
 operators that are not logicals of this code. Nothing here ranks: a verified
 gate is a listed property, a wrong claim fails verification.
+
+Stage 2 (issue #2894) adds the `match` type: a W <= 2 diagonal layer, S on a
+subset `support` of the qubits together with CZ on a disjoint `pairs`
+matching (clifford "S"), or its Hadamard mirror, SHS on the subset with
+CZ# = (H x H) CZ (H x H) on the matching (clifford "SHS"). The S family is
+Z-diagonal and fixes every Z check exactly; the SHS family is X-diagonal
+and fixes every X check. On the other side the GF(2) image of a check row
+a is a itself plus a Z-part (a AND 1_support) XOR (P a), with P the
+adjacency matrix of the matching, and that part must lie in the opposite
+row space. The phase the GF(2) image cannot see has two sources: S sends
+X_q to i X_q Z_q, one factor of i per supported qubit of a, and CZ sends
+X_i X_j on a matched pair inside a to X_i Z_j X_j Z_i = -X_i X_j Z_i Z_j,
+one factor of -1 per pair inside a. The image is +1 times a stabilizer iff
+
+    |a AND support| + 2 #{(i, j) in pairs : a_i = a_j = 1}  ==  0  (mod 4),
+
+which reduces to the uniform-S rule |a| == 0 (mod 4) when the support is
+every qubit and there are no pairs. SHS sends Z_q to i X_q Z_q and CZ#
+sends Z_i Z_j to -X_i X_j Z_i Z_j, so the SHS rule is the same count on the
+Z-check rows; HSH, which sends Z_q to -i X_q Z_q, satisfies the same
+congruence because 2p == -2p (mod 4). Checked against dense conjugation on
+[[4,2,2]], the weight-6 [[6,4,2]] test code, and the Steane code (every
+support, every matching) in test_transversal_gates.py.
+
+`computed["action"]` in the report is the claim as the verifier accepted
+it (sorted), not an independent recomputation: it is only populated when
+the induced action matched the claim modulo stabilizers, so it is safe to
+display and useless as an oracle for filling in a claim.
 """
 
 import re
@@ -37,7 +65,8 @@ import numpy as np
 
 import gf2
 
-GATES = ("permutation", "H", "S", "CX")
+GATES = ("permutation", "H", "S", "CX", "match")
+MATCH_CLIFFORDS = ("S", "SHS")
 _LABEL = re.compile(r"^([XZ])([0-9]+)('?)$")
 
 
@@ -121,11 +150,25 @@ def _generator_labels(k, blocks):
             for p in ("X", "Z") for i in range(k)]
 
 
-def _image(gate, pinv, p, X, Z, blocks):
+def _image(gate, pinv, p, X, Z, blocks, match=None):
     """Symplectic image of the operators whose x- and z-parts are the rows of
     X and Z, each of shape (m, blocks, n). Qubit i is sent to p[i], so a
     support vector v becomes v[pinv] (v'[p[i]] = v[i]); the Clifford acts
-    after the permutation, and being uniform it commutes with it anyway."""
+    after the permutation, and being uniform it commutes with it anyway.
+    For `match`, `match` is (clifford, indicator, P): S on the indicated
+    qubits and CZ on the matching P send X^x to X^x Z^{(x & ind) ^ P x};
+    SHS and CZ# send Z^z to X^{(z & ind) ^ P z} Z^z (no permutation)."""
+    if gate == "match":
+        clifford, ind, P = match
+        if clifford == "S":
+            extra = ((X[:, 0] & ind) ^ ((X[:, 0] @ P) % 2)).astype(np.int8)
+            Z2 = Z.copy()
+            Z2[:, 0] ^= extra
+            return X, Z2
+        extra = ((Z[:, 0] & ind) ^ ((Z[:, 0] @ P) % 2)).astype(np.int8)
+        X2 = X.copy()
+        X2[:, 0] ^= extra
+        return X2, Z
     if gate == "CX":
         # control block 0, target block 1: X_i -> X_i X'_{p[i]},
         # Z'_{p[i]} -> Z_i Z'_{p[i]}, Z on the control and X on the target
@@ -142,6 +185,54 @@ def _image(gate, pinv, p, X, Z, blocks):
     return Xp, Zp
 
 
+def _match_errors(g, idx, n):
+    """([errors], (clifford, indicator, P)) for a `match` claim: the
+    clifford names the family, `support` lists distinct qubits below n, and
+    `pairs` is a matching (distinct endpoints, no qubit in two pairs, every
+    endpoint below n). The matching condition is what makes the layer
+    W <= 2 and what the phase count assumes."""
+    errs = []
+    clifford = g.get("clifford")
+    if clifford not in MATCH_CLIFFORDS:
+        errs.append(f"gates[{idx}].clifford must be one of "
+                    f"{list(MATCH_CLIFFORDS)}")
+    support = g.get("support")
+    pairs = g.get("pairs")
+    if not isinstance(support, list) or not isinstance(pairs, list):
+        errs.append(f"gates[{idx}] (match) needs `support` and `pairs` "
+                    f"lists")
+        return errs, None
+    if len(set(support)) != len(support) or any(
+            not isinstance(q, int) or q < 0 or q >= n for q in support):
+        errs.append(f"gates[{idx}].support must list distinct qubit indices "
+                    f"below n={n}")
+    seen = set()
+    for pr in pairs:
+        if (not isinstance(pr, list) or len(pr) != 2 or
+                any(not isinstance(q, int) or q < 0 or q >= n for q in pr)):
+            errs.append(f"gates[{idx}].pairs entries must be two distinct "
+                        f"qubit indices below n={n}")
+            break
+        i, j = pr
+        if i == j or i in seen or j in seen:
+            errs.append(f"gates[{idx}].pairs is not a matching: qubit "
+                        f"{i if (i == j or i in seen) else j} appears in two "
+                        f"pairs or is paired with itself")
+            break
+        seen.update(pr)
+    if not support and not pairs:
+        errs.append(f"gates[{idx}] (match) has an empty support and no "
+                    f"pairs: the identity")
+    if errs:
+        return errs, None
+    ind = np.zeros(n, dtype=np.int8)
+    ind[support] = 1
+    P = np.zeros((n, n), dtype=np.int8)
+    for i, j in pairs:
+        P[i, j] = P[j, i] = 1
+    return [], (clifford, ind, P)
+
+
 def _gate_errors(g, idx, n, k, HX, HZ, LX, LZ, red_x, red_z):
     """([preservation errors], [action errors], computed) for one claim."""
     gate = g["gate"]
@@ -149,6 +240,17 @@ def _gate_errors(g, idx, n, k, HX, HZ, LX, LZ, red_x, red_z):
     computed = {"gate": gate, "blocks": blocks, "name": g.get("name"),
                 "verified": False, "action": {}}
     p = g.get("permutation")
+    match = None
+    if gate == "match":
+        merrs, match = _match_errors(g, idx, n)
+        if merrs:
+            return merrs, [], computed
+        computed["clifford"] = match[0]
+        computed["support_size"] = int(match[1].sum())
+        computed["pairs"] = int(match[2].sum() // 2)
+        if p is not None:
+            return ([f"gates[{idx}] (match) does not take a permutation; "
+                     f"file the permutation as its own gate"], [], computed)
     if p is None:
         p = list(range(n))
     if sorted(p) != list(range(n)):
@@ -173,13 +275,13 @@ def _gate_errors(g, idx, n, k, HX, HZ, LX, LZ, red_x, red_z):
     for b in range(blocks):
         SX, SZ = zeros(len(HX)), zeros(len(HX))
         SX[:, b] = HX
-        if not in_group(*_image(gate, pinv, p, SX, SZ, blocks)):
+        if not in_group(*_image(gate, pinv, p, SX, SZ, blocks, match)):
             perrs.append(f"gates[{idx}] ({gate}) maps an X check"
                          f"{' of block ' + str(b) if blocks > 1 else ''} "
                          f"outside the stabilizer group")
         SX, SZ = zeros(len(HZ)), zeros(len(HZ))
         SZ[:, b] = HZ
-        if not in_group(*_image(gate, pinv, p, SX, SZ, blocks)):
+        if not in_group(*_image(gate, pinv, p, SX, SZ, blocks, match)):
             perrs.append(f"gates[{idx}] ({gate}) maps a Z check"
                          f"{' of block ' + str(b) if blocks > 1 else ''} "
                          f"outside the stabilizer group")
@@ -190,6 +292,22 @@ def _gate_errors(g, idx, n, k, HX, HZ, LX, LZ, red_x, red_z):
                          f"not 0 mod 4, so S on every qubit sends them to "
                          f"minus a stabilizer (phase the GF(2) image cannot "
                          f"see)")
+    if gate == "match":
+        clifford, ind, P = match
+        rows, side = (HX, "X") if clifford == "S" else (HZ, "Z")
+        # phase of the image of each check row on the side the layer does
+        # not fix: i^{|a & support|} from the single-qubit gates, (-1) per
+        # matched pair inside the row from the entangler (module docstring)
+        inside = ((rows @ P) * rows).sum(axis=1) // 2
+        count = (rows & ind).sum(axis=1) + 2 * inside
+        bad = [int(i) for i in np.flatnonzero(count % 4)]
+        if bad:
+            perrs.append(f"gates[{idx}] (match, {clifford}): {side} checks "
+                         f"{bad[:4]} pick up a phase of i^k with k = "
+                         f"|check & support| + 2 (matched pairs inside the "
+                         f"check) not 0 mod 4, so the layer sends them to a "
+                         f"stabilizer times -1 or +-i and leaves the code "
+                         f"space (phase the GF(2) image cannot see)")
 
     # action: image of each logical generator against the claim
     labels = _generator_labels(k, blocks)
@@ -222,7 +340,7 @@ def _gate_errors(g, idx, n, k, HX, HZ, LX, LZ, red_x, red_z):
     for lab in labels:
         prod = list(claim.get(lab, [lab]))
         X, Z = vec(lab)
-        IX, IZ = _image(gate, pinv, p, X, Z, blocks)
+        IX, IZ = _image(gate, pinv, p, X, Z, blocks, match)
         for t in prod:
             TX, TZ = vec(t)
             IX ^= TX
@@ -277,6 +395,10 @@ def verify_gates(doc, HX, HZ):
                                           red_x, red_z)
         computed.append(comp)
         what = comp["gate"]
+        if comp["gate"] == "match" and "clifford" in comp:
+            what = (f"{comp['clifford']} on {comp['support_size']} qubits "
+                    f"with {'CZ' if comp['clifford'] == 'S' else 'CZ#'} on "
+                    f"{comp['pairs']} pairs")
         if comp["blocks"] == 2:
             what += " between two blocks"
         if not comp.get("permutation_trivial", True):
