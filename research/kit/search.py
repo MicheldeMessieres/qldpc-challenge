@@ -30,7 +30,8 @@ import numpy as np
 from css import compute_k, verify_css, rref
 from surrogate import distance_rand, prepare_distance_search
 from bb import build_bb
-from group_algebra import build_2bga, dihedral, metacyclic
+from group_algebra import (alt, build_2bga, build_bbga, cyclic_product, dihedral,
+                           metacyclic, sym)
 import gf2poly
 from products import (hypergraph_product, lifted_product, balanced_product,
                       sample_hypergraph_product, sample_lifted_product,
@@ -466,6 +467,92 @@ def sample_dihedral(num, *, m_range=(30, 80), weight=4, seed=0):
         b = [int(x) for x in rng.choice(order, size=weight, replace=False)]
         HX, HZ = build_2bga(mul, a, b)
         yield ({"family": "2bga-dihedral", "m": m, "a": a, "b": b}, HX, HZ)
+
+
+def _tanner_connected(HX, HZ):
+    """Is the qubit/check Tanner graph of (HX, HZ) connected? A direct sum is not, and the verifier rejects it."""
+    H = np.concatenate([HX, HZ], axis=0).astype(bool)
+    reached = np.zeros(H.shape[1], dtype=bool)
+    reached[0] = True
+    while True:
+        checks = H[:, reached].any(axis=1)
+        grown = H[checks].any(axis=0) | reached
+        if grown.sum() == reached.sum():
+            return bool(reached.all())
+        reached = grown
+
+
+def bbga_groups(max_order=24):
+    """Return the default seed-group menu for ``sample_bbga``: ``(label, mul)`` pairs of order <= ``max_order``."""
+    menu = [(f"C{m}", cyclic_product(m)[0]) for m in range(2, 13)]
+    menu += [(f"D{m}", dihedral(m)[0]) for m in range(3, 7)]
+    menu += [("A4", alt(4)[0]), ("S4", sym(4)[0]),
+             ("C7x|C3", metacyclic(7, 3, 2)[0]), ("C5x|C4", metacyclic(5, 4, 2)[0])]
+    return [(lab, mul) for lab, mul in menu if mul.shape[0] <= max_order]
+
+
+def sample_bbga(num, *, groups=None, p_range=(1, 4), q_range=(1, 4), seed_terms=2,
+                terms=(2, 4), max_weight=8, max_n=320, seed=0, audit=None):
+    """Yield ``num`` random weighted-shift BBGA candidates (arXiv:2609.36213).
+
+    Rebuild a winner with ``group_algebra.build_bbga`` from the ``spec``:
+    ``{"family": "bbga", "group", "a", "b", "A", "B"}``. ``groups`` is a list
+    of ``(label, mul)`` Cayley tables (default ``bbga_groups()``). Each shift
+    seed is a random sum of 1..``seed_terms`` group elements, with at least
+    one multi-element seed per candidate: when every seed is a single element
+    and <P, Q> is transitive the code is permutation-equivalent to an abelian
+    2BGA (the paper's Prop. 3.1), which ``sample_bb`` already covers. A and B
+    get ``terms`` random distinct monomials P^u Q^v with u < 2p, v < 2q.
+
+    Candidates whose heaviest check exceeds ``max_weight``, whose n exceeds
+    ``max_n``, or whose Tanner graph is disconnected (a direct sum, which the
+    verifier rejects) are skipped and do not count toward ``num``; pass
+    ``audit`` as a dict to receive the skip counts.
+    """
+    rng = np.random.default_rng(seed)
+    groups = groups or bbga_groups()
+    tally = audit if audit is not None else {}
+    for key in ("sampled", "rejected_n", "rejected_w", "rejected_disconnected", "built"):
+        tally.setdefault(key, 0)
+    built = 0
+    while built < num:
+        tally["sampled"] += 1
+        label, mul = groups[int(rng.integers(len(groups)))]
+        order = int(mul.shape[0])
+        p = int(rng.integers(p_range[0], p_range[1] + 1))
+        q = int(rng.integers(q_range[0], q_range[1] + 1))
+        if 2 * p * q * order > max_n:
+            tally["rejected_n"] += 1
+            continue
+
+        def seed_elem():
+            w = int(rng.integers(1, seed_terms + 1))
+            return sorted(int(x) for x in rng.choice(order, size=w, replace=False))
+
+        a = [seed_elem() for _ in range(p)]
+        b = [seed_elem() for _ in range(q)]
+        if all(len(s) == 1 for s in a + b):
+            idx = int(rng.integers(p + q))
+            (a + b)[idx][:] = sorted(int(x) for x in rng.choice(order, size=2, replace=False))
+
+        def monomials():
+            t = int(rng.integers(terms[0], terms[1] + 1))
+            pool = [(u, v) for u in range(2 * p) for v in range(2 * q)]
+            pick = rng.choice(len(pool), size=min(t, len(pool)), replace=False)
+            return sorted(pool[i] for i in pick)
+
+        A, B = monomials(), monomials()
+        HX, HZ = build_bbga(mul, a, b, A, B)
+        w = int(max(HX.sum(1).max(), HZ.sum(1).max()))
+        if w > max_weight:
+            tally["rejected_w"] += 1
+            continue
+        if not _tanner_connected(HX, HZ):
+            tally["rejected_disconnected"] += 1
+            continue
+        tally["built"] += 1
+        built += 1
+        yield ({"family": "bbga", "group": label, "a": a, "b": b, "A": A, "B": B}, HX, HZ)
 
 
 def sample_metacyclic(num, *, order_range=(60, 160), weight=4, seed=0):
