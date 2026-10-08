@@ -1038,7 +1038,7 @@
     },
     "transversalGate": {
       "type": "object",
-      "description": "one claimed transversal logical gate. `gate` is `permutation` (a bare qubit permutation, which must then be given), `H` or `S` (that Clifford on every qubit, composed with the optional permutation), or `CX` (a CX from qubit i of one block, the control, to qubit permutation[i] of a second block, the target; identity pairing when omitted). `logical_action` maps each logical generator label to the list of generator labels whose product it is sent to, checked up to stabilizers only (a logical factor the gate introduces belongs in this list); a generator not listed is claimed fixed. Labels are X0..X{k-1}, Z0..Z{k-1} for the (control) block and X0'..Z{k-1}' for the target block of a CX.",
+      "description": "one claimed transversal logical gate. `gate` is `permutation` (a bare qubit permutation, which must then be given), `H` or `S` (that Clifford on every qubit, composed with the optional permutation), `CX` (a CX from qubit i of one block, the control, to qubit permutation[i] of a second block, the target; identity pairing when omitted), or `match` (issue #2894: a W<=2 diagonal layer, `clifford` S on the qubits of `support` with CZ on the disjoint matching `pairs`, or SHS on the support with CZ# = (H x H) CZ (H x H) on the matching; no permutation). `logical_action` maps each logical generator label to the list of generator labels whose product it is sent to, checked up to stabilizers only (a logical factor the gate introduces belongs in this list); a generator not listed is claimed fixed. Labels are X0..X{k-1}, Z0..Z{k-1} for the (control) block and X0'..Z{k-1}' for the target block of a CX.",
       "required": [
         "gate",
         "logical_action"
@@ -1050,7 +1050,8 @@
             "permutation",
             "H",
             "S",
-            "CX"
+            "CX",
+            "match"
           ]
         },
         "permutation": {
@@ -1060,6 +1061,36 @@
           "items": {
             "type": "integer",
             "minimum": 0
+          }
+        },
+        "clifford": {
+          "enum": [
+            "S",
+            "SHS"
+          ],
+          "description": "match only: the single-qubit gate applied on `support`, which fixes the entangler on `pairs` (S with CZ, both Z-diagonal; SHS with CZ#, both X-diagonal)"
+        },
+        "support": {
+          "type": "array",
+          "description": "match only: the qubits the single-qubit gate acts on (distinct, below n; may be empty when `pairs` is not)",
+          "maxItems": 1000,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "pairs": {
+          "type": "array",
+          "description": "match only: the entangler's qubit pairs, a matching (no qubit in two pairs, endpoints distinct and below n); a qubit may be in both `support` and a pair",
+          "maxItems": 500,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
         "logical_action": {
@@ -1088,18 +1119,64 @@
           "maxLength": 400
         }
       },
-      "if": {
-        "properties": {
-          "gate": {
-            "const": "permutation"
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "gate": {
+                "const": "permutation"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "permutation"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "gate": {
+                "const": "match"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "clifford",
+              "support",
+              "pairs"
+            ],
+            "not": {
+              "required": [
+                "permutation"
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "clifford"
+                  ]
+                },
+                {
+                  "required": [
+                    "support"
+                  ]
+                },
+                {
+                  "required": [
+                    "pairs"
+                  ]
+                }
+              ]
+            }
           }
         }
-      },
-      "then": {
-        "required": [
-          "permutation"
-        ]
-      }
+      ]
     },
     "witnessProvenance": {
       "type": "object",
