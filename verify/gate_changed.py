@@ -18,6 +18,16 @@ size, so a small code gets near-exhaustive coverage and a large one a
 proportionate search; frontier-advancing codes get several independent deep
 seeds (tens of thousands of trials each) before they earn the record.
 
+Stage 1b (audit of 2026-10-08) is the orbit-fold pass,
+heuristic_distance.orbit_fold_refute: symmetries read from the matrices,
+and the lightest logical constant on the orbits of each cyclic subgroup
+searched in the folded code, then re-validated on the full matrices. The
+loop runs in the accelerator when it is built (gf2_fast.fold_rand_witness)
+and in python otherwise, so the stage runs on every path; like stage 1, a
+validated hit settles the verdict and a miss proves nothing. The in-verifier
+quick pass and the weekly sweep run the same fold at a smaller budget
+through refute_check.
+
 The gate prices the DIFF, not just the code (issue #654): each changed file
 is classified against its base-revision counterpart, because what changed
 determines what could newly be over-claimed. A layout-only diff (checks and
@@ -114,6 +124,22 @@ def fast_slices(trials):
 # larger target; everything else gets enough to catch the gross over-claims.
 STRUCT_TRIALS_DEEP = 400_000
 STRUCT_TRIALS_STD = 50_000
+
+# Orbit-fold pass (stage 1b; audit of 2026-10-08). The code's symmetries are
+# read from the matrices and the lightest logical constant on the orbits of
+# each cyclic subgroup is searched in the folded code -- the shape RIS cannot
+# sample and the one 54 board entries were over-stated by (see
+# heuristic_distance.orbit_fold_min_logical). Trials are per folded code and
+# cheap (sub-millisecond: tens to a few hundred columns); the wall-clock cap
+# bounds the pass on entries with many partitions. Measured with the C++
+# loop on the largest board entries (n = 682, k = 172): 10,000 trials in
+# 4-7 s, 50,000 in 15-28 s, and the bound kept tightening with trials (78 ->
+# 66 at 300, 60 at 2,000, 58 at 50,000), so the budgets are set where the
+# wall-clock is still a rounding error against the RIS battery.
+FOLD_TRIALS_DEEP = 50_000
+FOLD_TRIALS_STD = 10_000
+FOLD_SECONDS_DEEP = 300.0
+FOLD_SECONDS_STD = 60.0
 
 
 def map_changed(paths):
@@ -961,13 +987,43 @@ def main(argv):
         # logicals (86+96 of 427 kernel dimensions on the [[682,172]] entry).
         # 52 of the board's 56 circulant GB entries have a mixed-support
         # witness, so a code that survives stage 1 still owes the full battery.
-        ftrials = ftarget = 0
+
+        # STAGE 1b -- orbit-fold pass (audit of 2026-10-08). Pure python, no
+        # accelerator needed, so it runs on every path. It generalises stage 1:
+        # instead of the one restriction "supported on a single block" it
+        # restricts to "constant on the orbits of a cyclic subgroup" for every
+        # symmetry read from the matrices (block shifts, 2-D shifts, affine
+        # multipliers), which is where the lightest logicals of the board's
+        # cyclic entries actually sit -- every 14th qubit of each block on the
+        # [[700,26,100]] filing, weight 50 against a claim the general battery
+        # had passed. Same soundness terms as stage 1: a find counts only after
+        # the lifted vector is re-validated on the full matrices, and a
+        # validated hit settles the verdict. A code with no detected symmetry
+        # reports zero partitions and is left out of the method list.
+        fold_searched = 0
+        fold_trials = 0
+        fold_refuted = False
         if not struct_refuted and cached is None:
+            fold_trials, fold_seconds = ((FOLD_TRIALS_DEEP, FOLD_SECONDS_DEEP) if deep
+                                         else (FOLD_TRIALS_STD, FOLD_SECONDS_STD))
+            fres = H.orbit_fold_refute(doc, seed=seed + 13, trials=fold_trials,
+                                       max_seconds=fold_seconds)
+            fold_searched = fres[3]
+            if fold_searched:
+                results["orbit-fold"] = fres
+                fold_refuted = fres[0]
+            else:
+                fold_trials = 0
+        settled = struct_refuted or fold_refuted
+        ftrials = ftarget = 0
+        if not settled and cached is None:
             # two independent mechanisms; a hit from EITHER (any seed) refutes.
+            # fold_trials=0: stage 1b already ran the fold at a larger budget.
             for si, s in enumerate(seeds):
                 results[f"RIS#{si}"] = H.refute_check(doc, seed=s,
                                                       max_seconds=budget,
-                                                      trials=trials)
+                                                      trials=trials,
+                                                      fold_trials=0)
             # Frontier claims additionally face the accelerated deep search when
             # the extension is built (CI builds it; see Makefile `fast`): ~150x
             # the python trial target in the wall-clock freed by dropping 2 of
@@ -994,6 +1050,12 @@ def main(argv):
             tag = (f"circulant-GB x {struct_trials} (refuted at stage 1; the "
                    f"general battery cannot change a validated refutation and "
                    f"was skipped)")
+        elif fold_refuted:
+            tag = (f"orbit-fold x {fold_searched} partitions @ {fold_trials} "
+                   f"(refuted at stage 1b; the general battery cannot change a "
+                   f"validated refutation and was skipped)")
+            if struct_trials:
+                tag = f"circulant-GB x {struct_trials} + " + tag
         else:
             fast_tag = ""
             if ftrials:
@@ -1007,15 +1069,17 @@ def main(argv):
             # The structural pass is priced on BOTH paths (it is cheap and does
             # not depend on record status), so its tag is appended outside the
             # deep/standard branch -- a standard-path run must still show it ran.
+            if fold_searched:
+                tag = f"orbit-fold x {fold_searched} @ {fold_trials} + " + tag
             if struct_trials:
                 tag = f"circulant-GB x {struct_trials} + " + tag
         tag += f"; diff: {cls}"
         gate = {
             "refuted": bool(hits or circ_hits),
             "seed": seed,
-            "seeds": [] if struct_refuted else seeds,
-            "trials": 0 if struct_refuted else trials,
-            "budget_seconds": 0.0 if struct_refuted else budget,
+            "seeds": [] if settled else seeds,
+            "trials": 0 if settled else trials,
+            "budget_seconds": 0.0 if settled else budget,
             "deep": deep,
             # Trials the fast pass actually completed; equal to fast_target
             # unless the wall-clock cap (fast_seconds) ended it first.
@@ -1023,9 +1087,14 @@ def main(argv):
             "fast_target": ftarget,
             "fast_seconds": FAST_SECONDS if ftrials else 0.0,
             "structural_trials": struct_trials,
+            # Orbit partitions the fold pass searched (0: no symmetry found,
+            # nothing ran) and its per-fold trial budget.
+            "fold_partitions": fold_searched,
+            "fold_trials": fold_trials,
             # Names the mechanism that ended the run early, so a receipt with a
             # short method list is self-explaining rather than looking truncated.
-            "short_circuited_by": "circulant-GB" if struct_refuted else None,
+            "short_circuited_by": ("circulant-GB" if struct_refuted
+                                   else "orbit-fold" if fold_refuted else None),
             "methods": list(results),
             "diff_class": cls,
             "diff_reason": why,

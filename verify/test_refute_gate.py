@@ -425,3 +425,113 @@ def test_fast_pass_wall_clock_cap(monkeypatch):
     fake = FakeGF(hits={1: (len(sup), "Z", sup)})
     monkeypatch.setattr(gc, "GF", fake)
     assert gc._fast_refute(heavy, 7, 10_000, max_seconds=None) == (False, len(sup), None, 10_000)
+
+
+def _fold_fixture_doc(claim):
+    """A cyclic GB code on Z_175 (two 7- and 11-term symbols) whose lightest
+    logicals have weight 40 and are constant on the orbits of the order-5
+    shift -- the shape the general battery passed and the orbit-fold pass
+    exists for. Inline symbols, not a board file (see _synthetic_gb_doc)."""
+    L = 175
+    a, b = (6, 38, 42, 60, 65, 89, 120), (3, 11, 15, 29, 46, 60, 64, 79, 82, 90, 91)
+
+    def circ(sym):
+        M = np.zeros((L, L), dtype=np.int8)
+        for i in range(L):
+            for e in sym:
+                M[i, (e + i) % L] = 1
+        return M
+    A, B = circ(a), circ(b)
+    HX = np.hstack([A, B]).astype(np.int8)
+    HZ = np.hstack([B.T, A.T]).astype(np.int8)
+    n = 2 * L
+
+    def sup(M):
+        return [sorted(int(j) for j in np.nonzero(r)[0]) for r in M]
+
+    def one(v):
+        return sorted(int(j) for j in np.nonzero(v)[0])
+    vx, _ = _heavy_logical(HX, HZ, n, target=claim, seed=1)
+    vz, _ = _heavy_logical(HZ, HX, n, target=claim, seed=2)
+    return {
+        "schema_version": "0.2",
+        "name": f"[[{n},20,{claim}]] synthetic cyclic GB fold fixture",
+        "code_type": "CSS", "n": n, "k": 20,
+        "checks": {"X": sup(HX), "Z": sup(HZ)},
+        "distance": {
+            "d": claim,
+            "X": {"value": claim, "confidence": "upper_bound", "witness": one(vx)},
+            "Z": {"value": claim, "confidence": "upper_bound", "witness": one(vz)},
+        },
+        "provenance": {"authors": ["@test"], "construction": "test fixture",
+                       "date": "2026-01-01"},
+        "family": "generalized-bicycle",
+    }
+
+
+def test_orbit_fold_stage_ordering():
+    """Stage 1b (orbit-fold) runs on every symmetric code, before the general
+    battery, and short-circuits ONLY on a validated hit (audit of 2026-10-08).
+
+      * symmetric and over-claimed by a symmetric logical -> refuted at stage
+        1b (or at stage 1 when the accelerator is built and the single-block
+        search gets there first); either way the battery is skipped;
+      * symmetric and un-beatable -> the fold runs, clears it, and the FULL
+        battery still runs, because a fold miss proves nothing;
+      * no detectable symmetry -> the fold is a no-op, left out of the method
+        list, and the battery runs as before.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    def gate_receipt(doc=None, src=None):
+        dst = os.path.join(ROOT, "codes", "zz-fold-probe.json")
+        if doc is not None:
+            with open(dst, "w") as f:
+                json.dump(doc, f)
+        else:
+            shutil.copy(os.path.join(ROOT, src), dst)
+        try:
+            with tempfile.TemporaryDirectory() as rd:
+                subprocess.run(
+                    [sys.executable, os.path.join(ROOT, "verify", "gate_changed.py"),
+                     "--seed", "0", "--receipt-dir", rd, dst],
+                    cwd=ROOT, capture_output=True, text=True, check=False)
+                rp = os.path.join(rd, "zz-fold-probe.json")
+                if not os.path.exists(rp):
+                    return None
+                return json.load(open(rp))["trusted_validation"]["distance_gate"]
+        finally:
+            if os.path.exists(dst):
+                os.remove(dst)
+
+    g = gate_receipt(doc=_fold_fixture_doc(claim=44))
+    check("fold fixture produced a receipt", g is not None)
+    if g is not None:
+        check("over-claimed symmetric code is refuted", bool(g["refuted"]))
+        check("refuted before the general battery",
+              g.get("short_circuited_by") in ("orbit-fold", "circulant-GB"))
+        if g.get("short_circuited_by") == "orbit-fold":
+            check("orbit-fold is the mechanism that hit", "orbit-fold" in g["methods"])
+            check("partitions were searched", g["fold_partitions"] > 0)
+        check("no general trials were spent", g["trials"] == 0 and not g["seeds"])
+        check("no RIS seed ran", not any(m.startswith("RIS#") for m in g["methods"]))
+
+    g = gate_receipt(doc=_synthetic_gb_doc(claim=1))
+    if g is not None:
+        check("un-beatable symmetric code is not refuted", not g["refuted"])
+        check("the fold ran on it", "orbit-fold" in g["methods"] and g["fold_partitions"] > 0)
+        check("a fold MISS still pays the full battery",
+              any(m.startswith("RIS#") for m in g["methods"]))
+        check("no short circuit on a miss", g.get("short_circuited_by") is None)
+
+    g = gate_receipt(src=os.path.join("verify", "fixtures", "72-6-6.json"))
+    if g is not None:
+        check("code without symmetry skips the fold", "orbit-fold" not in g["methods"])
+        check("fold partitions are zero for it", g["fold_partitions"] == 0)
+        check("its battery runs immediately",
+              any(m.startswith("RIS#") for m in g["methods"]))
+
+    print(f"\n{'ALL PASS' if not _fail else 'FAILURES: ' + ', '.join(_fail)}")
+    assert not _fail, _fail

@@ -866,6 +866,176 @@ CirculantResult circulant_gb_witness_cpp(const GF2Matrix& HX, const GF2Matrix& H
     return res;
 }
 
+
+// =====================================================================
+//  Orbit-fold witness (audit of 2026-10-08; heuristic_distance.orbit_fold_*)
+// =====================================================================
+//
+// The python side folds a code onto the orbits of a symmetry: F = H_opp P is
+// the constraint on orbit coordinates, Lf = L P the anticommutation rows, and
+// weights[j] = |orbit j| so that the weight of a folded vector is the Hamming
+// weight of its lift. This routine is the RIS loop on that small folded code
+// -- the same trials as min_logical_weight_rand_core, scored by the WEIGHTED
+// column sum instead of popcount -- plus exhaustion when the folded kernel is
+// small enough that enumeration is cheaper and exact within the ansatz. For a
+// Pauli fold (pauli_c > 0) the columns are (x | z) over pauli_c orbits and a
+// column pair counts once (a Y is one qubit).
+//
+// Returns the weight and the folded support; the python caller lifts it and
+// re-validates on the full matrices before anything counts, exactly as for
+// every other accelerator proposal.
+
+static int weighted_row_weight(const uint64_t* row, int wpr, const std::vector<int>& wts,
+                               int pauli_c, uint64_t* scratch) {
+    int cols = (int)wts.size();
+    if (pauli_c > 0) {
+        // OR the z half onto the x half: bit j (j < pauli_c) set iff x_j or z_j
+        int wx = (pauli_c + 63) / 64;
+        for (int w = 0; w < wx; ++w) scratch[w] = 0;
+        for (int w = 0; w < wpr; ++w) {
+            uint64_t word = row[w];
+            while (word) {
+                int b = __builtin_ctzll(word);
+                word &= word - 1;
+                int j = w * 64 + b;
+                if (j >= 2 * pauli_c) continue;
+                int q = (j < pauli_c) ? j : j - pauli_c;
+                scratch[q / 64] |= uint64_t(1) << (q % 64);
+            }
+        }
+        int total = 0;
+        for (int w = 0; w < wx; ++w) {
+            uint64_t word = scratch[w];
+            while (word) {
+                int b = __builtin_ctzll(word);
+                word &= word - 1;
+                total += wts[w * 64 + b];
+            }
+        }
+        return total;
+    }
+    int total = 0;
+    for (int w = 0; w < wpr; ++w) {
+        uint64_t word = row[w];
+        while (word) {
+            int b = __builtin_ctzll(word);
+            word &= word - 1;
+            int j = w * 64 + b;
+            if (j < cols) total += wts[j];
+        }
+    }
+    return total;
+}
+
+static int fold_rand_core(const GF2Matrix& K, const GF2Matrix& Lf,
+                          const std::vector<int>& wts, int pauli_c,
+                          int trials, uint64_t seed, int pair_depth,
+                          std::vector<uint64_t>* wit_out) {
+    wit_out->clear();
+    int cols = K.cols_;
+    const int INF = 1 << 30;
+    if (K.rows_ == 0 || Lf.rows_ == 0) return INF;
+    int best = INF;
+    int wpr = std::min(K.wpr_, Lf.wpr_);
+    std::vector<uint64_t> scratch(K.wpr_ + 1), tmp(K.wpr_);
+    auto consider = [&](const uint64_t* row) {
+        int w = weighted_row_weight(row, K.wpr_, wts, pauli_c, scratch.data());
+        if (w <= 0 || w >= best) return;
+        if (row_anticommutes_any(row, Lf, wpr)) {
+            best = w;
+            wit_out->assign(row, row + K.wpr_);
+        }
+    };
+    Xoshiro256 rng(seed);
+    std::vector<int> perm(cols);
+    std::iota(perm.begin(), perm.end(), 0);
+    for (int trial = 0; trial < trials; ++trial) {
+        rng.shuffle(perm);
+        GF2Matrix red = rref_perm(K, perm);
+        int nred = red.rows_;
+        std::vector<int> weights(nred);
+        for (int i = 0; i < nred; ++i) {
+            weights[i] = weighted_row_weight(red.row_ptr(i), red.wpr_, wts, pauli_c,
+                                             scratch.data());
+            consider(red.row_ptr(i));
+        }
+        if (pair_depth > 1 && nred >= 2) {
+            int pd = std::min(pair_depth, nred);
+            std::vector<int> idx(nred);
+            std::iota(idx.begin(), idx.end(), 0);
+            std::partial_sort(idx.begin(), idx.begin() + pd, idx.end(),
+                [&](int a, int b) { return weights[a] < weights[b]; });
+            for (int ii = 0; ii < pd; ++ii)
+                for (int jj = ii + 1; jj < pd; ++jj) {
+                    const uint64_t* ra = red.row_ptr(idx[ii]);
+                    const uint64_t* rb = red.row_ptr(idx[jj]);
+                    for (int w = 0; w < red.wpr_; ++w) tmp[w] = ra[w] ^ rb[w];
+                    consider(tmp.data());
+                }
+        }
+    }
+    return best;
+}
+
+// Exhaustive pass over a small folded kernel (Gray-code walk, one row XOR per
+// step): exact minimum within the ansatz, 2^dim - 1 candidates.
+static int fold_exhaustive(const GF2Matrix& K, const GF2Matrix& Lf,
+                           const std::vector<int>& wts, int pauli_c,
+                           std::vector<uint64_t>* wit_out) {
+    wit_out->clear();
+    const int INF = 1 << 30;
+    int dim = K.rows_;
+    if (dim == 0 || Lf.rows_ == 0) return INF;
+    int best = INF;
+    int wpr = std::min(K.wpr_, Lf.wpr_);
+    std::vector<uint64_t> cur(K.wpr_, 0), scratch(K.wpr_ + 1);
+    uint64_t total = (uint64_t(1) << dim) - 1;
+    for (uint64_t step = 1; step <= total; ++step) {
+        int bit = __builtin_ctzll(step);              // Gray code: flip row `bit`
+        const uint64_t* kr = K.row_ptr(bit);
+        for (int w = 0; w < K.wpr_; ++w) cur[w] ^= kr[w];
+        int w = weighted_row_weight(cur.data(), K.wpr_, wts, pauli_c, scratch.data());
+        if (w <= 0 || w >= best) continue;
+        if (row_anticommutes_any(cur.data(), Lf, wpr)) {
+            best = w;
+            *wit_out = cur;
+        }
+    }
+    return best;
+}
+
+struct FoldResult { int weight; std::vector<uint64_t> witness; int cols; };
+
+FoldResult fold_rand_witness_cpp(const GF2Matrix& F, const GF2Matrix& Lf,
+                                 const std::vector<int>& wts, int pauli_c,
+                                 int trials, uint64_t seed, int pair_depth,
+                                 int exhaustive_dim, int n_threads) {
+    if (n_threads < 1) n_threads = 1;
+    FoldResult res;
+    res.cols = F.cols_;
+    GF2Matrix K = kernel_basis(F);
+    if (K.rows_ > 0 && K.rows_ <= exhaustive_dim) {
+        res.weight = fold_exhaustive(K, Lf, wts, pauli_c, &res.witness);
+        return res;
+    }
+    int per = (trials + n_threads - 1) / n_threads;
+    std::vector<int> results(n_threads, 1 << 30);
+    std::vector<std::vector<uint64_t>> wits(n_threads);
+    std::vector<std::thread> pool;
+    for (int t = 0; t < n_threads; ++t) {
+        uint64_t s = seed + 0x9e3779b97f4a7c15ULL * (uint64_t)(t + 1);
+        pool.emplace_back([&, t, s]() {
+            results[t] = fold_rand_core(K, Lf, wts, pauli_c, per, s, pair_depth, &wits[t]);
+        });
+    }
+    for (auto& th : pool) th.join();
+    res.weight = 1 << 30;
+    for (int t = 0; t < n_threads; ++t)
+        if (results[t] < res.weight) { res.weight = results[t]; res.witness = wits[t]; }
+    return res;
+}
+
+
 int compute_k_cpp(const GF2Matrix& HX, const GF2Matrix& HZ) {
     int n = (HX.rows_ > 0) ? HX.cols_ :
             (HZ.rows_ > 0) ? HZ.cols_ : 0;
@@ -996,6 +1166,37 @@ static py::tuple py_circulant_gb_witness(py::array_t<int8_t> HX_np,
     return py::make_tuple(res.weight, py::str(side), support, res.block_size);
 }
 
+static py::tuple py_fold_rand_witness(py::array_t<int8_t> F_np, py::array_t<int8_t> Lf_np,
+                                      std::vector<int> weights, int pauli_c,
+                                      int trials, uint64_t seed, int pair_depth,
+                                      int exhaustive_dim, int threads) {
+    if (F_np.ndim() != 2 || Lf_np.ndim() != 2)
+        throw std::runtime_error("fold_rand_witness: expected 2D arrays");
+    int cols = (int)F_np.shape(1);
+    if ((int)Lf_np.shape(1) != cols)
+        throw std::runtime_error("fold_rand_witness: F and Lf column counts differ");
+    int ncoord = pauli_c > 0 ? pauli_c : cols;
+    if ((int)weights.size() != ncoord)
+        throw std::runtime_error("fold_rand_witness: weights must have one entry per orbit");
+    if (pauli_c > 0 && cols != 2 * pauli_c)
+        throw std::runtime_error("fold_rand_witness: a Pauli fold has 2*pauli_c columns");
+    auto F = GF2Matrix::from_numpy(F_np);
+    auto Lf = GF2Matrix::from_numpy(Lf_np);
+    FoldResult res;
+    {
+        py::gil_scoped_release release;
+        res = fold_rand_witness_cpp(F, Lf, weights, pauli_c, trials, seed, pair_depth,
+                                    exhaustive_dim, threads);
+    }
+    py::list support;
+    if (!res.witness.empty())
+        for (int c = 0; c < res.cols; ++c)
+            if ((res.witness[c / 64] >> (c % 64)) & 1)
+                support.append(c);
+    if (res.witness.empty()) return py::make_tuple(py::none(), support);
+    return py::make_tuple(res.weight, support);
+}
+
 static int py_compute_k(py::array_t<int8_t> HX_np, py::array_t<int8_t> HZ_np) {
     GF2Matrix HX = (HX_np.size() > 0) ? GF2Matrix::from_numpy(HX_np)
                                        : GF2Matrix(0, (HZ_np.ndim() == 2) ? (int)HZ_np.shape(1) : 0);
@@ -1065,6 +1266,16 @@ PYBIND11_MODULE(gf2_fast, m) {
           py::arg("HX"), py::arg("HZ"),
           py::arg("trials") = 300, py::arg("seed") = 0,
           py::arg("pair_depth") = 8, py::arg("threads") = 8);
+
+    m.def("fold_rand_witness", &py_fold_rand_witness,
+          "Orbit-fold RIS (heuristic_distance.orbit_fold_*): lightest x with F x = 0 "
+          "and Lf x != 0, weight = sum of weights over supp(x) (for pauli_c > 0 the "
+          "columns are (x | z) over pauli_c orbits and a pair counts once); exhaustive "
+          "when the folded kernel has at most exhaustive_dim rows. Returns (weight, "
+          "folded support) or (None, []) -- the caller lifts and re-validates.",
+          py::arg("F"), py::arg("Lf"), py::arg("weights"), py::arg("pauli_c") = 0,
+          py::arg("trials") = 300, py::arg("seed") = 0, py::arg("pair_depth") = 8,
+          py::arg("exhaustive_dim") = 14, py::arg("threads") = 4);
 
     m.def("compute_k", &py_compute_k,
           "Number of logical qubits: n - rank(HX) - rank(HZ).",
