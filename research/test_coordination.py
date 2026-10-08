@@ -15,6 +15,7 @@ is tested to do.
 import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -25,8 +26,15 @@ from coordination import (  # noqa: E402
     RUN_ID_ENV,
     CandidateCollision,
     VerdictCache,
+    _parse,
+    cell_slug,
+    claim,
     content_digest,
     holds_same_candidate,
+    live_claims,
+    prune_claims,
+    read_claim,
+    release,
     run_id,
     staging_dir,
     unique_path,
@@ -456,3 +464,147 @@ def test_the_gate_cli_mode_exits_with_the_verdict(tmp_path, monkeypatch, capsys)
     assert "verdict written to" in out.err
     assert os.path.exists(coordination.verdict_path(path))
     assert coordination._main(["gate"]) == 2
+
+
+# -- advisory cell claims (issue #2314, item 6) ---------------------------
+#
+# A claim is a note, not a lock, and every test below is a consequence of
+# that. The two that matter most are that an expired claim reads as absent
+# (so a session that was killed cannot squat) and that a second session
+# holding the same cell is *reported* rather than refused. A mechanism that
+# blocked would be enforcing something, and the gate is the only thing
+# entitled to enforce.
+
+T0 = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
+
+
+def test_a_claim_records_who_and_when_it_expires(tmp_path):
+    rec = claim("weight-6/unrestricted", campaign="bb-1155", rid="s1",
+                root=str(tmp_path), now=T0, minutes=30)
+    assert rec["cell"] == "weight-6/unrestricted"
+    assert rec["cell_key"] == ["weight-6", "unrestricted"]
+    assert rec["session_id"] == "s1" and rec["campaign"] == "bb-1155"
+    assert _parse(rec["expires_at"]) == T0 + timedelta(minutes=30)
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0) == rec
+
+
+def test_an_expired_claim_reads_as_absent(tmp_path):
+    """The squat case: a killed session must not hold a cell forever."""
+    claim("weight-6/unrestricted", rid="dead", root=str(tmp_path), now=T0,
+          minutes=30)
+    just_before = T0 + timedelta(minutes=29, seconds=59)
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path),
+                      now=just_before) is not None
+    after = T0 + timedelta(minutes=31)
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=after) is None
+    assert live_claims(root=str(tmp_path), now=after) == []
+    assert prune_claims(root=str(tmp_path), now=after) == 1
+    assert os.listdir(tmp_path) == []
+
+
+def test_a_second_session_is_told_whose_claim_it_displaced(tmp_path):
+    """Advisory means reported, never refused."""
+    claim("weight-6/unrestricted", campaign="first", rid="s1",
+          root=str(tmp_path), now=T0, minutes=30)
+    rec = claim("weight-6/unrestricted", campaign="second", rid="s2",
+                root=str(tmp_path), now=T0, minutes=30)
+    assert rec["session_id"] == "s2"
+    assert rec["displaced"]["session_id"] == "s1"
+    assert rec["displaced"]["campaign"] == "first"
+    # No exception, and the incumbent is simply gone: one file per cell.
+    assert len(os.listdir(tmp_path)) == 1
+
+
+def test_reclaiming_your_own_cell_is_not_a_collision(tmp_path):
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0)
+    rec = claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0)
+    assert "displaced" not in rec
+
+
+def test_release_only_works_for_the_holder(tmp_path):
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=30)
+    assert release("weight-6/unrestricted", rid="s2", root=str(tmp_path),
+                   now=T0) is False
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0)
+    assert release("weight-6/unrestricted", rid="s1", root=str(tmp_path),
+                   now=T0) is True
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0) is None
+
+
+def test_release_defaults_to_this_session_not_to_anyone(tmp_path):
+    """A caller that forgets rid= must not get the permissive behaviour."""
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=30)
+    monkey = os.environ.get(RUN_ID_ENV)
+    os.environ[RUN_ID_ENV] = "somebody-else"
+    try:
+        assert release("weight-6/unrestricted", root=str(tmp_path), now=T0) is False
+        assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0)
+    finally:
+        if monkey is None:
+            os.environ.pop(RUN_ID_ENV, None)
+        else:
+            os.environ[RUN_ID_ENV] = monkey
+
+
+def test_releasing_an_expired_claim_reports_nothing_to_release(tmp_path):
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=5)
+    after = T0 + timedelta(minutes=10)
+    assert release("weight-6/unrestricted", rid="s1", root=str(tmp_path),
+                   now=after) is False
+
+
+def test_a_zero_lifetime_claim_is_refused_rather_than_written(tmp_path):
+    """0 would write a claim its own author cannot see."""
+    with pytest.raises(ValueError):
+        claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+              minutes=0)
+    assert os.listdir(tmp_path) == []
+
+
+def test_a_half_written_claim_does_not_break_the_listing(tmp_path):
+    """A session killed mid-write leaves a file no reader may choke on."""
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=30)
+    (tmp_path / "weight-8__unrestricted.json").write_text("{ truncated",
+                                                           encoding="utf-8")
+    assert [c["session_id"] for c in live_claims(root=str(tmp_path), now=T0)] == ["s1"]
+    assert read_claim("weight-8/unrestricted", root=str(tmp_path), now=T0) is None
+
+
+def test_a_claim_from_an_older_version_is_ignored(tmp_path):
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=30)
+    path = tmp_path / "weight-6__unrestricted.json"
+    stale = json.loads(path.read_text(encoding="utf-8"))
+    stale["claim_version"] = 0
+    path.write_text(json.dumps(stale), encoding="utf-8")
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0) is None
+    assert live_claims(root=str(tmp_path), now=T0) == []
+
+
+def test_the_cell_name_is_a_filename_and_not_a_path(tmp_path):
+    """'/' in a cell would otherwise resolve to nothing under claims/."""
+    assert cell_slug("weight-6/unrestricted") == "weight-6__unrestricted"
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0)
+    assert os.listdir(tmp_path) == ["weight-6__unrestricted.json"]
+    with pytest.raises(ValueError):
+        cell_slug("   ")
+
+
+def test_live_claims_are_newest_first_and_skip_the_claims_dir(tmp_path):
+    claim("weight-6/unrestricted", rid="s1", root=str(tmp_path), now=T0,
+          minutes=30)
+    claim("weight-8/unrestricted", rid="s2",
+          root=str(tmp_path), now=T0 + timedelta(minutes=1), minutes=30)
+    (tmp_path / "notes.txt").write_text("not a claim", encoding="utf-8")
+    assert [c["session_id"] for c in live_claims(root=str(tmp_path), now=T0)] == ["s2", "s1"]
+
+
+def test_reading_claims_in_a_missing_directory_is_empty_not_an_error(tmp_path):
+    assert live_claims(root=str(tmp_path / "nope"), now=T0) == []
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path / "nope"),
+                      now=T0) is None
+    assert prune_claims(root=str(tmp_path / "nope"), now=T0) == 0

@@ -354,6 +354,22 @@ of them the same filename, so the second write used to delete the first one's wi
 the same candidate is not a collision, and `unique_path` gives a second candidate with the same
 parameters its own name.
 
+Two sessions aiming at the same board cell is a cost, not a correctness problem, but it is a
+wasted ladder, so say where you are going before you start one:
+
+```bash
+./qldpc targets --claim weight-6/unrestricted --campaign <id> --ttl 180
+./qldpc targets                        # live claims are marked on their cell
+./qldpc targets --release weight-6/unrestricted
+```
+
+The claim is a note to other sessions and nothing more. It lives in a gitignored directory beside
+the staging area, `verify/` never reads it, no gate consults it, and it expires — a session
+that was killed an hour ago cannot squat on a cell by never releasing it. Crucially it is not a
+lock: two sessions may hold one cell simultaneously, and the second write reports the claim it
+displaced rather than refusing, because refusing would be enforcing something, and the gate is
+the only thing here entitled to enforce anything. Read the claim, then decide.
+
 `make_submission` runs the witness search itself and records it: each side's
 `witness_provenance` carries `found_by` (the authors as `@handles`, or `found_by=` when the
 operators came from someone else), the date, `found_at_samples` and `survived_samples` equal to
@@ -551,7 +567,7 @@ should not have to re-learn.
 | `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` (all capped at check weight 8 by default), `sample_cyclic_gb` (designed k, check weight 24 to 32; section 3c) |
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
-| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once |
+| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once. `claim`, `release`, `read_claim`, `live_claims`, `prune_claims`: advisory, expiring cell claims (`qldpc targets --claim`) — a note to other sessions, never a lock, and never read by `verify/` |
 | `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap, through n = 8 with the nauty canonicalizer (pynauty, in the `research` extra; n <= 6 without it); exact distance uses the trusted SAT certifier |

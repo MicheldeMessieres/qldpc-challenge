@@ -35,6 +35,20 @@ another session is about to write too.
 ./qldpc targets                          # which track cells are open
 ```
 
+If several sessions run at once, say where you are aiming, so a second one can
+decide whether to build the same ladder:
+
+```bash
+./qldpc targets --claim weight-6/unrestricted --campaign <your campaign>
+./qldpc targets                          # a live claim is printed per cell
+./qldpc targets --release weight-6/unrestricted   # or let --ttl (2h) expire it
+```
+
+A claim is a note, not a reservation. Nothing enforces it, `verify/` never reads
+it, and two sessions may hold one cell at once — the second write reports whose
+claim it displaced rather than refusing, because your call is better made with
+the information than without it.
+
 ```python
 import sys; sys.path[:0] = ["research/kit", "verify"]
 from bb import build_bb
