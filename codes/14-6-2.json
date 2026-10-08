@@ -1,5 +1,5 @@
 {
- "schema_version": "0.2",
+ "schema_version": "0.5",
  "name": "[[14,6,2]] twisted-torus BB code (arXiv:2503.03827)",
  "code_type": "CSS",
  "n": 14,
@@ -243,30 +243,82 @@
   "stim_version": "1.16.0",
   "notes": "Interleaved two-block extraction (Bravyi et al. arXiv:2308.07915 Table 5 style): joint reset and measurement layers, 7 data CX layers per round; X-check term slots [6, 1, 5, 2, 3, 4], Z-check term slots [1, 5, 0, 3, 4, 2] over terms A_0..A_2, B_0..B_2; terms recovered from H alone by a commuting permutation decomposition. Order screened by RIS among the 1248 slot assignments satisfying the overlap-parity criterion (first one tried); the claim then survived 2 seeds x 1000 RIS trials per basis and an observable-constrained seeded BP+OSD search over symmetric seeds, whose lightest undetected logical fault set is weight 2 in both bases.",
   "ler": {
-   "X": {
-    "p": 0.001,
-    "shots": 40000,
-    "failures": 2358,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.030399106,
-    "ci95": [
-     0.029194261,
-     0.031652262
-    ]
-   },
-   "Z": {
-    "p": 0.001,
-    "shots": 40000,
-    "failures": 2527,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.032653769,
-    "ci95": [
-     0.031402421,
-     0.033953477
-    ]
-   }
+   "X": [
+    {
+     "p": 0.005,
+     "shots": 10000,
+     "failures": 3016,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.185039685,
+     "ci95": [
+      0.178039044,
+      0.192323291
+     ]
+    },
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 1171,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.062450003,
+     "ci95": [
+      0.058946982,
+      0.066150714
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 40000,
+     "failures": 2358,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.030399106,
+     "ci95": [
+      0.029194261,
+      0.031652262
+     ]
+    }
+   ],
+   "Z": [
+    {
+     "p": 0.005,
+     "shots": 10000,
+     "failures": 3182,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.198503731,
+     "ci95": [
+      0.191084335,
+      0.206229169
+     ]
+    },
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 1285,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.069012761,
+     "ci95": [
+      0.065306676,
+      0.072917972
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 40000,
+     "failures": 2527,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.032653769,
+     "ci95": [
+      0.031402421,
+      0.033953477
+     ]
+    }
+   ]
   }
  }
 }
