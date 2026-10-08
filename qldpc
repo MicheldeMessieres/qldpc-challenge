@@ -3,4 +3,10 @@
 # installing the package. Runs the CLI in the repo's uv environment.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Claims (`./qldpc targets --claim`) belong to the shell that typed them, and
+# `uv run` forks python rather than replacing itself, so the CLI cannot ask
+# for that shell on its own. This script is still the shell's direct child, so
+# take $PPID here and export it; QLDPC_RUN_ID still pins claims and staging
+# together for a harness that wants one id for everything.
+export QLDPC_SESSION="${QLDPC_SESSION:-${HOSTNAME:-host}-${PPID:-$$}}"
 exec uv run --quiet python "$here/cli/qldpc.py" "$@"

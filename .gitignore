@@ -7,6 +7,10 @@ _foldcerts.*
 # `_`-prefixed scratch scripts (e.g. research/_find_dominators.py, verify/_sweep_ub.py)
 _*.py
 research/candidates/
+# Advisory cell claims (qldpc targets --claim): per-second, advisory, and
+# worthless once expired, so committing them would only guarantee a merge
+# conflict on every branch that claims anything.
+research/claims/
 research/board*.json
 # LaTeX build artifacts (talks/, docs/); the .tex/.bib sources and .pdf outputs are tracked
 *.aux

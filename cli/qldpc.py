@@ -66,6 +66,7 @@ import heuristic_distance as hd  # noqa: E402
 
 # Reuse the site's computed-cell + Pareto-frontier helpers so the PR body
 # states exactly what the board will show (no drift between the two).
+import coordination  # noqa: E402
 from build import LOCALITY_LABEL, WEIGHT_LABEL, cells, pareto  # noqa: E402
 from campaign import curve_from_summary, write_curve  # noqa: E402
 from check_authorship import HANDLE  # noqa: E402
@@ -1211,7 +1212,24 @@ def cmd_targets(args):
     Reuses the site's own cells() and pareto(), the pair that decides records on
     the published board, so these are the board's numbers rather than a second
     opinion about them.
+
+    Claims are the one thing here that is not a fact about the board. They are
+    notes from concurrent sessions about where they are aiming, they expire, and
+    nothing enforces them -- see coordination.claim. They are handled before the
+    board is loaded so that taking or dropping one costs nothing, and so an empty
+    cell can be claimed, which is the case worth claiming. The cell name is the
+    one thing validated on that path, against the axis labels, which are module
+    constants -- see _claim_cell.
     """
+    res = _result(args)
+    if args.claim or args.release:
+        return _claim_action(args)
+    if args.prune:
+        gone = coordination.prune_claims()
+        res["pruned"] = gone
+        print(f"pruned {gone} expired claim(s)")
+        return 0
+
     entries = _load_board_entries()
     if not entries:
         raise SystemExit("could not load the board; run this from a checkout")
@@ -1231,6 +1249,10 @@ def cmd_targets(args):
     def eff(e):
         return e["k"] * e["d"] ** 2 / e["n"]
 
+    claims = coordination.live_claims()
+    by_cell_name = {c["cell"]: c for c in claims}
+    res["claims"] = claims
+
     rows = [(c, v) for c, v in sorted(by_cell.items()) if matches(*c)]
     if not rows:
         raise SystemExit(f"no cell matched {args.cell!r}. Weight classes: "
@@ -1242,6 +1264,13 @@ def cmd_targets(args):
         print(f"\n{LOCALITY_LABEL.get(L, L)} / {WEIGHT_LABEL.get(W, W)}")
         print(f"  {len(peers)} codes, {len(front)} nondominated, "
               f"best kd2/n {max(eff(e) for e in peers):.2f}")
+        held = by_cell_name.get(f"{W}/{L}")
+        if held:
+            who = held["session_id"]
+            if held.get("campaign"):
+                who += f" ({held['campaign']})"
+            print(f"  claimed by {who}, expires {held['expires_at']} "
+                  f"-- advisory, not enforced")
         if args.n:
             near = [e for e in front if e["n"] <= args.n]
             if not near:
@@ -1265,7 +1294,73 @@ def cmd_targets(args):
           f"so these counts overlap by design.")
     print("Nondominated means no other code in the cell beats it on all of "
           "n, k, d and check weight at once, which is what earns a record star.")
+    if claims:
+        print(f"\n{_plural(len(claims), 'live claim')}, advisory and expiring "
+              f"(nothing enforces them; see `qldpc targets --help`):")
+        for c in claims:
+            what = f"  {c['cell']}: {c['session_id']}"
+            if c.get("campaign"):
+                what += f" ({c['campaign']})"
+            print(f"{what}, expires {c['expires_at']}")
     return 0
+
+
+def _claim_action(args):
+    """``--claim`` / ``--release``, kept off the board path deliberately.
+
+    The cell name is checked here, against the axis labels the listing itself
+    uses. They are module constants, so checking costs no board load and an
+    empty cell stays claimable; it is the pair that is checked, and written
+    weight-first, because the listing matches a claim by exactly
+    ``f"{W}/{L}"`` -- a typo or the reverse order writes a note no reader can
+    find, and a claim nobody can see is worse than a refused one. This is the
+    CLI declining to write, not ``verify/`` declining to pass: nothing here
+    enforces anything.
+    """
+    cell = _claim_cell(args.claim or args.release)
+    res = _result(args)
+    if args.claim:
+        rec = coordination.claim(cell, campaign=args.campaign,
+                                 note=args.note, minutes=args.ttl)
+        res["claim"] = rec
+        print(f"claimed {rec['cell']} for {rec['expires_at']} "
+              f"({rec['session_id']})")
+        gone = rec.get("displaced")
+        if gone:
+            print(f"  note: {gone['session_id']} had a live claim on this cell"
+                  + (f" ({gone['campaign']})" if gone.get("campaign") else "")
+                  + ". Nothing blocks either of you; it is your call whether "
+                    "two ladders on one cell are worth paying for.")
+        return 0
+    dropped = coordination.release(cell)
+    res["released"] = {"cell": cell, "by_this_session": dropped}
+    if dropped:
+        print(f"released {cell}")
+    else:
+        print(f"no live claim of this session's on {cell} "
+              f"(already expired, held by another session, or never made)")
+    return 0
+
+
+def _claim_cell(name):
+    """Return ``name`` as the canonical ``<weight>/<locality>`` cell, or exit.
+
+    Both parts have to be names the board's own axes use, and the pair comes
+    out weight-first whatever order it was typed in: ``unrestricted/weight-6``
+    is the same cell as ``weight-6/unrestricted`` to a reader and not to a
+    string match, so writing it as typed would be a second, silent claim on a
+    cell somebody else is already holding. Anything else is refused with the
+    valid names, which is the difference between a note and a note on nothing.
+    """
+    parts = [p for p in re.split(r"[/,\s]+", (name or "").strip().lower()) if p]
+    weight = [p for p in parts if p in WEIGHT_LABEL]
+    local = [p for p in parts if p in LOCALITY_LABEL]
+    if len(parts) != 2 or len(weight) != 1 or len(local) != 1:
+        raise SystemExit(
+            f"{name!r} is not a cell. A cell is <weight>/<locality>:\n"
+            f"  weight:   {', '.join(WEIGHT_LABEL)}\n"
+            f"  locality: {', '.join(LOCALITY_LABEL)}")
+    return f"{weight[0]}/{local[0]}"
 
 
 def _plural(n, word, plural=None):
@@ -2366,6 +2461,35 @@ def main(argv=None):
                    help="what a code at this blocklength would need")
     g.add_argument("--top", type=int, default=6,
                    help="frontier entries to list per cell (default 6)")
+    g.add_argument("--claim", default="",
+                   metavar="CELL",
+                   help="note that this run is aiming at CELL, e.g. "
+                        "'weight-6/unrestricted'. CELL is checked against the "
+                        "board's axis names and written weight-first; a name "
+                        "that is not a cell is refused with the valid ones. "
+                        "Advisory and expiring: it is a note to other "
+                        "sessions, not a reservation, and nothing enforces "
+                        "it. Two runs may hold one cell at once; the second "
+                        "write says whose it displaced")
+    g.add_argument("--release", default="", metavar="CELL",
+                   help="drop this run's claim on CELL (expiry is the "
+                        "backstop; the same cell name is checked)")
+    g.add_argument("--campaign", default="",
+                   help="campaign id to record alongside a claim, so a reader "
+                        "knows who is spending what on this cell")
+    g.add_argument("--note", default="",
+                   help="one line of context for a claim, e.g. what rung the "
+                        "run is at")
+    g.add_argument("--ttl", type=int, default=coordination.DEFAULT_CLAIM_MINUTES,
+                   metavar="MINUTES",
+                   help=f"how long a claim lives (default "
+                        f"{coordination.DEFAULT_CLAIM_MINUTES}). Raise it for "
+                        f"a long ladder; a claim outliving its run is a squat")
+    g.add_argument("--prune", action="store_true",
+                   help="delete expired claims and report how many went")
+    g.add_argument("--json", action="store_true",
+                   help="print one JSON record on stdout instead of the "
+                        "listing; carries the live claims as data")
     g.set_defaults(func=cmd_targets)
 
     args = p.parse_args(argv)

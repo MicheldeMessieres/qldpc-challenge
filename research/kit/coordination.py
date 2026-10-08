@@ -25,6 +25,13 @@ This module is outside the trust spine and cannot reach into it:
   into a failure and never the other way around.
 * The cache lives under the gitignored ``research/candidates/``. Nothing in it
   can be cited as evidence, and deleting it costs compute, never correctness.
+* :func:`claim` writes a note that this session is aiming at a board cell, and
+  it is not a lock: nothing in ``verify/`` reads it, two sessions may hold one
+  cell at once, and the write that displaces an incumbent reports it rather than
+  refusing. Claims live under the gitignored ``research/claims/`` and expire, so
+  a session that was killed cannot squat on a cell. The holder is
+  :func:`session_id` -- the shell that typed, not the process that wrote -- so
+  ``--claim`` and ``--release`` from one terminal agree while two do not.
 
     from coordination import run_id, staging_dir, unique_path, validate_cached
     out = staging_dir()                        # research/candidates/<run_id>/
@@ -32,6 +39,7 @@ This module is outside the trust spine and cannot reach into it:
     save_submission(doc, path)
     verdict, reused = validate_cached(doc)     # gate now, refutation reused
     verdict, kept = gate_and_record(path)      # the same, verdict written beside the candidate
+    claim("weight-6/unrestricted", campaign="bb-1155")   # advisory, not enforced
 
 * The verdict is kept beside the candidate. :func:`gate_and_record` writes
   what the gate returned to ``<path>.verdict.json`` (issue #2781); the cache
@@ -41,10 +49,11 @@ import errno
 import hashlib
 import json
 import os
+import re
 import socket
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_HERE))
@@ -52,6 +61,7 @@ CANDIDATES = os.path.join(_ROOT, "research", "candidates")
 VALIDATOR_SOURCE = os.path.join(_ROOT, "verify", "validate_candidate.py")
 CACHE_DIRNAME = ".verdicts"
 RUN_ID_ENV = "QLDPC_RUN_ID"
+SESSION_ENV = "QLDPC_SESSION"
 ENTRY_VERSION = 2
 
 # Document fields the gate reads only for their schema validity and never by
@@ -91,6 +101,38 @@ def _slug(text):
     return "".join(keep).strip("-") or "run"
 
 
+def session_id():
+    """Identify the session a claim belongs to: a shell, not a process.
+
+    A claim is taken by one ``./qldpc`` process and dropped by the next one a
+    human types, so its identity has to survive the process boundary that
+    :func:`run_id` deliberately does not cross: two ladders started from one
+    shell must not share a staging directory, while two commands from one
+    terminal must be the same session or ``release`` finds nothing to release.
+
+    The order of preference says who knows the answer:
+
+    1. ``$QLDPC_SESSION``, exported by the ``./qldpc`` launcher from the shell
+       that started it -- the process cannot ask for that shell itself, because
+       ``uv run`` forks python rather than replacing itself.
+    2. ``$QLDPC_RUN_ID``, so a harness that pins one id for everything pins
+       claims and staging together.
+    3. The POSIX login session: one terminal, one session, across every
+       process it starts. Coarser than a shell (two panes of one login can
+       share it), and never wrong in the direction that loses a claim.
+    """
+    for key in (SESSION_ENV, RUN_ID_ENV):
+        forced = os.environ.get(key)
+        if forced and forced.strip():
+            return _slug(forced.strip())
+    host = _slug(socket.gethostname().split(".")[0] or "host")
+    try:
+        sid = os.getsid(0)
+    except (AttributeError, OSError):            # not POSIX: per-process, as run_id
+        sid = os.getpid()
+    return f"{host}-{sid}"
+
+
 def staging_dir(rid=None, *, root=None, create=True):
     """Return ``research/candidates/<run_id>/``, this executor's own shelf.
 
@@ -103,6 +145,226 @@ def staging_dir(rid=None, *, root=None, create=True):
     if create:
         os.makedirs(path, exist_ok=True)
     return path
+
+
+# -- advisory cell claims -------------------------------------------------
+#
+# A claim is a note from one session to the next that it is aiming at a cell.
+# It is deliberately not a lock. Nothing here is consulted by ``verify/``,
+# nothing reads it but the ``qldpc targets`` listing, and two sessions may
+# hold the same cell at once without either being stopped: the second write
+# wins and records what it displaced, so both can see the collision rather
+# than have one of them silently blocked. A mechanism that refused would be
+# enforcing something, and the only thing worth enforcing here is the gate.
+#
+# That is why the directory is gitignored, like staging. The state is
+# per-second, so committing it would guarantee a merge conflict on every
+# branch that claims anything, and a file that churns is not an audit trail.
+# What is worth keeping across sessions is a screening outcome, and that is
+# the campaign summary (issue #2726), not a claim that expired an hour ago.
+
+CLAIMS = os.path.join(_ROOT, "research", "claims")
+CLAIM_VERSION = 1
+DEFAULT_CLAIM_MINUTES = 120
+CLAIM_FIELDS = ("cell", "cell_key", "session_id", "run_id", "campaign",
+                "note", "claimed_at", "expires_at")
+
+
+def cell_slug(cell):
+    """Return a filesystem-safe name for a ``(locality, weight)`` cell pair.
+
+    The two axis names are joined by ``__`` rather than the ``/`` a reader
+    types, because ``/`` would make the claim a path that resolves to nothing
+    under ``research/claims/``.
+    """
+    if isinstance(cell, str):
+        parts = [p for p in re.split(r"[/,]+", cell.strip()) if p]
+    else:
+        parts = [str(p).strip() for p in cell]
+    parts = [p for p in parts if p]
+    if not parts:
+        raise ValueError("a claim needs a cell, e.g. 'weight-6/unrestricted'")
+    return "__".join(_slug(p) for p in parts)
+
+
+def claim_path(cell, *, root=None):
+    """Where the claim on ``cell`` lives: ``research/claims/<cell>.json``."""
+    return os.path.join(root or CLAIMS, cell_slug(cell) + ".json")
+
+
+def _now(now=None):
+    return now or datetime.now(timezone.utc)
+
+
+def _parse(stamp):
+    try:
+        dt = datetime.fromisoformat(stamp)
+    except (TypeError, ValueError):
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def read_claim(cell, *, root=None, now=None):
+    """Return the live claim on ``cell``, or ``None``.
+
+    An expired claim reads as absent rather than as a stale fact: a session
+    that was killed an hour ago must not squat on a cell by never releasing
+    it, so expiry is checked here and not only where it is written.
+    """
+    path = claim_path(cell, root=root)
+    try:
+        with open(path, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(rec, dict) or rec.get("claim_version") != CLAIM_VERSION:
+        return None
+    expires = _parse(rec.get("expires_at"))
+    if expires is None or expires <= _now(now):
+        return None
+    return rec
+
+
+def claim(cell, *, campaign="", note="", minutes=DEFAULT_CLAIM_MINUTES,
+          rid=None, root=None, now=None):
+    """Record that this session is aiming at ``cell``; return the record.
+
+    Never raises because someone else holds the cell. The displaced claim,
+    when there was a live one, comes back under ``displaced`` so the caller
+    can print it: the point is that both sessions learn a collision is
+    happening, which is what stops a second one from paying for a ladder the
+    first is already building.
+
+    The holder is :func:`session_id`, not :func:`run_id`: the process writing
+    the note and the process dropping it are different processes of one
+    session, and the record says which run wrote it under ``run_id``.
+    """
+    minutes = int(minutes)
+    if minutes < 1:
+        raise ValueError("a claim needs a positive lifetime; 0 would make "
+                         "it invisible to the session that wrote it")
+    here = _now(now)
+    mine = rid or session_id()
+    # Read the incumbent before writing, so it can be reported back. This is
+    # not a check: nothing below refuses, because a claim that could block a
+    # session would be enforcing something the gate is the only thing
+    # entitled to enforce.
+    prior = read_claim(cell, root=root, now=here)
+    rec = {
+        "claim_version": CLAIM_VERSION,
+        "cell": "/".join(cell_slug(cell).split("__")),
+        "cell_key": ([p for p in re.split(r"[/,]+", cell) if p]
+                     if isinstance(cell, str) else list(cell)),
+        "session_id": mine,
+        "run_id": run_id(),
+        "campaign": campaign,
+        "note": note,
+        "claimed_at": here.isoformat(),
+        "expires_at": (here + timedelta(minutes=minutes)).isoformat(),
+    }
+    if prior is not None and prior["session_id"] != mine:
+        rec["displaced"] = {k: prior[k] for k in CLAIM_FIELDS
+                            if k in prior and k != "cell_key"}
+    _write_atomic(claim_path(cell, root=root), rec)
+    return rec
+
+
+def release(cell, *, rid=None, root=None, now=None):
+    """Drop this session's claim on ``cell``.
+
+    Returns True when a live claim was removed. A claim held by another
+    session is left alone: releasing is how a session says it is done, and
+    it has no standing to say that about somebody else. The holder is
+    :func:`session_id`, so it defaults to this session rather than to this
+    process -- a caller that forgets to pass ``rid`` does not get the
+    permissive behaviour, and a second ``./qldpc`` process of the same shell
+    still finds what the first one wrote. Expiry remains the backstop for a
+    session that never got to run this at all.
+    """
+    path = claim_path(cell, root=root)
+    here = _now(now)
+    try:
+        with open(path, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(rec, dict):
+        return False
+    expires = _parse(rec.get("expires_at"))
+    if expires is None or expires <= here:
+        return False
+    if rec.get("session_id") != (rid or session_id()):
+        return False
+    try:
+        os.unlink(path)
+    except FileNotFoundError:                  # pragma: no cover
+        return False
+    return True
+
+
+def live_claims(*, root=None, now=None):
+    """Every unexpired claim, newest first.
+
+    A file that cannot be parsed is skipped, not fatal: claims are advisory
+    and a listing command must not fall over because one session was killed
+    mid-write.
+    """
+    here = _now(now)
+    out = []
+    try:
+        names = sorted(os.listdir(root or CLAIMS))
+    except OSError:
+        return out
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(root or CLAIMS, name)
+        try:
+            with open(path, encoding="utf-8") as f:
+                rec = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(rec, dict) or rec.get("claim_version") != CLAIM_VERSION:
+            continue
+        expires = _parse(rec.get("expires_at"))
+        if expires is None or expires <= here:
+            continue
+        out.append(rec)
+    out.sort(key=lambda r: r.get("claimed_at") or "", reverse=True)
+    return out
+
+
+def prune_claims(*, root=None, now=None):
+    """Delete claims whose lifetime has run out; return how many went.
+
+    Reading already ignores them, so this is housekeeping rather than
+    correctness. It is exposed because a directory that only ever grows is
+    how a coordination aid becomes something a later reader has to reason
+    about.
+    """
+    here, gone = _now(now), 0
+    base = root or CLAIMS
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return 0
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(base, name)
+        try:
+            with open(path, encoding="utf-8") as f:
+                rec = json.load(f)
+        except (OSError, ValueError):
+            rec = None
+        expires = _parse(rec.get("expires_at")) if isinstance(rec, dict) else None
+        if expires is not None and expires <= here:
+            try:
+                os.unlink(path)
+                gone += 1
+            except OSError:                           # pragma: no cover
+                pass
+    return gone
 
 
 # -- content addressing ---------------------------------------------------
