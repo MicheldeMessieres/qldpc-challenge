@@ -238,3 +238,72 @@ def test_dem_rand_witness_parity():
     w2, wit2 = ct.ris_dem(H, L, trials=200, seed=7)
     assert w2 == 3 and ct.witness_errors(dem, wit2, w2) == []
 
+
+
+def test_fold_rand_witness_matches_python_fold():
+    """The accelerated orbit-fold loop (audit of 2026-10-08) and the python
+    fallback agree on what matters: on a cyclic GB code on Z_175 whose
+    lightest logicals (weight 40) are constant on the orbits of the order-5
+    shift, both reach <= 40 on both sides, every lifted witness validates on
+    the full matrices, and the two engines' witnesses have the same weight
+    when both run to the exhaustive branch. Also exercises the Pauli fold on
+    the cyclic [[17,1,7]] fixture (weight counts a Y once) and the exhaustive
+    Gray-code walk against brute force on a tiny fold."""
+    import heuristic_distance as H
+
+    def gb(L, a, b):
+        def circ(sym):
+            M = np.zeros((L, L), dtype=np.int8)
+            for i in range(L):
+                for e in sym:
+                    M[i, (e + i) % L] = 1
+            return M
+        A, B = circ(a), circ(b)
+        return np.hstack([A, B]).astype(np.int8), np.hstack([B.T, A.T]).astype(np.int8)
+
+    HX, HZ = gb(175, (6, 38, 42, 60, 65, 89, 120),
+                (3, 11, 15, 29, 46, 60, 64, 79, 82, 90, 91))
+    assert H._fast is not None and hasattr(H._fast, "fold_rand_witness")
+    fast = H.orbit_fold_min_logical(HX, HZ, trials=100, seed=0, max_seconds=60)
+    saved = H._fast
+    try:
+        H._fast = None
+        slow = H.orbit_fold_min_logical(HX, HZ, trials=100, seed=0, max_seconds=60)
+    finally:
+        H._fast = saved
+    for res, name in ((fast, "accelerated"), (slow, "python")):
+        assert res["partitions"] > 0, name
+        for side, H_ker, H_row in (("X", HZ, HX), ("Z", HX, HZ)):
+            assert res[side] is not None, (name, side)
+            w, v = res[side]
+            assert w <= 40 and int(v.sum()) == w, (name, side, w)
+            assert H._valid_logical(v, H_ker, H_row), (name, side)
+
+    # exhaustive branch: a fold whose kernel is tiny is solved exactly, and
+    # the Gray-code walk agrees with brute force over all 2^dim - 1 vectors
+    F = np.array([[1, 1, 0, 0, 0], [0, 0, 1, 1, 0]], dtype=np.int8)      # kernel dim 3
+    Lf = np.array([[1, 0, 0, 0, 1]], dtype=np.int8)
+    wts = [3, 3, 5, 5, 1]
+    w, sup = gf2_fast.fold_rand_witness(F, Lf, wts, 0, 10, 0, 8, 14, 1)
+    K = gf2.kernel_basis(F)
+    best = None
+    for msk in range(1, 1 << K.shape[0]):
+        bits = np.array([(msk >> b) & 1 for b in range(K.shape[0])])
+        x = (bits @ K) % 2
+        if ((Lf @ x) % 2).any():
+            wt = int(x @ np.array(wts))
+            best = wt if best is None else min(best, wt)
+    assert w == best == 1 and list(sup) == [4]
+    x = np.zeros(5, dtype=np.int8)
+    x[list(sup)] = 1
+    assert not ((F @ x) % 2).any()
+
+    # Pauli fold on a cyclic stabilizer code: reaches the exact distance 7
+    # with a validated Pauli witness, scored by Pauli weight
+    doc = json.load(open(os.path.join(_HERE, "fixtures", "17-1-7.json")))
+    A, B = H.stabilizer_matrices(doc)
+    res = H.orbit_fold_min_pauli_logical(A, B, trials=60, seed=0, max_seconds=30)
+    assert res["P"] is not None
+    w, v = res["P"]
+    assert w == 7 and H.valid_pauli_logical(v, A, B)
+    assert int(H.pauli_weight_rows(v[None, :], 17)[0]) == 7

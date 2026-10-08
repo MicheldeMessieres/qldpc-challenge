@@ -27,6 +27,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 # local-iteration flag: CI never passes it, so what it skips is the same set CI runs.
 SLOW = [
     "verify/test_refute_gate.py::test_structural_stage_ordering",
+    "verify/test_refute_gate.py::test_orbit_fold_stage_ordering",
     "verify/test_validate_candidate.py::test_validate_candidate",
     "verify/test_stabilizer_codes.py::test_hadamard_copy_of_a_board_code_is_a_duplicate",
     "verify/test_verifier.py::test_adversarial",

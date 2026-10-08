@@ -118,6 +118,10 @@ entry. What changes, and what does not:
 - The refutation gate runs the same random-information-set search scored by
   Pauli weight, and the accelerated pass searches the symplectic doubling
   `H'_X = (A | B)`, `H'_Z = (B | A)`, re-scoring every find by Pauli weight.
+  The orbit-fold pass folds Pauli vectors on the orbits of the symmetries it
+  detects (Pauli labels preserved) and also runs the search in random
+  single-qubit Pauli frames, so a `Y`-heavy logical that the symplectic form
+  counts as two bits per qubit is seen at its true Pauli weight.
 - A code whose every generator is pure `X` or pure `Z` is a CSS code, and a
   submission that types one `stabilizer` is rejected.
 - So is a code that becomes one under single-qubit Cliffords: a CSS code
@@ -202,6 +206,20 @@ correct distance has no lighter logical to find and passes every time; an
 over-claimed one may slip past one seed and get caught on a re-run, at merge, or
 by the weekly board sweep, in which case the code is removed. The seed is printed
 so any failure reproduces.
+
+Before the random search, the gate reads the code's symmetries off its check
+matrices (block-circulant shifts in either qubit layout, two-dimensional
+shifts, affine multipliers) and searches for the lightest logical that is
+constant on the orbits of each cyclic subgroup, in the folded code. This is
+the shape random information sets almost never sample: on the board's cyclic
+generalized-bicycle entries the lightest logicals were unions of cosets of a
+shift subgroup (every 14th qubit of each block), and 54 filed distances were
+over-stated that way before the pass existed (audit of 2026-10-08). A fold
+find is lifted and re-checked on the full matrices before it counts, so an
+unrelated symmetry can only cost time. If your construction has a symmetry
+the detector does not see, running `verify/heuristic_distance.py` with
+`pynauty` installed (the `research` extra) adds the full Tanner-graph
+automorphism group; the CI gate runs without it.
 
 Public CI also enforces resource limits before dense verifier matrices are
 allocated. A submission is admissible when all of these hold:
