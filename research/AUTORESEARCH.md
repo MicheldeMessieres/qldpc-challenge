@@ -370,6 +370,11 @@ lock: two sessions may hold one cell simultaneously, and the second write report
 displaced rather than refusing, because refusing would be enforcing something, and the gate is
 the only thing here entitled to enforce anything. Read the claim, then decide.
 
+It is held by the session, not by the process: one shell, one session, so the sequence above
+works from a terminal without exporting anything (`QLDPC_RUN_ID` pins it for a harness). The
+cell name is `<weight>/<locality>`, checked against the board's own axis names — a name that is
+not a cell is refused with the valid ones rather than written as a claim nobody can find.
+
 `make_submission` runs the witness search itself and records it: each side's
 `witness_provenance` carries `found_by` (the authors as `@handles`, or `found_by=` when the
 operators came from someone else), the date, `found_at_samples` and `survived_samples` equal to
@@ -567,7 +572,7 @@ should not have to re-learn.
 | `kit/search.py` | `screen`, `pareto_frontier`, `update_leaderboard` (the funnel) + samplers: `sample_bb`, `sample_dihedral`, `sample_metacyclic`, `sample_kasai_affine` (all capped at check weight 8 by default), `sample_cyclic_gb` (designed k, check weight 24 to 32; section 3c) |
 | `kit/escalation.py` | `rung_brief`, `apply_verdict`, `append_journal` — the rung-boundary escalation gate (step 3b): deterministic ladder facts + fenced judgment-model verdict; advisory only, never repo evidence |
 | `kit/submit.py` | `make_submission`, `save_submission`, `validate` |
-| `kit/coordination.py` | `run_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once. `claim`, `release`, `read_claim`, `live_claims`, `prune_claims`: advisory, expiring cell claims (`qldpc targets --claim`) — a note to other sessions, never a lock, and never read by `verify/` |
+| `kit/coordination.py` | `run_id`, `session_id`, `staging_dir`, `unique_path`, `validate_cached`: collision-safe staging and refutation reuse when several sessions run at once (`session_id` is the shell a claim belongs to, `run_id` the process that wrote it). `claim`, `release`, `read_claim`, `live_claims`, `prune_claims`: advisory, expiring cell claims (`qldpc targets --claim`) — a note to other sessions, never a lock, and never read by `verify/` |
 | `kit/promote.py` | `promote`, `promote_all`, `script_for`: the submission tail for a candidate the gate already passed. Renders `codes/<slug>.json`, `notes/<slug>.md`, and the PR body from one evidence record, runs the gate and `check_prose` in order, and returns one JSON report. Writes files; never runs git or gh |
 | `kit/distance.py` | `exact_distance` (MILP, `d=`), `decoder_distance` (BP+OSD) — needs the `research` extra |
 | `kit/census_css.py` | exhaustive small CSS-code census up to qubit permutations and global X/Z swap, through n = 8 with the nauty canonicalizer (pynauty, in the `research` extra; n <= 6 without it); exact distance uses the trusted SAT certifier |

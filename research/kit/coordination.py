@@ -29,7 +29,9 @@ This module is outside the trust spine and cannot reach into it:
   it is not a lock: nothing in ``verify/`` reads it, two sessions may hold one
   cell at once, and the write that displaces an incumbent reports it rather than
   refusing. Claims live under the gitignored ``research/claims/`` and expire, so
-  a session that was killed cannot squat on a cell.
+  a session that was killed cannot squat on a cell. The holder is
+  :func:`session_id` -- the shell that typed, not the process that wrote -- so
+  ``--claim`` and ``--release`` from one terminal agree while two do not.
 
     from coordination import run_id, staging_dir, unique_path, validate_cached
     out = staging_dir()                        # research/candidates/<run_id>/
@@ -59,6 +61,7 @@ CANDIDATES = os.path.join(_ROOT, "research", "candidates")
 VALIDATOR_SOURCE = os.path.join(_ROOT, "verify", "validate_candidate.py")
 CACHE_DIRNAME = ".verdicts"
 RUN_ID_ENV = "QLDPC_RUN_ID"
+SESSION_ENV = "QLDPC_SESSION"
 ENTRY_VERSION = 2
 
 # Document fields the gate reads only for their schema validity and never by
@@ -96,6 +99,38 @@ def run_id():
 def _slug(text):
     keep = [c if (c.isalnum() or c in "-_.") else "-" for c in str(text)]
     return "".join(keep).strip("-") or "run"
+
+
+def session_id():
+    """Identify the session a claim belongs to: a shell, not a process.
+
+    A claim is taken by one ``./qldpc`` process and dropped by the next one a
+    human types, so its identity has to survive the process boundary that
+    :func:`run_id` deliberately does not cross: two ladders started from one
+    shell must not share a staging directory, while two commands from one
+    terminal must be the same session or ``release`` finds nothing to release.
+
+    The order of preference says who knows the answer:
+
+    1. ``$QLDPC_SESSION``, exported by the ``./qldpc`` launcher from the shell
+       that started it -- the process cannot ask for that shell itself, because
+       ``uv run`` forks python rather than replacing itself.
+    2. ``$QLDPC_RUN_ID``, so a harness that pins one id for everything pins
+       claims and staging together.
+    3. The POSIX login session: one terminal, one session, across every
+       process it starts. Coarser than a shell (two panes of one login can
+       share it), and never wrong in the direction that loses a claim.
+    """
+    for key in (SESSION_ENV, RUN_ID_ENV):
+        forced = os.environ.get(key)
+        if forced and forced.strip():
+            return _slug(forced.strip())
+    host = _slug(socket.gethostname().split(".")[0] or "host")
+    try:
+        sid = os.getsid(0)
+    except (AttributeError, OSError):            # not POSIX: per-process, as run_id
+        sid = os.getpid()
+    return f"{host}-{sid}"
 
 
 def staging_dir(rid=None, *, root=None, create=True):
@@ -199,13 +234,17 @@ def claim(cell, *, campaign="", note="", minutes=DEFAULT_CLAIM_MINUTES,
     can print it: the point is that both sessions learn a collision is
     happening, which is what stops a second one from paying for a ladder the
     first is already building.
+
+    The holder is :func:`session_id`, not :func:`run_id`: the process writing
+    the note and the process dropping it are different processes of one
+    session, and the record says which run wrote it under ``run_id``.
     """
     minutes = int(minutes)
     if minutes < 1:
         raise ValueError("a claim needs a positive lifetime; 0 would make "
                          "it invisible to the session that wrote it")
     here = _now(now)
-    mine = rid or run_id()
+    mine = rid or session_id()
     # Read the incumbent before writing, so it can be reported back. This is
     # not a check: nothing below refuses, because a claim that could block a
     # session would be enforcing something the gate is the only thing
@@ -217,6 +256,7 @@ def claim(cell, *, campaign="", note="", minutes=DEFAULT_CLAIM_MINUTES,
         "cell_key": ([p for p in re.split(r"[/,]+", cell) if p]
                      if isinstance(cell, str) else list(cell)),
         "session_id": mine,
+        "run_id": run_id(),
         "campaign": campaign,
         "note": note,
         "claimed_at": here.isoformat(),
@@ -234,9 +274,11 @@ def release(cell, *, rid=None, root=None, now=None):
 
     Returns True when a live claim was removed. A claim held by another
     session is left alone: releasing is how a session says it is done, and
-    it has no standing to say that about somebody else. The check is on by
-    default rather than opt-in, so a caller that forgets to pass ``rid`` does
-    not get the permissive behaviour. Expiry remains the backstop for a
+    it has no standing to say that about somebody else. The holder is
+    :func:`session_id`, so it defaults to this session rather than to this
+    process -- a caller that forgets to pass ``rid`` does not get the
+    permissive behaviour, and a second ``./qldpc`` process of the same shell
+    still finds what the first one wrote. Expiry remains the backstop for a
     session that never got to run this at all.
     """
     path = claim_path(cell, root=root)
@@ -251,7 +293,7 @@ def release(cell, *, rid=None, root=None, now=None):
     expires = _parse(rec.get("expires_at"))
     if expires is None or expires <= here:
         return False
-    if rec.get("session_id") != (rid or run_id()):
+    if rec.get("session_id") != (rid or session_id()):
         return False
     try:
         os.unlink(path)

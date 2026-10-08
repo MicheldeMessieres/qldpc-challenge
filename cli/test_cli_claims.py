@@ -108,6 +108,75 @@ def test_pruning_counts_only_what_expired(claims_dir):
     assert coordination.prune_claims(root=str(claims_dir), now=later) == 1
 
 
+# -- one shell, one session ------------------------------------------------
+#
+# Every other test here pins QLDPC_RUN_ID, which is how the first cut passed
+# while the documented sequence failed in a terminal: without the variable,
+# each ./qldpc invocation is a new run, and a release cannot find the claim a
+# previous one wrote. The holder has to be the session, not the process.
+
+def test_the_documented_sequence_works_without_the_env_var(tmp_path, monkeypatch):
+    monkeypatch.setattr(coordination, "CLAIMS", str(tmp_path / "claims"))
+    monkeypatch.delenv(coordination.RUN_ID_ENV, raising=False)
+    monkeypatch.delenv(coordination.SESSION_ENV, raising=False)
+    runs = iter(["20261008-112521-host-38319", "20261008-112544-host-38327",
+                 "20261008-112601-host-38330"])
+    monkeypatch.setattr(coordination, "run_id", lambda: next(runs))
+    rc, out = _say(qldpc.cmd_targets,
+                   _args(claim="weight-6/unrestricted", campaign="bb-1155"))
+    assert rc == 0 and "claimed weight-6/unrestricted" in out
+    # A second claim from this shell refreshes its own note rather than
+    # reporting a collision with itself.
+    rc, out = _say(qldpc.cmd_targets, _args(claim="weight-6/unrestricted"))
+    assert rc == 0 and "had a live claim" not in out
+    rc, out = _say(qldpc.cmd_targets, _args(release="weight-6/unrestricted"))
+    assert rc == 0 and "released weight-6/unrestricted" in out
+    assert coordination.read_claim("weight-6/unrestricted",
+                                   root=str(tmp_path / "claims")) is None
+
+
+# -- naming a cell ---------------------------------------------------------
+#
+# The listing matches a claim by the string f"{W}/{L}", so a claim written any
+# other way is a claim on nothing: invisible to every reader, and (when the
+# name is the same cell spelled differently) a second claim on a held cell
+# with no displacement note. The axis names are module constants, so refusing
+# costs no board load and an empty cell stays claimable.
+
+def test_a_cell_name_is_written_weight_first(claims_dir, one_cell):
+    rc, out = _say(qldpc.cmd_targets, _args(claim="unrestricted/weight-6"))
+    assert rc == 0 and "claimed weight-6/unrestricted" in out
+    assert (claims_dir / "weight-6__unrestricted.json").exists()
+    _, listed = _say(qldpc.cmd_targets, _args(top=1))
+    assert "claimed by session-a" in listed      # the same cell, found by name
+    rc, out = _say(qldpc.cmd_targets, _args(release="unrestricted/weight-6"))
+    assert rc == 0 and "released weight-6/unrestricted" in out
+    assert coordination.read_claim("weight-6/unrestricted",
+                                   root=str(claims_dir)) is None
+
+
+def test_a_name_that_is_not_a_cell_is_refused_with_the_valid_ones(claims_dir):
+    for flag, bad in (("claim", "weight6/unrestrcted"),
+                      ("release", "unrestricted/weight-6/typo"),
+                      ("claim", "weight-6")):
+        with pytest.raises(SystemExit) as exc:
+            _say(qldpc.cmd_targets, _args(**{flag: bad}))
+        message = str(exc.value)
+        assert bad in message
+        assert "weight-6" in message and "unrestricted" in message  # valid names
+    assert not claims_dir.exists() or not list(claims_dir.iterdir())
+
+
+def test_a_refused_cell_name_is_a_usage_error_under_json(claims_dir, capsys):
+    rc = qldpc.main(["targets", "--claim", "unrestricted", "--json"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    record = json.loads(captured.out)
+    assert record["ok"] is False and record["exit_code"] == 2
+    assert record["error"]["class"] == "usage"
+    assert "not a cell" in record["error"]["message"]
+
+
 # -- the listing -----------------------------------------------------------
 
 def test_a_claimed_cell_is_marked_and_its_numbers_do_not_move(

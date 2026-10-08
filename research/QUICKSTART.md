@@ -47,7 +47,11 @@ decide whether to build the same ladder:
 A claim is a note, not a reservation. Nothing enforces it, `verify/` never reads
 it, and two sessions may hold one cell at once — the second write reports whose
 claim it displaced rather than refusing, because your call is better made with
-the information than without it.
+the information than without it. It is held by the session you are typing in:
+one shell, one session, so `--claim` and `--release` agree without your
+exporting anything (`QLDPC_RUN_ID` pins it for a harness that needs to). The
+cell name is `<weight>/<locality>`; anything else is refused with the valid
+names rather than written as a claim no reader can find.
 
 ```python
 import sys; sys.path[:0] = ["research/kit", "verify"]

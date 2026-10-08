@@ -14,6 +14,7 @@ is tested to do.
 """
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,7 @@ sys.path.insert(0, os.path.join(_HERE, "kit"))
 
 from coordination import (  # noqa: E402
     RUN_ID_ENV,
+    SESSION_ENV,
     CandidateCollision,
     VerdictCache,
     _parse,
@@ -36,6 +38,7 @@ from coordination import (  # noqa: E402
     read_claim,
     release,
     run_id,
+    session_id,
     staging_dir,
     unique_path,
     validate_cached,
@@ -98,6 +101,38 @@ def test_a_run_id_is_a_usable_directory_name(monkeypatch):
 def test_a_run_id_can_be_pinned_by_the_harness(monkeypatch):
     monkeypatch.setenv(RUN_ID_ENV, "pod 3/session:1")
     assert run_id() == "pod-3-session-1"
+
+
+def test_a_session_id_can_be_pinned_by_the_harness(monkeypatch):
+    monkeypatch.setenv(SESSION_ENV, "pod 3/session:1")
+    assert session_id() == "pod-3-session-1"
+    # One id pins both: a harness that sets QLDPC_RUN_ID gets claims to agree
+    # with it too, without a second variable to remember.
+    monkeypatch.delenv(SESSION_ENV)
+    monkeypatch.setenv(RUN_ID_ENV, "pod 4/run:2")
+    assert session_id() == "pod-4-run-2"
+
+
+def test_a_session_id_is_one_terminal_and_run_id_is_one_process(monkeypatch):
+    """The claim/release sequence is two ./qldpc processes, one shell.
+
+    What has to agree across them is the session; what must not is the run, or
+    two ladders started from one shell would share a staging directory.
+    """
+    monkeypatch.delenv(SESSION_ENV, raising=False)
+    monkeypatch.delenv(RUN_ID_ENV, raising=False)
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [os.path.join(_HERE, "kit"), env.get("PYTHONPATH", "")])
+    out = subprocess.run(
+        [sys.executable, "-c",
+         "import coordination; print(coordination.session_id()); "
+         "print(coordination.run_id())"],
+        env=env, capture_output=True, text=True, check=False)
+    assert out.returncode == 0, out.stderr
+    their_session, their_run = out.stdout.split()
+    assert their_session == session_id()      # another process, the same terminal
+    assert their_run != run_id()              # another process, another run
 
 
 def test_two_runs_stage_into_separate_directories(tmp_path):
@@ -546,6 +581,28 @@ def test_release_defaults_to_this_session_not_to_anyone(tmp_path):
             os.environ.pop(RUN_ID_ENV, None)
         else:
             os.environ[RUN_ID_ENV] = monkey
+
+
+def test_a_claim_is_held_by_the_session_not_by_the_process(tmp_path, monkeypatch):
+    """Every ./qldpc invocation is a new run; one shell is still one session.
+
+    With run identity as the holder, the release that follows a claim from the
+    same terminal belongs to a different process and finds nothing -- the
+    sequence the docs show then fails for everyone who has not exported the
+    environment variable.
+    """
+    import coordination
+    monkeypatch.delenv(SESSION_ENV, raising=False)
+    monkeypatch.delenv(RUN_ID_ENV, raising=False)
+    runs = iter(["20261008-112521-host-38319", "20261008-112544-host-38327"])
+    monkeypatch.setattr(coordination, "run_id", lambda: next(runs))
+    rec = claim("weight-6/unrestricted", campaign="bb-1155",
+                root=str(tmp_path), now=T0, minutes=30)
+    # The session is who may release it; the run is only who wrote the note.
+    assert rec["session_id"] == session_id()
+    assert rec["run_id"] == "20261008-112521-host-38319"
+    assert release("weight-6/unrestricted", root=str(tmp_path), now=T0) is True
+    assert read_claim("weight-6/unrestricted", root=str(tmp_path), now=T0) is None
 
 
 def test_releasing_an_expired_claim_reports_nothing_to_release(tmp_path):
