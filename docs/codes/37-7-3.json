@@ -1,5 +1,5 @@
 {
- "schema_version": "0.2",
+ "schema_version": "0.5",
  "name": "[[37,7,3]] punctured triangular colour-code complex",
  "code_type": "CSS",
  "n": 37,
@@ -450,30 +450,58 @@
    "method": "generic CSS memory schedule with one flag qubit per check: CX layers from a bipartite edge coloring, the flag coupled to the ancilla after the first and the second-to-last CX slot and measured every round, slot assignments filtered by an exact hook-cost criterion over single, same-ancilla and cross-ancilla hook pairs; screened by RIS and a seeded BP+OSD search"
   },
   "ler": {
-   "X": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 601,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.020894316,
-    "ci95": [
-     0.019269222,
-     0.022654034
-    ]
-   },
-   "Z": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 566,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.019627026,
-    "ci95": [
-     0.01805725,
-     0.02133095
-    ]
-   }
+   "X": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 2111,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.083550335,
+     "ci95": [
+      0.079794744,
+      0.087483538
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 601,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.020894316,
+     "ci95": [
+      0.019269222,
+      0.022654034
+     ]
+    }
+   ],
+   "Z": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 2109,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.083454257,
+     "ci95": [
+      0.079701721,
+      0.087384299
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 566,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.019627026,
+     "ci95": [
+      0.01805725,
+      0.02133095
+     ]
+    }
+   ]
   }
  }
 }

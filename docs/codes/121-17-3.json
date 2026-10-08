@@ -1,5 +1,5 @@
 {
- "schema_version": "0.2",
+ "schema_version": "0.5",
  "name": "[[121,17,3]] multi-band dense-packed code",
  "code_type": "CSS",
  "n": 121,
@@ -1133,30 +1133,58 @@
    "method": "generic CSS memory schedule: one ancilla per check, CX layers from a bipartite edge coloring, CNOT orders filtered by a hook-error criterion; screened by RIS on ker(H_dem) and an observable-constrained seeded BP+OSD search"
   },
   "ler": {
-   "X": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 452,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.015544949,
-    "ci95": [
-     0.014164123,
-     0.017058458
-    ]
-   },
-   "Z": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 518,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.017899827,
-    "ci95": [
-     0.01640781,
-     0.019525359
-    ]
-   }
+   "X": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 1835,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.070689766,
+     "ci95": [
+      0.067340919,
+      0.074203386
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 452,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.015544949,
+     "ci95": [
+      0.014164123,
+      0.017058458
+     ]
+    }
+   ],
+   "Z": [
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 1798,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.069023313,
+     "ci95": [
+      0.065727082,
+      0.072482843
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 518,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.017899827,
+     "ci95": [
+      0.01640781,
+      0.019525359
+     ]
+    }
+   ]
   }
  }
 }

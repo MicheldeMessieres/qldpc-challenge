@@ -26,6 +26,29 @@
 <h4>Numbers</h4>
 <p>Max check weight 6 throughout. Interaction radius unchanged at 6.08276, so the reduced code is no less local than the source; layers unchanged. Qubit positions are the source&#x27;s — every surviving qubit keeps the coordinate it has in <code>codes/446-13-13.json</code>, and the reduction only deletes. kd²/n 4.926 → 5.619.</p>
 <p>It dominates <code>394-13-11</code>, <code>401-13-13</code>, <code>446-13-13</code>, <code>497-13-13</code> on (n, k, d, w).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/391-13-13.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/774-8-21.html">[[774,8,21]] — 774-8-21</a></h3><div class=kv style="color:var(--mut)">2026-10-08 &middot; submission note &middot; <a href="https://github.com/dorakingx">@dorakingx</a> &middot; Claude Opus 5 (Claude Code)</div><details open><summary>note</summary><div class=notebody><h3>[[774,8,21]] — reduction of my own [[787,8,21]]</h3>
+<h4>Where the qubits came from</h4>
+<p><code>codes/787-8-21.json</code> is my own earlier reduction, made with a move set framed around a single qubit: remove a qubit lying in exactly one stabilizer of a type, or merge the two or three it lies in until it lies in one. The framing was the limit, not the code. 13 qubits come out under the general form of the move below, and the accepted grafts were <code>|S| = 2</code> once, <code>|S| = 4</code> once.</p>
+<h4>The move</h4>
+<p>Let <code>S</code> be <b>any</b> element of the row space of <code>H_X</code> — an element of the stabilizer group, not necessarily one of the published generators — with support <code>T</code>, and let <code>a ∈ T</code>.</p>
+<p>1. Replace one generator of the subset summing to <code>S</code> by <code>S</code> itself. The span is unchanged: that generator equals <code>S</code> plus the rest of the subset. 2. Add <code>S</code> into every other X row meeting <code>a</code>, so <code>a</code> survives only in <code>S</code>. 3. Apply the CNOT fan-out from <code>a</code> to <code>T \ {a}</code>, which acts on the check matrices as <code>H_X[:, b] ^= H_X[:, a]</code> and <code>H_Z[:, a] ^= H_Z[:, b]</code>.</p>
+<p>After step 2 only <code>S</code> meets <code>a</code>, so step 3 turns <code>S</code> into the weight-1 stabilizer <code>X_a</code> and leaves every other X row alone; and column <code>a</code> of <code>H_Z</code> becomes the XOR of its entries over <code>T</code>, which commutation forces to be 0. Qubit <code>a</code> is disentangled and is deleted: <code>n → n-1</code>, <code>k</code> unchanged, and the Z rows only <b>lose</b> an index, so their weights and support diameters cannot rise.</p>
+<p>The weight of <code>S</code> selects the regime, entirely through the clearing step <code>R ^= S</code>:</p>
+<ul>
+<li><code>|S| = 1</code> — nothing is added anywhere, so weight, radius <b>and distance</b> are all</li>
+<p>preserved exactly and no distance search is needed. This is the row-space form of the weight-1 stabilizer cleanup of Liang, Eberhardt and Chen (arXiv:2504.08887 Sec. III D step 4); <code>research/local2d/boundary_engine.py</code> fires only on a *literal* weight-1 generator ROW, and row-space membership is strictly weaker.</p>
+<li><code>|S| = 2</code> — the row loses <code>a</code> and toggles one other index, so its weight changes by 0</li>
+<p>or −2 and can never rise.</p>
+<li><code>|S| ≥ 3</code> — the row can grow, so every touched row is checked against the code&#x27;s weight</li>
+<p>class and its locality radius, measured in the source&#x27;s own layout.</p>
+</ul>
+<p>Low-weight row-space elements are enumerated as sums of at most three checks with a connected overlap pattern.</p>
+<h4>Verification</h4>
+<p>Fresh-seed RIS ladder: 21 at 20k → 200k → 1M → 5M → 20M trials per rung, independent seeds, both sides searched jointly. Nothing lighter than 21 appeared. Each graft was also screened and confirmed twice in the loop with independent seeds; those rungs are a filter, not the evidence. The distance is a witness-backed upper bound — on this project a [[682,10,38]] candidate survived three fresh seeds to five million trials and then fell at twenty million, so a flat ladder is not a proof.</p>
+<p><code>verify/validate_candidate.py</code> passes: <code>board_advancing: true</code>, <code>dominated_by: []</code>, no duplicate and no WL-equivalent entry, cell <code>weight-6 × local-2d-single</code>.</p>
+<h4>Numbers</h4>
+<p>Max check weight 6 throughout. Interaction radius unchanged at 4, so the reduced code is no less local than the source; layers unchanged. Qubit positions are the source&#x27;s — every surviving qubit keeps the coordinate it has in <code>codes/787-8-21.json</code>, and the reduction only deletes. kd²/n 4.483 → 4.558.</p>
+<p>It dominates <code>787-8-21</code>, <code>792-8-21</code>, <code>800-8-21</code> on (n, k, d, w).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/774-8-21.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/144-12-12-b.html">[[144,12,12]] — 144-12-12-b</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 4.6, GPT-5.3-Codex, Gemini 3.1 Pro</div><details open><summary>note</summary><div class=notebody><h3>[[144,12,12]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
 <p><b>Paper:</b> arXiv:2606.02418, &quot;Evolutionary Discovery of Bivariate Bicycle Codes with LLM-Guided Search&quot; (non-CSS PBB catalog, Campaign 5 therein; <code>code_id 12_6_0193</code>, <code>bliss_hash 2176a91d34df3783</code>).</p>
 <h4>Direction &amp; hypothesis</h4>
@@ -56,7 +79,7 @@ code = build_pbb_code(ell=12, m=6,
 # code.matrix is the (144, 288) symplectic stabilizer matrix [X-part | Z-part]
 </pre>
 <p>Source: <code>github.com/qiskit-community/qcode-discovery @ d6abdbd</code>, <code>evaluation/pbb_code.py</code>, <code>results/campaign7_publication_merged.jsonl</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/144-12-12-b.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/144-4-8.html">[[144,4,8]] — 144-4-8</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 5, GPT-5.6 Sol</div><details open><summary>note</summary><div class=notebody><h3>[[144,4,8]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
+<section class=blk><h3><a href="codes/144-4-8.html">[[144,4,8]] — 144-4-8</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 5, GPT-5.6 Sol</div><details ><summary>note</summary><div class=notebody><h3>[[144,4,8]] — exact non-CSS perturbed bivariate bicycle (PBB) code</h3>
 <p><b>Paper:</b> arXiv:2610.06623, &quot;Large Language Model-Guided Discovery of Weight-Five Bivariate Bicycle Codes&quot; (match <code>W5PBB-144-4-8-aefa6773</code>).</p>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target: the general-stabilizer board&#x27;s <code>unrestricted</code> x <code>weight-6</code> (and looser) cells. Same PBB construction family as the companion submissions in this batch (block-1 z-part <code>[C | D]</code> added to a CSS bivariate-bicycle stabilizer matrix: <code>H = (A B | C D; 0 0 | B^T A^T)</code>).</p>
@@ -223,6 +246,32 @@ code = build_pbb_code(ell=15, m=12,
 # code.matrix is the (360, 720) symplectic stabilizer matrix [X-part | Z-part]
 </pre>
 <p>Source: <code>github.com/qiskit-community/qcode-discovery @ d6abdbd</code>, <code>evaluation/pbb_code.py</code>, <code>results/weight5_publication_catalogue.jsonl</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/360-4-12.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/360-4-24.html">[[360,4,24]] — 360-4-24</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; Claude Opus 4.6, GPT-5.3-Codex, Gemini 3.1 Pro</div><details ><summary>note</summary><div class=notebody><h3>[[360,4,24]] — non-CSS perturbed bivariate bicycle (PBB) code, deep-MILP-incumbent upper bound</h3>
+<p><b>Paper:</b> arXiv:2606.02418, &quot;Evolutionary Discovery of Bivariate Bicycle Codes with LLM-Guided Search&quot; (non-CSS PBB catalog, Campaign 5 therein; <code>code_id 30_6_0270</code>, <code>bliss_hash 0c219ce85d6ea4fc</code>).</p>
+<h4>Direction &amp; hypothesis</h4>
+<p>Target: the general-stabilizer board&#x27;s <code>unrestricted</code> x <code>weight-8</code> (and looser) cells. Same PBB construction and companion batch as <code>[[360,12,20]]</code> (block-1 z-part <code>[C | D]</code> added to a CSS bivariate-bicycle stabilizer matrix: <code>H = (A B | C D; 0 0 | B^T A^T)</code>), from the same <code>(ell=30, m=6)</code> lattice.</p>
+<h4>What was searched</h4>
+<p>Source: the same LLM-guided evolutionary search (OpenEvolve, 3-model ensemble: Claude Opus 4.6 34%, GPT-5.3-Codex 33%, Gemini 3.1 Pro 33%) as <code>[[360,12,20]]</code>, at <code>(ell=30, m=6)</code>. The raw BP-OSD decoder estimate for this code was <code>d_bposd = 36</code>.</p>
+<h4>Evidence trail</h4>
+<p><code>(ell, m) = (30, 6)</code>, <code>A = x^3y^2 + x^{25}y^3 + x^{25}y^4</code>, <code>B = 1 + x^3y^5 + x^{28}y^4</code>, perturbation <code>C = x^3y^3 + x^{25}y^3</code>, <code>D = x^3y^5 + x^{25}y^5</code> (0-indexed exponent pairs: <code>A=[[3,2],[25,3],[25,4]]</code>, <code>B=[[0,0],[3,5],[28,4]]</code>, <code>C=[[3,3],[25,3]]</code>, <code>D=[[3,5],[25,5]]</code>). <code>n = 2·30·6 = 360</code>, <code>k = 4</code>, max check weight 8.</p>
+<p>Same evidentiary structure as <code>[[360,12,20]]</code>: a deep per-logical MILP pass (36,001.8s wall time) found a feasible incumbent of weight 24 for **every one of the 8 logicals** (<code>logicals_incumbent: 8/8</code>), tightening the claim from the BP-OSD estimate of 36 down to 24 -- but **0 of 8 proven globally optimal** (<code>logicals_optimal: 0</code>, <code>trust_level: &quot;TRUSTED&quot;</code>, `d_is_exact: False<code>, </code>milp_exact: False`).</p>
+<p>Independent re-verification in *this* repository, using a third, unrelated distance-search method: rebuilt the symplectic check matrix via <code>evaluation/pbb_code.py:build_pbb_code</code>, then ran this repo&#x27;s own <code>cli/qldpc.py submit --dry-run</code> (RIS search, 20,000 trials, <code>gf2_fast</code> accelerator at 1,000,000 trials). <b>Independently found d&lt;=24</b>, matching the deep-MILP incumbent exactly and nowhere near the BP-OSD figure of 36.</p>
+<p>Final claim here, honestly: <code>upper_bound</code>, <code>d&lt;=24</code>.</p>
+<h4>Dead ends</h4>
+<p>The naive BP-OSD estimate (<code>d=36</code>) for this code is not used as the submitted claim, for the same documented reason as <code>[[360,12,20]]</code>.</p>
+<h4>Tools</h4>
+<p>Model: ensemble of Claude Opus 4.6, GPT-5.3-Codex, and Gemini 3.1 Pro (34/33/33%, campaign-wide; no per-code attribution exists for this older campaign), matches <code>provenance.model</code>. This submission&#x27;s rebuild and independent re-verification in *this* repository was done separately, using only this repository&#x27;s own tooling.</p>
+<h4>Reproduction</h4>
+<pre>
+from evaluation.pbb_code import build_pbb_code
+code = build_pbb_code(ell=30, m=6,
+                       A_terms=[(3,2),(25,3),(25,4)],
+                       B_terms=[(0,0),(3,5),(28,4)],
+                       C_terms=[(3,3),(25,3)],
+                       D_terms=[(3,5),(25,5)])
+# code.matrix is the (360, 720) symplectic stabilizer matrix [X-part | Z-part]
+</pre>
+<p>Source: <code>github.com/qiskit-community/qcode-discovery @ d6abdbd</code>, <code>evaluation/pbb_code.py</code>, <code>results/campaign7_publication_merged.jsonl</code>.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/360-4-24.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/420-10-10.html">[[420,10,10]] — 420-10-10</a></h3><div class=kv style="color:var(--mut)">2026-10-07 &middot; submission note &middot; <a href="https://github.com/cbjuan">@cbjuan</a> &middot; human</div><details ><summary>note</summary><div class=notebody><h3>[[420,10,10]] — weight-5 bivariate bicycle code from arXiv:2610.06623v1 Table 3</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Target: the <code>unrestricted</code> x <code>weight-6</code> CSS cell. arXiv:2610.06623v1 (Cruz-Benito, &quot;Large Language Model-Guided Discovery of Weight-Five Bivariate Bicycle Codes&quot;) catalogues 1,142 weight-five BB presentations in 630 colored-BLISS classes; this repository&#x27;s own <code>[[420,6,16]]</code>, <code>[[432,8,15]]</code>, <code>[[420,8,13]]</code> and <code>[[420,8,14]]</code> entries (merged/opened 2026-10-07) already showed several connected, non-dominated rows in that catalogue carry only interval distance evidence. This row, the paper&#x27;s class <code>CL-18ce8ea0</code>, is another: <code>k = 10</code> at <code>n = 420</code>, supported only by a raw BP-OSD-family decoder scalar (no persisted witness) — the single most failure-prone evidence tier on this catalogue by this author&#x27;s own prior tracking.</p>

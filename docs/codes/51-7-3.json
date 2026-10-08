@@ -1,5 +1,5 @@
 {
- "schema_version": "0.2",
+ "schema_version": "0.5",
  "name": "[[51,7,3]] multi-band dense-packed code",
  "code_type": "CSS",
  "n": 51,
@@ -523,30 +523,82 @@
    "method": "generic CSS memory schedule: one ancilla per check, CX layers from a bipartite edge coloring, CNOT orders filtered by a hook-error criterion; screened by RIS on ker(H_dem) and an observable-constrained seeded BP+OSD search"
   },
   "ler": {
-   "X": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 194,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.006552153,
-    "ci95": [
-     0.005689656,
-     0.007544475
-    ]
-   },
-   "Z": {
-    "p": 0.001,
-    "shots": 10000,
-    "failures": 206,
-    "seed": 7,
-    "decoder": "bposd-cs-10",
-    "ler_per_round": 0.006963188,
-    "ci95": [
-     0.006071628,
-     0.007984694
-    ]
-   }
+   "X": [
+    {
+     "p": 0.005,
+     "shots": 10000,
+     "failures": 3679,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.179165589,
+     "ci95": [
+      0.171729892,
+      0.187049213
+     ]
+    },
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 786,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.027706995,
+     "ci95": [
+      0.025804064,
+      0.029747311
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 194,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.006552153,
+     "ci95": [
+      0.005689656,
+      0.007544475
+     ]
+    }
+   ],
+   "Z": [
+    {
+     "p": 0.005,
+     "shots": 10000,
+     "failures": 3618,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.174301306,
+     "ci95": [
+      0.167105868,
+      0.181916941
+     ]
+    },
+    {
+     "p": 0.002,
+     "shots": 10000,
+     "failures": 732,
+     "seed": 20261006,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.025698163,
+     "ci95": [
+      0.023874223,
+      0.027658639
+     ]
+    },
+    {
+     "p": 0.001,
+     "shots": 10000,
+     "failures": 206,
+     "seed": 7,
+     "decoder": "bposd-cs-10",
+     "ler_per_round": 0.006963188,
+     "ci95": [
+      0.006071628,
+      0.007984694
+     ]
+    }
+   ]
   }
  }
 }
