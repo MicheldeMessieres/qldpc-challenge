@@ -26,13 +26,14 @@ qubit permutation and global X/Z exchange (issue #2040):
                each representative's orthogonal complement is keyed; the whole
                orbit of U need never be visited. Needs pynauty (research
                extra). Measured: n = 7 in about 2 s and 40 MB, n = 8 in about
-               40 s and 75 MB, before distance certification.
+               40 s and 75 MB, before distance certification; n = 9 took
+               45 m 34 s and 69 MB end to end, certifying all 50,566 classes.
   permutation  The original canonicalizer: the RREF of every row space under
                all n! qubit permutations, precomputed for every subspace. Its
                memory is factorial in n and it stops at n = 6. Kept as the
                independent cross-check of the nauty keys.
 
-The supported maximum is MAX_N = 8, the largest stage measured so far; raising
+The supported maximum is MAX_N = 9, the largest stage measured so far; raising
 it is a go/no-go decision recorded with the stage's measurements, not a
 constant edit. Exact minimum distance is established through the repository's
 SAT certifier; timed-out cases are emitted as unresolved and make the run's
@@ -59,7 +60,7 @@ sys.path.insert(0, os.path.join(_HERE, "..", "..", "verify"))
 from css import compute_k, verify_css  # noqa: E402
 from submit import make_submission  # noqa: E402
 
-MAX_N = 8
+MAX_N = 9
 MAX_N_PERMUTATION = 6
 CANONICALIZERS = ("auto", "nauty", "permutation")
 
