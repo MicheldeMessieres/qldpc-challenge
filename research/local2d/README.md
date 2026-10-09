@@ -19,6 +19,7 @@ only, and nothing is a find until `verify/validate_candidate.py` passes it.
 | `boundary_engine.py` | The general builder: exact half-infinite boundary gauge operators over F2[t] (polynomial kernel by unimodular elimination), corner topological-order completion, cleanup (yields the qubit-removal layouts automatically), `reduce_weights` (generating-set weight minimization), and `graft_r1` / `graft_r1_safe` (r=1 qubit-removal with multi-seed distance discipline). |
 | `transfer.py` | Distance scaling *before* you build big lattices: d_X(L) = min(s*·L + O(1), w_bdd), with the slope s* computed exactly as a min-mean-weight cycle (Howard's policy iteration) of a transfer graph derived from a·g + b·f = 0. Verified against MILP-exact d_X on 7 families across 5 distinct slopes. |
 | `corner_detector.py` | The bounded term of the distance law, decided L-independently: every bounded logical is corner-pinned (gcd(f,g)=1 makes finite bulk operators stabilizers), so w_bdd is computed on a fixed small patch. Matches the exact MILP growing/bounded classification 15/15. |
+| `tri_hinge_anneal.py` | Two-layer layout search: one long annealing chain on a triangular lattice (2 qubits per site) with a hinge cost on check diameters above the cap; same family as `hinge_anneal.py` (#2156) and `fold_layout.py`; deterministic per seed. Produced the layout of `codes/510-16-26.json`. |
 
 ## The loop for a 2d-local direction
 
