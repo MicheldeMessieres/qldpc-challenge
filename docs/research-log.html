@@ -220,6 +220,38 @@ HX, HZ = build_bb(8, 8,
 <h4>Numbers</h4>
 <p>Max check weight 6 throughout. Interaction radius unchanged at 4, so the reduced code is no less local than the source; layers unchanged. Qubit positions are the source&#x27;s — every surviving qubit keeps the coordinate it has in <code>codes/787-8-21.json</code>, and the reduction only deletes. kd²/n 4.483 → 4.558.</p>
 <p>It dominates <code>787-8-21</code>, <code>792-8-21</code>, <code>800-8-21</code> on (n, k, d, w).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/774-8-21.md">raw markdown</a></div></details></section>
+<section class=blk><h3><a href="codes/800-8-27.html">[[800,8,27]] — 800-8-27</a></h3><div class=kv style="color:var(--mut)">2026-10-08 &middot; submission note &middot; <a href="https://github.com/MicheldeMessieres">@MicheldeMessieres</a> &middot; Claude Opus 5.5 (Claude Code)</div><details ><summary>note</summary><div class=notebody><h3>[[800,8,27]] — the board&#x27;s single-layer B = 3 weight-8 tile code at 20 x 20</h3>
+<h4>Direction &amp; hypothesis</h4>
+<p>The single-layer (radius &lt;= 4) weight-8 CSS cell is led by the B = 3 tile code of codes/288-8-15.json and codes/338-8-16.json (@fullymiddleaged; tile family of Steffan, Choe, Breuckmann, Pereira, Eberhardt, arXiv:2504.09171) and its grafted reductions codes/316-8-16.json and codes/280-8-15.json (@dorakingx). notes/338-8-16.md records that the tile screen stopped at n &lt;= 400. We measured how the distance of the same bulk tile grows with lattice size and found about 1.5 per lattice step, so kd^2/n rises with n up to the n &lt;= 1000 cap. Derived from codes/338-8-16.json by @fullymiddleaged. This entry is that same tile at a larger size; it is not a new construction. Our contribution: only the 20 x 20 instance, its single-layer layout and its distance evidence.</p>
+<h4>What was searched</h4>
+<ul>
+<li>The same bulk tile (X-tile {h00,h01,h11,h22,v02,v10,v20,v21}, Z-tile by T2), built with the repository&#x27;s</li>
+<p>open directional boundary research/local2d/planar.build_open_directional(L, L, S_f, S_g) with S_f = {(0,0),(0,1),(1,1),(2,2)}, S_g = {(0,2),(1,0),(2,0),(2,1)}, for L = 12..22. The boundary rows differ from those of codes/288-8-15.json; at 12 x 12 both give [[288,8,15]].</p>
+<li>Distance ladder (two-side RIS, verify/gf2_fast.cpp built locally, pair depth 8):</li>
+<p>L=16: 20, L=17: 21, L=18: 23, L=19: 25, L=20: 27, L=21: 28, L=22: 30 (6-8 seeds x 100k trials each).</p>
+</ul>
+<h4>Evidence trail</h4>
+<ul>
+<li>One-side searches (4 seeds x 100k trials per side) give the stored X and Z witnesses.</li>
+<li>Deep pass: 5600000 RIS trials in total over fresh seeds, about 1.45 CPU-hours; lightest found = 27.</li>
+</ul>
+<p>| CPU-hours searched | lightest logical found | |---|---| | 0.014 | 27 | | 0.19 | 27 | | 0.5 | 27 | | 1.45 | 27 |</p>
+<ul>
+<li>Calibration control at the same depth: codes/968-8-23.json (flagship planar BB, 22 x 22) — the search</li>
+<p>recovers its weight-23 Z witness in 5 of 6 seeds, where a 3k-trial search had reported 26.</p>
+<li>Claim: witness-backed upper bound d &lt;= 27. Not exact; no lower bound is claimed.</li>
+</ul>
+<h4>Dead ends</h4>
+<ul>
+<li>Our attempt to find a better single-layer pattern on triangular / honeycomb site lattices (about 52,000</li>
+<p>weight-6 and 15,800 weight-8 tile patterns) found nothing above the existing families; for every good pattern k equals the mixed area of the two tile halves, which the radius cap bounds.</p>
+<li>The weight-6 flagship family (codes/968-8-23.json) grows only about 1 per lattice step, so it does not</li>
+<p>gain from size the way this tile does.</p>
+</ul>
+<h4>Tools</h4>
+<p>Claude Opus 5.5 (Claude Code); repository research/local2d/planar.py (builder), verify/gf2_fast.cpp (RIS), verify/qldpc_verify.py and verify/validate_candidate.py. Approximate compute: see provenance.notes.</p>
+<h4>Reproduction</h4>
+<p>planar.build_open_directional(L, L, S_f, S_g, S_fbar=-S_f, S_gbar=-S_g) with the supports above; layout A(i,j) -&gt; (-i-j, j-i), B(i,j) -&gt; (-i-j, j-i+1) on the integer grid (radius 4.000, spacing 1).</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/800-8-27.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/899-173-3.html">[[899,173,3]] — 899-173-3</a></h3><div class=kv style="color:var(--mut)">2026-10-08 &middot; submission note &middot; <a href="https://github.com/mathysrennela">@mathysrennela</a> &middot; MiMo-V2.6-Flash</div><details ><summary>note</summary><div class=notebody><h3>[[899,173,3]] — contracted affine checkerboard core, exact d=3</h3>
 <h4>Direction &amp; hypothesis</h4>
 <p>Targeting the <code>local-2d-single × weight-4</code> geometric frontier, whose record was <code>[[923,173,3]]</code> (<code>g = 9k/n = 1.6869</code>). The affine mod-5 checkerboard grammar credited in <code>notes/961-169-3.md</code> tops out at <code>g = 1.5827</code> in its raw rectangle-completion form, so the opening was not in the base — the base census over all rectangles <code>26 ≤ W, H ≤ 39</code> at <code>n ≤ 1010</code> gives 5,414 complete cases and a best <code>g = 1.5827</code> (31×31, phases (3,1)), well below the record.</p>
