@@ -7,14 +7,14 @@
   "best_kd2_over_n": 1456.855,
   "best_geometric_efficiency": 1.7555,
   "provenance": {
-    "literature": 449,
-    "no_match": 829,
+    "no_match": 827,
     "parameters_only": 254,
-    "not_derived": 254,
+    "literature": 449,
+    "not_derived": 256,
     "method": "isomorphism against the literature index",
     "caveat": "no_match means the index holds no match, not that the code is unpublished: two sparse generating sets of one stabilizer group can have non-isomorphic Tanner graphs"
   },
   "best_kd2_over_n_w6": 30.476,
   "best_kd2_over_n_w8": 123.142,
-  "best_kd2_over_n_w12": 889.255
+  "best_kd2_over_n_w12": 589.169
 }
