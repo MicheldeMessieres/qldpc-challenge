@@ -1,0 +1,153 @@
+{
+ "schema_version": "0.4",
+ "name": "[[8,2,3]]",
+ "code_type": "stabilizer",
+ "n": 8,
+ "k": 2,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     5,
+     7
+    ],
+    "Z": [
+     0,
+     5,
+     6,
+     7
+    ]
+   },
+   {
+    "X": [
+     4,
+     6
+    ],
+    "Z": [
+     3,
+     7
+    ]
+   },
+   {
+    "X": [
+     3,
+     4
+    ],
+    "Z": [
+     0,
+     1,
+     3,
+     4
+    ]
+   },
+   {
+    "X": [
+     2,
+     5
+    ],
+    "Z": [
+     1,
+     7
+    ]
+   },
+   {
+    "X": [
+     1
+    ],
+    "Z": [
+     2,
+     4,
+     6
+    ]
+   },
+   {
+    "X": [
+     0
+    ],
+    "Z": [
+     2,
+     3,
+     5
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 3,
+  "P": {
+   "value": 3,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [
+     2
+    ],
+    "Z": [
+     0,
+     1
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "Cross, Andrew",
+   "Vandeth, Drew"
+  ],
+  "origin": "baseline",
+  "date": "2026-10-09",
+  "model": "Claude Opus 5.5 (Claude Code)",
+  "construction": "[[8,2,3]] weight-4 stabilizer code from Cross and Vandeth, 'Small Binary Stabilizer Subsystem Codes' (arXiv:2501.17447), as listed in Wei, Han, He, Li and Liu, 'Theory of low-weight quantum codes' (arXiv:2601.19848), Table 1. Generators as transcribed from that table.",
+  "references": [
+   "arXiv:2501.17447",
+   "arXiv:2601.19848"
+  ],
+  "novelty": "known_parameters",
+  "notes": "Literature entry: the code is Cross and Vandeth's. Entered, with a one-layer 2D layout, by @MicheldeMessieres; the layout is credited in locality.contributed_by."
+ },
+ "family": "other",
+ "locality": {
+  "coordinates": [
+   [
+    0.0,
+    2.0
+   ],
+   [
+    1.0,
+    2.0
+   ],
+   [
+    0.0,
+    1.0
+   ],
+   [
+    2.0,
+    1.0
+   ],
+   [
+    2.0,
+    2.0
+   ],
+   [
+    0.0,
+    0.0
+   ],
+   [
+    1.0,
+    1.0
+   ],
+   [
+    1.0,
+    0.0
+   ]
+  ],
+  "layers": 1,
+  "interaction_radius": 2.2362,
+  "contributed_by": {
+   "by": [
+    "@MicheldeMessieres"
+   ],
+   "date": "2026-10-09",
+   "method": "Simulated annealing over distinct integer-grid sites (one qubit per site) minimising the largest check diameter. Search driven by Claude Opus 5.5 (Claude Code)."
+  }
+ }
+}
