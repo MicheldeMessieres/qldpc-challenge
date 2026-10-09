@@ -17,6 +17,15 @@ Reproduce codes/510-16-26.json with --iters 3e7 --seed 1
 (defaults T 6.95, hex grid).
 The board verifier (verify/qldpc_verify.py), not this script, decides whether a layout is valid.
 
+Design notes (measured on this script, October 2026). On tight codes, where the 7.0 cap is only just reachable
+(e.g. codes/184-50-10.json, codes/558-14-28.json), each of these was necessary in one-change-at-a-time tests
+(3 seeds each, 3e7 moves): (1) a SOFT over-cap penalty on the same scale as the temperature, so the search can
+briefly cross the cap and come back (multiplying the penalty by 1e6 made every run fail); (2) a triangular lattice
+(a square lattice made every run fail); (3) long single chains (30 chains of 1e6 moves succeeded in only 5/30 and
+10/30 runs). The margin T = 6.95 vs 7.0 made no difference. In a variant of this script, moving the target linearly
+from 7.6 down to T during the run reduced the final radius on harder codes, but did not reach 7.0 for codes such as
+codes/672-20-32.json.
+
 Credits: simulated annealing (Kirkpatrick, Gelatt and Vecchi, Science 220, 671, 1983); the xorshift random-number
 generator (Marsaglia, J. Stat. Softw. 8(14), 2003); hinge-cost annealing for this cap, research/local2d/hinge_anneal.py
 (@MathysRennela, #2156); the plain-radius layout annealer research/local2d/fold_layout.py.
