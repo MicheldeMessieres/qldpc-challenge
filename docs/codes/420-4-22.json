@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[420,4,22]] weight-5 BB code (arXiv:2610.06623v1 Table 3)",
  "code_type": "CSS",
  "n": 420,
@@ -2981,33 +2981,43 @@
    ]
   },
   "Z": {
-   "value": 23,
+   "value": 22,
    "confidence": "upper_bound",
    "witness": [
     18,
-    30,
-    46,
+    19,
+    23,
     61,
-    73,
-    99,
-    116,
-    142,
-    154,
-    159,
-    185,
-    197,
-    202,
-    213,
-    237,
-    247,
-    257,
-    271,
-    325,
-    349,
-    379,
-    412,
-    413
-   ]
+    100,
+    104,
+    143,
+    147,
+    186,
+    190,
+    243,
+    253,
+    267,
+    277,
+    297,
+    335,
+    341,
+    345,
+    351,
+    375,
+    389,
+    409
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-09",
+    "found_at_samples": 300000000,
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
+    "seeds": [
+     1
+    ]
+   }
   }
  },
  "provenance": {
@@ -3019,7 +3029,7 @@
   "origin": "submission",
   "date": "2026-10-06",
   "model": "human",
-  "notes": "Known parameters: the (n,k,d) triple and the explicit polynomial presentation are published in arXiv:2610.06623v1, Table 3. This entry is an independent reconstruction and re-measurement, not a new construction. The claimed distance is a witness-backed upper bound; the paper states no exact certificate for this row. The paper prints a second (15,14) presentation with the same parameters (A = 1 + x^4 y^3 + x^8 y^11, B = 1 + x^3 y^3); it shares this entry's WL signature, so it is possibly the same code and is not filed separately."
+  "notes": "Known parameters: the (n,k,d) triple and the explicit polynomial presentation are published in arXiv:2610.06623v1, Table 3. This entry is an independent reconstruction and re-measurement, not a new construction. The claimed distance is a witness-backed upper bound; the paper states no exact certificate for this row. The paper prints a second (15,14) presentation with the same parameters (A = 1 + x^4 y^3 + x^8 y^11, B = 1 + x^3 y^3); it shares this entry's WL signature, so it is possibly the same code and is not filed separately. Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): Z side 23 -> 22 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 1)."
  },
  "family": "bivariate-bicycle"
 }

@@ -3780,51 +3780,49 @@
    }
   },
   "Z": {
-   "value": 30,
+   "value": 29,
    "confidence": "upper_bound",
    "witness": [
-    2,
-    5,
+    7,
     8,
-    11,
-    26,
-    29,
-    38,
-    41,
-    44,
-    47,
-    56,
-    59,
-    62,
+    50,
     65,
-    68,
-    71,
-    74,
-    77,
-    86,
-    89,
-    98,
-    101,
-    122,
-    125,
+    83,
+    88,
+    104,
+    106,
+    124,
     140,
-    143,
-    146,
-    149,
-    152,
-    155
+    161,
+    179,
+    188,
+    212,
+    216,
+    238,
+    240,
+    254,
+    266,
+    270,
+    274,
+    276,
+    298,
+    304,
+    314,
+    326,
+    334,
+    354,
+    356
    ],
    "witness_provenance": {
     "found_by": [
      "@vprusso"
     ],
-    "date": "2026-09-27",
+    "date": "2026-10-09",
     "found_at_samples": 300000000,
-    "tool": "verify/ris_gpu.py (build/ris_gpu, NVIDIA A40)",
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
     "seeds": [
-     1602626403
-    ],
-    "survived_samples": 300000000
+     2
+    ]
    }
   }
  },
@@ -3834,6 +3832,7 @@
   ],
   "model": "Claude Fable 5.1 (Claude Code)",
   "construction": "Periodic bivariate-bicycle code on Z_31 x Z_6 (n = 2*l*m = 372): x = S_31 tensor I_6, y = I_31 tensor S_6 (cyclic shifts), qubit index i*m + j in each block; A = x^0y^0 + x^10y^3 + x^13y^3 + x^22y^0, B = x^0y^0 + x^2y^0 + x^5y^4 + x^16y^2; H_X = [A|B], H_Z = [B^T|A^T] (research/kit/bb.py build_bb(31, 6, [[0, 0], [10, 3], [13, 3], [22, 0]], [[0, 0], [2, 0], [5, 4], [16, 2]])). gcd(31, 6) = 1, so Z_31 x Z_6 is cyclic of order 186 and the code is the cyclic generalized-bicycle code over Z_186 with a(z) = z^0 + z^75 + z^84 + z^165, b(z) = z^0 + z^126 + z^140 + z^160 (CRT relabeling x^a y^b -> z^t, t = a mod 31, t = b mod 6).",
-  "date": "2026-09-27"
+  "date": "2026-09-27",
+  "notes": " Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): Z side 30 -> 29 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 2)."
  }
 }

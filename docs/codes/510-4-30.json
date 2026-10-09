@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[510,4,30]]",
  "code_type": "CSS",
  "n": 510,
@@ -4093,42 +4093,51 @@
  "distance": {
   "d": 30,
   "X": {
-   "value": 32,
+   "value": 30,
    "confidence": "upper_bound",
    "witness": [
-    2,
-    31,
-    35,
-    58,
-    73,
-    95,
-    144,
-    163,
-    178,
-    185,
-    215,
-    227,
-    234,
-    249,
-    257,
-    267,
-    268,
-    297,
-    329,
-    359,
+    10,
+    29,
+    59,
+    93,
+    100,
+    108,
+    130,
+    139,
+    145,
+    149,
+    164,
+    201,
+    220,
+    228,
+    243,
+    274,
+    276,
+    306,
+    307,
+    314,
+    322,
+    353,
+    360,
+    370,
     384,
-    391,
-    399,
     407,
+    415,
     438,
-    445,
-    448,
-    451,
-    469,
-    481,
-    492,
-    500
-   ]
+    499,
+    501
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-09",
+    "found_at_samples": 300000000,
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
+    "seeds": [
+     1
+    ]
+   }
   },
   "Z": {
    "value": 30,
@@ -4174,7 +4183,8 @@
   "construction": "Bivariate bicycle on Z_15 x Z_17 with A={(9,1),(7,5),(11,15)} and B={(5,5),(13,4),(9,8)}.",
   "origin": "submission",
   "model": "GPT-5.6 Luna",
-  "date": "2026-09-27"
+  "date": "2026-09-27",
+  "notes": " Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): X side 32 -> 30 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 1)."
  },
  "family": "bivariate-bicycle"
 }

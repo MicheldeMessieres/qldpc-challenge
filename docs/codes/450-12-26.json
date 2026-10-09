@@ -3645,40 +3645,47 @@
    ]
   },
   "Z": {
-   "value": 30,
+   "value": 26,
    "confidence": "upper_bound",
    "witness": [
-    18,
-    57,
-    94,
-    105,
-    130,
-    134,
-    135,
-    146,
-    152,
-    156,
-    159,
-    163,
-    164,
-    165,
-    186,
-    190,
-    194,
-    247,
-    265,
+    15,
+    19,
+    23,
+    158,
+    174,
+    184,
+    187,
+    188,
+    200,
+    204,
+    210,
+    213,
+    217,
+    218,
+    221,
+    230,
     269,
-    302,
-    315,
-    318,
-    341,
-    365,
-    401,
-    414,
-    418,
-    425,
-    436
-   ]
+    280,
+    293,
+    301,
+    371,
+    384,
+    387,
+    395,
+    434,
+    442
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-09",
+    "found_at_samples": 300000000,
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
+    "seeds": [
+     2
+    ]
+   }
   }
  },
  "provenance": {
@@ -3689,7 +3696,7 @@
   "origin": "submission",
   "date": "2026-09-28",
   "model": "GPT-6 Luna",
-  "notes": "The trusted validator found no exact or WL-equivalent entry on the current board; this is a board-relative check and does not establish literature novelty.",
+  "notes": "The trusted validator found no exact or WL-equivalent entry on the current board; this is a board-relative check and does not establish literature novelty. Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): Z side 30 -> 26 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 2).",
   "search_budget": {
    "candidates_screened": 19731,
    "ris_trials_per_side": 3000000,

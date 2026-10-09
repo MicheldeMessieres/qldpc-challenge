@@ -3513,52 +3513,49 @@
  "distance": {
   "d": 29,
   "X": {
-   "value": 31,
+   "value": 29,
    "confidence": "upper_bound",
    "witness": [
-    15,
-    29,
-    35,
-    43,
-    49,
-    51,
-    52,
-    55,
+    19,
+    30,
+    33,
+    66,
     78,
-    107,
-    114,
-    143,
-    154,
+    80,
+    99,
+    100,
+    103,
+    129,
     165,
-    181,
-    197,
-    199,
-    207,
-    209,
-    210,
-    215,
-    230,
-    249,
-    256,
-    294,
-    301,
-    309,
-    322,
-    324,
-    332,
-    340
+    166,
+    178,
+    186,
+    198,
+    200,
+    208,
+    216,
+    225,
+    248,
+    250,
+    258,
+    259,
+    272,
+    273,
+    274,
+    300,
+    307,
+    345
    ],
    "witness_provenance": {
     "found_by": [
      "@vprusso"
     ],
-    "date": "2026-09-27",
+    "date": "2026-10-09",
     "found_at_samples": 300000000,
-    "tool": "verify/ris_gpu.py (build/ris_gpu, NVIDIA A40)",
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
     "seeds": [
-     1006530907
-    ],
-    "survived_samples": 300000000
+     2
+    ]
    }
   },
   "Z": {
@@ -3615,6 +3612,7 @@
   ],
   "model": "Claude Fable 5.1 (Claude Code)",
   "construction": "Periodic bivariate-bicycle code on Z_25 x Z_7 (n = 2*l*m = 350): x = S_25 tensor I_7, y = I_25 tensor S_7 (cyclic shifts), qubit index i*m + j in each block; A = x^0y^0 + x^2y^2 + x^11y^3 + x^18y^4, B = x^0y^0 + x^2y^5 + x^14y^1 + x^14y^2; H_X = [A|B], H_Z = [B^T|A^T] (research/kit/bb.py build_bb(25, 7, [[0, 0], [2, 2], [11, 3], [18, 4]], [[0, 0], [2, 5], [14, 1], [14, 2]])). gcd(25, 7) = 1, so Z_25 x Z_7 is cyclic of order 175 and the code is the cyclic generalized-bicycle code over Z_175 with a(z) = z^0 + z^2 + z^18 + z^136, b(z) = z^0 + z^64 + z^114 + z^152 (CRT relabeling x^a y^b -> z^t, t = a mod 25, t = b mod 7).",
-  "date": "2026-09-27"
+  "date": "2026-09-27",
+  "notes": " Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): X side 31 -> 29 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 2)."
  }
 }

@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[882,8,22]] planar BB L=21",
  "code_type": "CSS",
  "n": 882,
@@ -6549,36 +6549,46 @@
  "distance": {
   "d": 22,
   "X": {
-   "value": 26,
+   "value": 25,
    "confidence": "upper_bound",
    "witness": [
-    66,
-    108,
-    109,
-    110,
-    151,
-    192,
-    213,
-    214,
-    255,
-    256,
-    276,
-    277,
-    361,
-    405,
-    423,
-    467,
-    486,
-    507,
-    593,
-    612,
-    634,
-    675,
-    697,
-    739,
-    760,
-    843
-   ]
+    119,
+    161,
+    162,
+    163,
+    204,
+    245,
+    266,
+    267,
+    289,
+    309,
+    330,
+    414,
+    459,
+    480,
+    520,
+    539,
+    560,
+    646,
+    665,
+    687,
+    750,
+    771,
+    772,
+    792,
+    813
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-09",
+    "found_at_samples": 300000000,
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
+    "seeds": [
+     1
+    ]
+   }
   },
   "Z": {
    "value": 22,
@@ -6617,7 +6627,7 @@
   "origin": "submission",
   "date": "2026-09-27",
   "model": "MiMo-V2.6-Flash",
-  "notes": "Checked against the board: no same-parameter or WL-equivalent entry; see notes/882-8-22.md."
+  "notes": "Checked against the board: no same-parameter or WL-equivalent entry; see notes/882-8-22.md. Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): X side 26 -> 25 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 1)."
  },
  "family": "bivariate-bicycle",
  "locality": {

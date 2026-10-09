@@ -1,5 +1,5 @@
 {
- "schema_version": "0.1",
+ "schema_version": "0.2",
  "name": "[[792,202,20]]",
  "code_type": "CSS",
  "n": 792,
@@ -5979,32 +5979,41 @@
    ]
   },
   "Z": {
-   "value": 22,
+   "value": 20,
    "confidence": "upper_bound",
    "witness": [
-    50,
-    139,
-    144,
-    173,
-    221,
-    288,
-    294,
-    303,
-    311,
-    368,
-    439,
-    467,
-    473,
-    508,
-    516,
-    522,
-    564,
-    573,
-    683,
-    694,
-    705,
-    734
-   ]
+    27,
+    93,
+    111,
+    123,
+    246,
+    312,
+    380,
+    407,
+    415,
+    485,
+    491,
+    557,
+    565,
+    585,
+    605,
+    630,
+    712,
+    717,
+    723,
+    771
+   ],
+   "witness_provenance": {
+    "found_by": [
+     "@vprusso"
+    ],
+    "date": "2026-10-09",
+    "found_at_samples": 300000000,
+    "tool": "ris_gpu 300M trials/side, pair depth 8, Perlmutter A100",
+    "seeds": [
+     1
+    ]
+   }
   }
  },
  "provenance": {
@@ -6014,7 +6023,8 @@
   "construction": "contributed via qldpc submit",
   "origin": "submission",
   "date": "2026-09-28",
-  "model": "MiMo-V2.6-Flash"
+  "model": "MiMo-V2.6-Flash",
+  "notes": " Distance revision 2026-10-09 (Perlmutter refutation campaign, witnesses by @vprusso): Z side 22 -> 20 (GPU randomized information-set search (verify/ris_gpu.py, pair depth 8), 300,000,000 trials per side on an NVIDIA A100, seed 1)."
  },
  "family": "other"
 }
