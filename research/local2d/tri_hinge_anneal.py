@@ -17,6 +17,10 @@ Reproduce codes/510-16-26.json with --iters 3e7 --seed 1
 (defaults T 6.95, hex grid).
 The board verifier (verify/qldpc_verify.py), not this script, decides whether a layout is valid.
 
+Credits: simulated annealing (Kirkpatrick, Gelatt and Vecchi, Science 220, 671, 1983); the xorshift random-number
+generator (Marsaglia, J. Stat. Softw. 8(14), 2003); hinge-cost annealing for this cap, research/local2d/hinge_anneal.py
+(@MathysRennela, #2156); the plain-radius layout annealer research/local2d/fold_layout.py.
+
 usage: python research/local2d/tri_hinge_anneal.py codes/<n>-<k>-<d>.json --out layout.json
            [--iters 3e7] [--seed 1] [--T 6.95] [--grid hex]
 """
