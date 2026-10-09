@@ -4,13 +4,13 @@
   "stabilizer_codes": 145,
   "certified_exact": 627,
   "tracks": 12,
-  "best_kd2_over_n": 1456.855,
+  "best_kd2_over_n": 1456.704,
   "best_geometric_efficiency": 1.7555,
   "provenance": {
-    "not_derived": 257,
-    "literature": 449,
-    "no_match": 827,
     "parameters_only": 254,
+    "literature": 449,
+    "no_match": 819,
+    "not_derived": 265,
     "method": "isomorphism against the literature index",
     "caveat": "no_match means the index holds no match, not that the code is unpublished: two sparse generating sets of one stabilizer group can have non-isomorphic Tanner graphs"
   },
