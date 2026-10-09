@@ -20266,7 +20266,7 @@ uv run --frozen python verify/qldpc_verify.py codes/674-170-64.json
 <p>Score kd^2/n = 4.5 at check weight 6. Undominated in its cell against the board at submission time.</p>
 <h4>Boundary</h4>
 <p>The distance is an upper bound from witness search, not a proof. Literature novelty is unverified: cyclic GB codes are a classical family and these parameters may appear in the 2BGA literature.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/676-2-39.md">raw markdown</a></div></details></section>
-<section class=blk><h3><a href="codes/682-142-79.html">[[682,142,79]] — 682-142-79</a></h3><div class=kv style="color:var(--mut)">2026-09-21 &middot; submission note &middot; <a href="https://github.com/DennisWayo">@DennisWayo</a> &middot; OpenAI GPT-5 (Codex)</div><details ><summary>note</summary><div class=notebody><h3>[[682,142,79]]: distance revision of the board&#x27;s [[682,142,80]] entry</h3>
+<section class=blk><h3><a href="codes/682-142-50.html">[[682,142,50]] — 682-142-50</a></h3><div class=kv style="color:var(--mut)">2026-09-21 &middot; submission note &middot; <a href="https://github.com/DennisWayo">@DennisWayo</a> &middot; OpenAI GPT-5 (Codex)</div><details ><summary>note</summary><div class=notebody><h3>[[682,142,50]]: distance revision of the board&#x27;s [[682,142,80]] entry</h3>
 <h4>Revision history</h4>
 <p>[[682,142,79]] supersedes the board&#x27;s [[682,142,80]] entry. The code, its checks, its layout, and its original provenance are unchanged; only the distance block is corrected. A GPU random-information-set search (verify/ris_gpu.py, recover mode, 300,000,000 trials per side, pair depth 0, seed 4102) exhibits a weight-79 Z logical, so the previous witness-backed bound was overstated and the honest parameter set is [[682,142,79]]. The headline falls from kd^2/n = 1332.55 to 1299.45. Each lighter witness is carried in the entry with the budget it was found at; the other side keeps its original witness where it was not refuted. Distance remains an upper bound, not an exact claim.</p>
 <h4>Evidence</h4>
@@ -20307,14 +20307,16 @@ hx = [sorted([(i+a) % m for a in A] +
              [m+(i+b) % m for b in B]) for i in range(m)]
 hz = [sorted([(i-b) % m for b in B] +
              [m+(i-a) % m for a in A]) for i in range(m)]
-doc = json.loads(Path(&quot;codes/682-142-79.json&quot;).read_text())
+doc = json.loads(Path(&quot;codes/682-142-50.json&quot;).read_text())
 assert doc[&quot;checks&quot;][&quot;X&quot;] == hx
 assert doc[&quot;checks&quot;][&quot;Z&quot;] == hz
 </pre>
 <p>Verify the schema, CSS relations, ranks, check weight, and both logical witnesses from the repository root:</p>
 <pre>
-uv run --frozen python verify/qldpc_verify.py codes/682-142-79.json
-</pre></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/682-142-79.md">raw markdown</a></div></details></section>
+uv run --frozen python verify/qldpc_verify.py codes/682-142-50.json
+</pre>
+<h4>Correction (2026-10-09)</h4>
+<p>The distance above was an over-claim: the orbit-fold search now in the verifier (<code>verify/heuristic_distance.py</code>, PR #2902) finds lighter logicals constant on the orbits of the code&#x27;s symmetries (X: 79 -&gt; 50; Z: 79 -&gt; 50), so the entry is filed at d &lt;= 50 with those witnesses and renamed from slug 682-142-79. The entry was identified in the follow-up audit on issue #2899 (2026-10-08). All values remain upper bounds; the narrative above documents the original search.</p></div><div class=kv><a href="https://github.com/unitaryfoundation/qldpc-challenge/blob/main/notes/682-142-50.md">raw markdown</a></div></details></section>
 <section class=blk><h3><a href="codes/682-172-76.html">[[682,172,76]] — 682-172-76</a></h3><div class=kv style="color:var(--mut)">2026-09-21 &middot; submission note &middot; <a href="https://github.com/DennisWayo">@DennisWayo</a> &middot; OpenAI GPT-5 (Codex)</div><details ><summary>note</summary><div class=notebody><h3>[[682,172,76]]: per-side distance revision</h3>
 <h4>Revision history</h4>
 <p>The entry keeps its parameters [[682,172,76]]. The code, its checks, and its original provenance are unchanged; only the distance block is corrected. The entry is a cyclic generalized-bicycle code on Z_341 with H_X = [circ(a) | circ(b)] and H_Z = [circ(b)^T | circ(a)^T]. Structural witnesses exhibit a weight-77 Z logical: on the Z side, the Z_31 quotient code (both generator polynomials reduced modulo x^31 - 1) has a weight-7 logical whose norm-word lift, multiplication by 1 + x^31 + ... + x^310, is a weight-77 logical of the full code. The overall distance d = 76 is unchanged; only the Z side value moves. Each lighter witness is carried in the entry; the other side keeps its original witness where it was not refuted. Distance remains an upper bound, not an exact claim.</p>
