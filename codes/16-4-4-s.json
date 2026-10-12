@@ -1,0 +1,203 @@
+{
+ "schema_version": "0.4",
+ "name": "[[16,4,4]] weight-5 Z4-invariant non-CSS stabilizer code",
+ "code_type": "stabilizer",
+ "n": 16,
+ "k": 4,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     0,
+     4
+    ],
+    "Z": [
+     1,
+     3,
+     4,
+     11
+    ]
+   },
+   {
+    "X": [
+     1,
+     5
+    ],
+    "Z": [
+     0,
+     2,
+     5,
+     8
+    ]
+   },
+   {
+    "X": [
+     2,
+     6
+    ],
+    "Z": [
+     1,
+     3,
+     6,
+     9
+    ]
+   },
+   {
+    "X": [
+     3,
+     7
+    ],
+    "Z": [
+     0,
+     2,
+     7,
+     10
+    ]
+   },
+   {
+    "X": [
+     7,
+     10,
+     12,
+     13
+    ],
+    "Z": [
+     10,
+     12,
+     14
+    ]
+   },
+   {
+    "X": [
+     4,
+     11,
+     13,
+     14
+    ],
+    "Z": [
+     11,
+     13,
+     15
+    ]
+   },
+   {
+    "X": [
+     5,
+     8,
+     14,
+     15
+    ],
+    "Z": [
+     8,
+     12,
+     14
+    ]
+   },
+   {
+    "X": [
+     6,
+     9,
+     12,
+     15
+    ],
+    "Z": [
+     9,
+     13,
+     15
+    ]
+   },
+   {
+    "X": [
+     2,
+     7,
+     8,
+     9,
+     12
+    ],
+    "Z": [
+     2,
+     12
+    ]
+   },
+   {
+    "X": [
+     3,
+     4,
+     9,
+     10,
+     13
+    ],
+    "Z": [
+     3,
+     13
+    ]
+   },
+   {
+    "X": [
+     0,
+     5,
+     10,
+     11,
+     14
+    ],
+    "Z": [
+     0,
+     14
+    ]
+   },
+   {
+    "X": [
+     1,
+     6,
+     8,
+     11,
+     15
+    ],
+    "Z": [
+     1,
+     15
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 4,
+  "P": {
+   "value": 4,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [
+     0,
+     1,
+     2,
+     5
+    ],
+    "Z": [
+     0,
+     1,
+     2
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "@MicheldeMessieres"
+  ],
+  "construction": "Z4-invariant (quasi-cyclic) non-CSS stabilizer code: 16 qubits in 4 orbits of Z4 (qubit 4*b+g, b = orbit, g in Z4), 12 generators in 3 orbits of Z4 (each orbit = the 4 translates g -> g+t of one representative Pauli), every generator of weight <= 5. Found by a lazy SAT search over such codes (commutation encoded exactly; every nontrivial logical of weight < 4 found along the way is excluded together with its Z4 translates, then re-solved), related to the group-based (coset / Cayley-graph) constructions of non-CSS stabilizer LDPC codes of Camara, Ollivier and Tillich (arXiv:quant-ph/0502086). Orbit representatives: X0 Z1 Z3 Y4 Z11; X7 Y10 Y12 X13 Z14; Y2 X7 X8 X9 Y12. k = 16 - 12 = 4 (independent generators). Not CSS under any single-qubit Clifford.",
+  "origin": "submission",
+  "date": "2026-10-12",
+  "model": "Claude Opus 5.5 (Claude Code)",
+  "references": [
+   "arXiv:quant-ph/0502086",
+   "arXiv:2601.19848",
+   "arXiv:2601.15446 (literature check; see the note)"
+  ],
+  "novelty": "unknown",
+  "notes": "Distance: an exhaustive enumeration of every Pauli operator of weight 1, 2 and 3 finds no nontrivial logical, and weight-4 logicals exist (the stored witness), so d = 4 exactly for these generators; the SAT search reached the same exact value, and two further separate exhaustive programs agree. The board's Pauli-weight certifier is not available yet, so the claim is filed as an upper bound. The board's trusted gate (verify/validate_candidate.py) found no lighter logical in 3140 RIS trials (seed 1936550528), and the CI distance gate (verify/gate_changed.py, seed 1667834915) found none in 14 symmetry-orbit passes, 26920 deep RIS trials and 4038000 fast trials. Not CSS under any single-qubit Clifford: checked by the verifier on the generators and, by a separate linear-algebra test, on the whole stabilizer group. The board already has a CSS [[16,4,4]] of weight 6 (codes/16-4-4.json, @MathysRennela, found by locality-constrained SAT discovery); this is a different, non-CSS code, hence the -s slug. Literature check: we did not find a weight-5 [[16,4,4]] stabilizer code in Grassl's codetables.de (where the [[16,4]] optimum without a weight limit is d = 5, so d = 4 is not optimal there), in Wei, Han, He, Li and Liu (arXiv:2601.19848, tables n <= 12), in Wang, Liu, Li, Kubica and Gu (arXiv:2601.15446, whose [[16,4,4]] has weight 8) or in the EC Zoo (errorcorrectionzoo.org); literature novelty is not claimed.",
+  "search_budget": {
+   "cpu_hours": 4.4
+  }
+ },
+ "family": "other"
+}
