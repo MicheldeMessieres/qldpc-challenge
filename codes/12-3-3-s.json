@@ -1,0 +1,151 @@
+{
+ "schema_version": "0.4",
+ "name": "[[12,3,3]] weight-4 non-CSS stabilizer code",
+ "code_type": "stabilizer",
+ "n": 12,
+ "k": 3,
+ "checks": {
+  "S": [
+   {
+    "X": [
+     0,
+     2,
+     4
+    ],
+    "Z": [
+     0,
+     1
+    ]
+   },
+   {
+    "X": [
+     0,
+     8,
+     9,
+     11
+    ],
+    "Z": [
+     0,
+     9
+    ]
+   },
+   {
+    "X": [
+     1,
+     7
+    ],
+    "Z": [
+     4,
+     6
+    ]
+   },
+   {
+    "X": [
+     0,
+     1,
+     7,
+     11
+    ],
+    "Z": [
+     1,
+     7,
+     11
+    ]
+   },
+   {
+    "X": [
+     3,
+     9
+    ],
+    "Z": [
+     2,
+     3,
+     4,
+     9
+    ]
+   },
+   {
+    "X": [
+     6,
+     7
+    ],
+    "Z": [
+     5,
+     7,
+     10
+    ]
+   },
+   {
+    "X": [
+     4,
+     5,
+     6
+    ],
+    "Z": [
+     3,
+     6
+    ]
+   },
+   {
+    "X": [
+     5,
+     10,
+     11
+    ],
+    "Z": [
+     8,
+     10,
+     11
+    ]
+   },
+   {
+    "X": [
+     3,
+     8,
+     9
+    ],
+    "Z": [
+     5,
+     8
+    ]
+   }
+  ]
+ },
+ "distance": {
+  "d": 3,
+  "P": {
+   "value": 3,
+   "confidence": "upper_bound",
+   "witness": {
+    "X": [
+     0,
+     1
+    ],
+    "Z": [
+     0,
+     2
+    ]
+   }
+  }
+ },
+ "provenance": {
+  "authors": [
+   "@MicheldeMessieres"
+  ],
+  "construction": "Non-CSS stabilizer code with 9 independent generators of weight <= 4 on 12 qubits, found by a SAT search (kissat) over all such generator sets in which every pair of generators commutes and the 36 single-qubit Paulis have distinct nonzero syndromes (so every Pauli of weight 1 or 2 is detected and d >= 3). Generators: YZXIXIIIIIII, YIIIIIIIXYIX, IXIIZIZXIIII, XYIIIIIYIIIY, IIZYZIIIIYII, IIIIIZXYIIZI, IIIZXXYIIIII, IIIIIXIIZIYY, IIIXIZIIYXII. k = 12 - 9 = 3. Not CSS under any single-qubit Clifford.",
+  "origin": "submission",
+  "date": "2026-10-13",
+  "model": "Claude Opus 5.5 (Claude Code)",
+  "references": [
+   "arXiv:2601.19848",
+   "arXiv:2501.17447",
+   "arXiv:2601.15446 (literature check; see the note)"
+  ],
+  "novelty": "unknown",
+  "notes": "Distance: an exhaustive enumeration of every Pauli operator of weight 1 and 2 finds no nontrivial logical and no stabilizer element, and weight-3 logicals exist (36 of them, among them the stored witness), so d = 3 exactly for these generators; filed as an upper bound because the board's Pauli-weight certifier is not available yet. Not CSS under any single-qubit Clifford: checked by the verifier on the generators and, by two separate tests, on the whole stabilizer group. Same kd^2/n (2.25) as the published weight-4 [[8,2,3]] code of Cross and Vandeth (arXiv:2501.17447; on the board as the literature baseline codes/8-2-3.json), with one more logical qubit. Wei, Han, He, Li and Liu (arXiv:2601.19848, Table 2) list the lowest generator weight of a [[12,3,3]] stabilizer code as 4-5; these generators have weight 4. Literature novelty is not claimed.",
+  "search_budget": {
+   "cpu_hours": 0.01
+  }
+ },
+ "family": "other"
+}
