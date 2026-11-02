@@ -2,8 +2,8 @@
  "caveat": "no_match means the index holds no match, not that the code is unpublished: two sparse generating sets of one stabilizer group can have non-isomorphic Tanner graphs",
  "counts": {
   "literature": 485,
-  "no_match": 1750,
-  "not_derived": 164,
+  "no_match": 1746,
+  "not_derived": 204,
   "parameters_only": 408
  },
  "derivation_version": 1,
@@ -3333,11 +3333,11 @@
    "bucket": "not_derived",
    "matches": []
   },
-  "155-6-21": {
+  "155-6-20": {
    "bucket": "not_derived",
    "matches": []
   },
-  "155-6-23": {
+  "155-6-21-b": {
    "bucket": "not_derived",
    "matches": []
   },
@@ -3453,6 +3453,10 @@
      "xz_swapped": false
     }
    ]
+  },
+  "16-10-3": {
+   "bucket": "not_derived",
+   "matches": []
   },
   "16-2-4": {
    "bucket": "literature",
@@ -9243,6 +9247,10 @@
     }
    ]
   },
+  "32-25-3": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "32-4-7": {
    "bucket": "not_derived",
    "matches": []
@@ -11533,6 +11541,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "424-106-20": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "426-6-42": {
    "bucket": "no_match",
    "matches": []
@@ -12015,6 +12027,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "472-119-20": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "472-122-14": {
    "bucket": "no_match",
    "matches": []
@@ -12491,7 +12507,7 @@
     }
    ]
   },
-  "480-12-36": {
+  "480-12-34": {
    "bucket": "not_derived",
    "matches": []
   },
@@ -12553,6 +12569,14 @@
   },
   "485-5-11": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "485-97-25": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "488-123-22": {
+   "bucket": "not_derived",
    "matches": []
   },
   "488-126-14": {
@@ -13810,6 +13834,10 @@
     }
    ]
   },
+  "56-8-12": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "56-8-7": {
    "bucket": "parameters_only",
    "matches": [
@@ -13829,6 +13857,10 @@
      "source": "codetables"
     }
    ]
+  },
+  "56-9-12": {
+   "bucket": "not_derived",
+   "matches": []
   },
   "560-10-64": {
    "bucket": "no_match",
@@ -13912,6 +13944,10 @@
   },
   "567-15-7": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "568-143-22": {
+   "bucket": "not_derived",
    "matches": []
   },
   "568-146-14": {
@@ -14189,6 +14225,14 @@
    "bucket": "no_match",
    "matches": []
   },
+  "60-11-12": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-12-12": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "60-12-6": {
    "bucket": "parameters_only",
    "matches": [
@@ -14209,8 +14253,36 @@
     }
    ]
   },
+  "60-13-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-13-12": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-14-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-15-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-16-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "60-16-6": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "60-18-10": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "60-19-10": {
+   "bucket": "not_derived",
    "matches": []
   },
   "60-2-11": {
@@ -14223,6 +14295,10 @@
      "xz_swapped": false
     }
    ]
+  },
+  "60-20-10": {
+   "bucket": "not_derived",
+   "matches": []
   },
   "60-20-5": {
    "bucket": "parameters_only",
@@ -14381,6 +14457,10 @@
      "source": "codetables"
     }
    ]
+  },
+  "60-8-13": {
+   "bucket": "not_derived",
+   "matches": []
   },
   "60-8-6": {
    "bucket": "literature",
@@ -14600,6 +14680,14 @@
     }
    ]
   },
+  "62-16-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "62-17-11": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "62-2-11": {
    "bucket": "literature",
    "matches": [
@@ -14616,6 +14704,14 @@
    "matches": []
   },
   "62-20-10": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "62-6-14": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "62-7-14": {
    "bucket": "not_derived",
    "matches": []
   },
@@ -14696,6 +14792,10 @@
      "source": "codetables"
     }
    ]
+  },
+  "63-7-14": {
+   "bucket": "not_derived",
+   "matches": []
   },
   "63-9-6": {
    "bucket": "parameters_only",
@@ -15516,15 +15616,15 @@
    "bucket": "no_match",
    "matches": []
   },
-  "662-122-80": {
-   "bucket": "no_match",
+  "662-122-77": {
+   "bucket": "not_derived",
    "matches": []
   },
   "662-122-84": {
    "bucket": "no_match",
    "matches": []
   },
-  "662-122-95": {
+  "662-122-86": {
    "bucket": "not_derived",
    "matches": []
   },
@@ -15924,12 +16024,12 @@
    "bucket": "no_match",
    "matches": []
   },
-  "682-20-38": {
-   "bucket": "no_match",
+  "682-20-37": {
+   "bucket": "not_derived",
    "matches": []
   },
-  "682-32-42": {
-   "bucket": "no_match",
+  "682-32-38": {
+   "bucket": "not_derived",
    "matches": []
   },
   "682-40-66": {
@@ -16022,6 +16122,10 @@
   },
   "693-13-16": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "693-6-64": {
+   "bucket": "not_derived",
    "matches": []
   },
   "696-174-4": {
@@ -16278,6 +16382,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "711-187-7": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "711-8-25": {
    "bucket": "no_match",
    "matches": []
@@ -16290,6 +16398,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "714-22-1": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "715-19-7": {
    "bucket": "no_match",
    "matches": []
@@ -16300,6 +16412,10 @@
   },
   "718-64-12": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "719-305-1": {
+   "bucket": "not_derived",
    "matches": []
   },
   "72-10-10": {
@@ -16679,6 +16795,10 @@
    "bucket": "no_match",
    "matches": []
   },
+  "73-10-15": {
+   "bucket": "not_derived",
+   "matches": []
+  },
   "73-37-6": {
    "bucket": "literature",
    "matches": [
@@ -16744,6 +16864,14 @@
    ]
   },
   "74-2-13": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "749-155-3": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "749-156-3": {
    "bucket": "not_derived",
    "matches": []
   },
@@ -17373,6 +17501,14 @@
   },
   "800-18-27": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "800-29-24": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "800-32-22": {
+   "bucket": "not_derived",
    "matches": []
   },
   "800-326-6": {
@@ -19041,8 +19177,8 @@
    "bucket": "no_match",
    "matches": []
   },
-  "960-24-40": {
-   "bucket": "no_match",
+  "960-24-38": {
+   "bucket": "not_derived",
    "matches": []
   },
   "960-258-6": {
@@ -19211,6 +19347,14 @@
   },
   "998-54-5": {
    "bucket": "no_match",
+   "matches": []
+  },
+  "999-417-2": {
+   "bucket": "not_derived",
+   "matches": []
+  },
+  "999-418-2": {
+   "bucket": "not_derived",
    "matches": []
   }
  },
