@@ -21,7 +21,7 @@
   "records": 1178,
   "upper_bound": 1746
  },
- "date": "2026-11-02",
+ "date": "2026-11-09",
  "entries": [
   {
    "band": "A",
@@ -75735,7 +75735,7 @@
    "w": 32
   }
  ],
- "head": "692812768a1d6c7ee09fac97f430a8721bdecb30",
+ "head": "aa8b0f104d6a64b0108bfde8c112f03c5b0c073d",
  "issue": 4027,
  "next_ten": [
   "12-4-2-d",
